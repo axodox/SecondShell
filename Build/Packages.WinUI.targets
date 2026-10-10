@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Windows App SDK packages of the WinUI 3 host, in dependency order. Imported in the host project's ExtensionTargets, before Packages.Native.targets. -->
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(SdkBuildToolsPackageDir)build\Microsoft.Windows.SDK.BuildTools.targets" Condition="Exists('$(SdkBuildToolsPackageDir)build\Microsoft.Windows.SDK.BuildTools.targets')" />
+  <Import Project="$(SdkBuildToolsMsixPackageDir)build\Microsoft.Windows.SDK.BuildTools.MSIX.targets" Condition="Exists('$(SdkBuildToolsMsixPackageDir)build\Microsoft.Windows.SDK.BuildTools.MSIX.targets')" />
+  <Import Project="$(WindowsAppSdkBasePackageDir)build\native\Microsoft.WindowsAppSDK.Base.targets" Condition="Exists('$(WindowsAppSdkBasePackageDir)build\native\Microsoft.WindowsAppSDK.Base.targets')" />
+  <Import Project="$(WindowsAppSdkInteractiveExperiencesPackageDir)build\native\Microsoft.WindowsAppSDK.InteractiveExperiences.targets" Condition="Exists('$(WindowsAppSdkInteractiveExperiencesPackageDir)build\native\Microsoft.WindowsAppSDK.InteractiveExperiences.targets')" />
+  <Import Project="$(WindowsAppSdkFoundationPackageDir)build\native\Microsoft.WindowsAppSDK.Foundation.targets" Condition="Exists('$(WindowsAppSdkFoundationPackageDir)build\native\Microsoft.WindowsAppSDK.Foundation.targets')" />
+  <Import Project="$(WebView2PackageDir)build\native\Microsoft.Web.WebView2.targets" Condition="Exists('$(WebView2PackageDir)build\native\Microsoft.Web.WebView2.targets')" />
+  <Import Project="$(WindowsAppSdkWinUIPackageDir)build\native\Microsoft.WindowsAppSDK.WinUI.targets" Condition="Exists('$(WindowsAppSdkWinUIPackageDir)build\native\Microsoft.WindowsAppSDK.WinUI.targets')" />
+
+  <Target Name="EnsureWindowsAppSdkPackages" BeforeTargets="PrepareForBuild">
+    <Error Condition="!Exists('$(WindowsAppSdkWinUIPackageDir)') Or !Exists('$(WindowsAppSdkFoundationPackageDir)')" Text="Windows App SDK packages are missing. Run build.ps1 once." />
+  </Target>
+</Project>

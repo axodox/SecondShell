@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Windows App SDK packages of the WinUI 3 host, in dependency order. Imported at the top of the host project, after Packages.Native.props. -->
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(SdkBuildToolsPackageDir)build\Microsoft.Windows.SDK.BuildTools.props" Condition="Exists('$(SdkBuildToolsPackageDir)build\Microsoft.Windows.SDK.BuildTools.props')" />
+  <Import Project="$(SdkBuildToolsMsixPackageDir)build\Microsoft.Windows.SDK.BuildTools.MSIX.props" Condition="Exists('$(SdkBuildToolsMsixPackageDir)build\Microsoft.Windows.SDK.BuildTools.MSIX.props')" />
+  <Import Project="$(WindowsAppSdkBasePackageDir)build\native\Microsoft.WindowsAppSDK.Base.props" Condition="Exists('$(WindowsAppSdkBasePackageDir)build\native\Microsoft.WindowsAppSDK.Base.props')" />
+  <Import Project="$(WindowsAppSdkInteractiveExperiencesPackageDir)build\native\Microsoft.WindowsAppSDK.InteractiveExperiences.props" Condition="Exists('$(WindowsAppSdkInteractiveExperiencesPackageDir)build\native\Microsoft.WindowsAppSDK.InteractiveExperiences.props')" />
+  <Import Project="$(WindowsAppSdkFoundationPackageDir)build\native\Microsoft.WindowsAppSDK.Foundation.props" Condition="Exists('$(WindowsAppSdkFoundationPackageDir)build\native\Microsoft.WindowsAppSDK.Foundation.props')" />
+  <Import Project="$(WindowsAppSdkWinUIPackageDir)build\native\Microsoft.WindowsAppSDK.WinUI.props" Condition="Exists('$(WindowsAppSdkWinUIPackageDir)build\native\Microsoft.WindowsAppSDK.WinUI.props')" />
+</Project>

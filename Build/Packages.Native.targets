@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Packages used by every C++ project: C++/WinRT, WIL, Axodox.Common. Imported in each project's ExtensionTargets. -->
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(CppWinRTPackageDir)build\native\Microsoft.Windows.CppWinRT.targets" Condition="Exists('$(CppWinRTPackageDir)build\native\Microsoft.Windows.CppWinRT.targets')" />
+  <Import Project="$(WilPackageDir)build\native\Microsoft.Windows.ImplementationLibrary.targets" Condition="Exists('$(WilPackageDir)build\native\Microsoft.Windows.ImplementationLibrary.targets')" />
+  <Import Project="$(AxodoxCommonPackageDir)build\native\Axodox.Common.targets" Condition="Exists('$(AxodoxCommonPackageDir)build\native\Axodox.Common.targets')" />
+
+  <!-- WinUI 3 desktop apps declare ApplicationType 'Windows Store', which makes Axodox.Common.targets pick its UWP build.
+       They are desktop processes, so point them back to the desktop build. -->
+  <PropertyGroup Condition="'$(UseWinUI)'=='true' And '$(AxodoxCommon-Location)'==''">
+    <AxodoxCommon-Runtime>desktop</AxodoxCommon-Runtime>
+    <AxodoxCommon-Libraries>$(AxodoxCommonPackageDir)bin\desktop\$(Platform)\$(Configuration)</AxodoxCommon-Libraries>
+    <AxodoxCommon-DependencyRoot>$(AxodoxCommonPackageDir)lib\desktop\$(Platform)\$(Configuration)</AxodoxCommon-DependencyRoot>
+    <AxodoxCommon-Dependencies>$(AxodoxCommon-DependencyRoot)\*.lib</AxodoxCommon-Dependencies>
+  </PropertyGroup>
+
+  <Target Name="EnsureSecondShellPackages" BeforeTargets="PrepareForBuild">
+    <Error Condition="!Exists('$(CppWinRTPackageDir)') Or !Exists('$(WilPackageDir)') Or !Exists('$(AxodoxCommonPackageDir)')" Text="NuGet packages are missing. Run build.ps1 (or: .tools\nuget.exe restore Build\packages.config -PackagesDirectory packages) once." />
+  </Target>
+</Project>

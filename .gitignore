@@ -1,0 +1,17 @@
+#Build output
+bin/
+obj/
+Generated Files/
+*.user
+*.aps
+*.ipch
+*.VC.db
+*.VC.opendb
+
+#Tools and packages, restored by build.ps1
+.tools/
+packages/
+.vs/
+
+#Machine-specific build settings
+Build/local.props

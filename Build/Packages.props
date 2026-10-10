@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Package version numbers and paths, shared by Packages.Native.* and Packages.WinUI.*. -->
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <SecondShellRoot>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..'))\</SecondShellRoot>
+    <SecondShellPackages>$(SecondShellRoot)packages\</SecondShellPackages>
+
+    <AxodoxCommonPackageDir>$(SecondShellPackages)Axodox.Common.1.0.120\</AxodoxCommonPackageDir>
+    <CppWinRTPackageDir>$(SecondShellPackages)Microsoft.Windows.CppWinRT.2.0.250303.1\</CppWinRTPackageDir>
+    <WilPackageDir>$(SecondShellPackages)Microsoft.Windows.ImplementationLibrary.1.0.260126.7\</WilPackageDir>
+    <SdkBuildToolsPackageDir>$(SecondShellPackages)Microsoft.Windows.SDK.BuildTools.10.0.26100.4654\</SdkBuildToolsPackageDir>
+    <SdkBuildToolsMsixPackageDir>$(SecondShellPackages)Microsoft.Windows.SDK.BuildTools.MSIX.1.7.251221100\</SdkBuildToolsMsixPackageDir>
+    <WindowsAppSdkBasePackageDir>$(SecondShellPackages)Microsoft.WindowsAppSDK.Base.2.0.4\</WindowsAppSdkBasePackageDir>
+    <WindowsAppSdkInteractiveExperiencesPackageDir>$(SecondShellPackages)Microsoft.WindowsAppSDK.InteractiveExperiences.2.1.9\</WindowsAppSdkInteractiveExperiencesPackageDir>
+    <WindowsAppSdkFoundationPackageDir>$(SecondShellPackages)Microsoft.WindowsAppSDK.Foundation.2.3.12\</WindowsAppSdkFoundationPackageDir>
+    <WindowsAppSdkWinUIPackageDir>$(SecondShellPackages)Microsoft.WindowsAppSDK.WinUI.2.3.9\</WindowsAppSdkWinUIPackageDir>
+    <WebView2PackageDir>$(SecondShellPackages)Microsoft.Web.WebView2.1.0.3719.77\</WebView2PackageDir>
+  </PropertyGroup>
+
+  <!-- Machine-specific settings, e.g. AxodoxCommon-Location to build against a local Axodox.Common repository. -->
+  <Import Project="$(MSBuildThisFileDirectory)local.props" Condition="Exists('$(MSBuildThisFileDirectory)local.props')" />
+</Project>
