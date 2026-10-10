@@ -4,6 +4,21 @@ The implementation of [Architecture.md](Architecture.md) in stages. Each stage e
 
 From stage 5 on, SecondShell can drive its own child session end to end. From then on, most behaviour can be tested by running sequences through the MCP server, without anyone watching the screen.
 
+## Status (2026-10-11)
+
+| Stage | State | Where |
+|---|---|---|
+| 0 Skeleton | Done | `master` (c6dd982) |
+| 1 Spikes | Done; results in Findings.md 2.11–2.15; gamepad deferred | branch `stage_1_and_2` (ee19502) |
+| 2 Transport, JSON-RPC | Done, tested (unit + real pipe) | branch `stage_1_and_2` (9f88267); Axodox.Common branch `named_pipe_messaging` (1b18ba7) |
+| 3 Actions, protocol | Done, tested (52 SecondShell tests pass, x64 + ARM64 build); not yet committed | working tree on `stage_1_and_2` |
+| 4 MCP server | Next | |
+
+Notes for continuing:
+- SecondShell builds against the local Axodox.Common (`Build\local.props`, gitignored, points to `G:\dev\axodox-common\Axodox.Common.Desktop`) until an Axodox.Common NuGet release contains the named pipe messaging.
+- Commands run from the Claude desktop app's terminal are inside its MSIX package context: their HKCU and `%LOCALAPPDATA%` writes are redirected (Findings.md 2.12). Anything that must write the real profile (spike runs, later the host) is started through `Spikes\bin\...\Breakaway.exe --explorer`.
+- Schema snapshots: `SecondShell.Tests\Snapshots\*.json`; rewrite them with `SECONDSHELL_UPDATE_SNAPSHOTS=1` after an intended change and review the diff.
+
 ## Testing approach
 
 - **Unit tests** (`SecondShell.Tests`) for everything that doesn't need a session: JSON types, JSON-RPC, MCP handling, sequencing with a fake driver link, config editing.

@@ -116,7 +116,7 @@ All tools that wait for something have a timeout with a sensible default, which 
 
 ### Basics
 
-Inputs are defined as a sequence of actions, which are executed in order. Each action is represented as a JSON object with an `"action"` field specifying the type of action, and additional fields specifying the parameters for that action.
+Inputs are defined as a sequence of actions, which are executed in order. Each action is represented as a JSON object with an `"action"` field specifying the type of action, and additional fields specifying the parameters for that action. Action names and enum values (e.g. `"Left"`, `"inline"`) are case-insensitive; the tool schema lists enum values in PascalCase. Unknown properties are rejected, so typos are reported instead of ignored.
 
 Actions are normally executed sequentially. Most actions require no duration setting, instead a default duration is used, so the system may register the input and process it. 
 

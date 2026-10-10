@@ -1,0 +1,1249 @@
+{
+  "anyOf": [
+    {
+      "additionalProperties": false,
+      "description": "Waits before the next action.",
+      "properties": {
+        "action": {
+          "const": "Control.Wait",
+          "type": "string"
+        },
+        "duration": {
+          "description": "Milliseconds.",
+          "minimum": 0,
+          "type": "number"
+        }
+      },
+      "required": [
+        "action",
+        "duration"
+      ],
+      "type": "object"
+    },
+    {
+      "additionalProperties": false,
+      "description": "Waits for all async actions to complete.",
+      "properties": {
+        "action": {
+          "const": "Control.Join",
+          "type": "string"
+        }
+      },
+      "required": [
+        "action"
+      ],
+      "type": "object"
+    },
+    {
+      "additionalProperties": false,
+      "description": "Cancels pending async actions and releases all held mouse buttons, keys and touch points. Does not move the cursor.",
+      "properties": {
+        "action": {
+          "const": "Control.Reset",
+          "type": "string"
+        }
+      },
+      "required": [
+        "action"
+      ],
+      "type": "object"
+    },
+    {
+      "additionalProperties": false,
+      "description": "Moves the mouse cursor to (x, y).",
+      "properties": {
+        "action": {
+          "const": "Mouse.Move",
+          "type": "string"
+        },
+        "async": {
+          "description": "Run in parallel with the next actions, until Control.Join.",
+          "type": "boolean"
+        },
+        "duration": {
+          "description": "Milliseconds the input takes; with async it runs in parallel with the next actions.",
+          "minimum": 0,
+          "type": "number"
+        },
+        "x": {
+          "description": "Session pixels from the left edge of the session's desktop.",
+          "minimum": 0,
+          "type": "number"
+        },
+        "y": {
+          "description": "Session pixels from the top edge of the session's desktop.",
+          "minimum": 0,
+          "type": "number"
+        }
+      },
+      "required": [
+        "action",
+        "x",
+        "y"
+      ],
+      "type": "object"
+    },
+    {
+      "additionalProperties": false,
+      "description": "Clicks a mouse button; with x and y the cursor first moves there instantly.",
+      "properties": {
+        "action": {
+          "const": "Mouse.Click",
+          "type": "string"
+        },
+        "async": {
+          "description": "Run in parallel with the next actions, until Control.Join.",
+          "type": "boolean"
+        },
+        "button": {
+          "description": "Left (default), Right or Middle.",
+          "enum": [
+            "Left",
+            "Right",
+            "Middle"
+          ],
+          "type": "string"
+        },
+        "duration": {
+          "description": "Milliseconds to hold the button, for a long press.",
+          "minimum": 0,
+          "type": "number"
+        },
+        "x": {
+          "description": "Session pixels from the left edge of the session's desktop.",
+          "minimum": 0,
+          "type": "number"
+        },
+        "y": {
+          "description": "Session pixels from the top edge of the session's desktop.",
+          "minimum": 0,
+          "type": "number"
+        }
+      },
+      "required": [
+        "action"
+      ],
+      "type": "object"
+    },
+    {
+      "additionalProperties": false,
+      "description": "Double-clicks a mouse button; with x and y the cursor first moves there instantly.",
+      "properties": {
+        "action": {
+          "const": "Mouse.DoubleClick",
+          "type": "string"
+        },
+        "button": {
+          "description": "Left (default), Right or Middle.",
+          "enum": [
+            "Left",
+            "Right",
+            "Middle"
+          ],
+          "type": "string"
+        },
+        "x": {
+          "description": "Session pixels from the left edge of the session's desktop.",
+          "minimum": 0,
+          "type": "number"
+        },
+        "y": {
+          "description": "Session pixels from the top edge of the session's desktop.",
+          "minimum": 0,
+          "type": "number"
+        }
+      },
+      "required": [
+        "action"
+      ],
+      "type": "object"
+    },
+    {
+      "additionalProperties": false,
+      "description": "Rotates the mouse wheel; it scrolls the element under the cursor, so x and y first move the cursor there.",
+      "properties": {
+        "action": {
+          "const": "Mouse.Wheel",
+          "type": "string"
+        },
+        "axis": {
+          "description": "Vertical (default) or Horizontal.",
+          "enum": [
+            "Vertical",
+            "Horizontal"
+          ],
+          "type": "string"
+        },
+        "delta": {
+          "description": "Notches, may be fractional. Vertical: positive scrolls up. Horizontal: positive scrolls right.",
+          "type": "number"
+        },
+        "x": {
+          "description": "Session pixels from the left edge of the session's desktop.",
+          "minimum": 0,
+          "type": "number"
+        },
+        "y": {
+          "description": "Session pixels from the top edge of the session's desktop.",
+          "minimum": 0,
+          "type": "number"
+        }
+      },
+      "required": [
+        "action",
+        "delta"
+      ],
+      "type": "object"
+    },
+    {
+      "additionalProperties": false,
+      "description": "Presses a mouse button at the cursor and holds it until Mouse.Release.",
+      "properties": {
+        "action": {
+          "const": "Mouse.Press",
+          "type": "string"
+        },
+        "button": {
+          "description": "Left (default), Right or Middle.",
+          "enum": [
+            "Left",
+            "Right",
+            "Middle"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "action"
+      ],
+      "type": "object"
+    },
+    {
+      "additionalProperties": false,
+      "description": "Releases a mouse button at the cursor.",
+      "properties": {
+        "action": {
+          "const": "Mouse.Release",
+          "type": "string"
+        },
+        "button": {
+          "description": "Left (default), Right or Middle.",
+          "enum": [
+            "Left",
+            "Right",
+            "Middle"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "action"
+      ],
+      "type": "object"
+    },
+    {
+      "additionalProperties": false,
+      "description": "Releases all mouse buttons; the cursor stays where it is.",
+      "properties": {
+        "action": {
+          "const": "Mouse.Reset",
+          "type": "string"
+        }
+      },
+      "required": [
+        "action"
+      ],
+      "type": "object"
+    },
+    {
+      "additionalProperties": false,
+      "description": "Puts a finger down at (x, y) and keeps it there until Touch.Release.",
+      "properties": {
+        "action": {
+          "const": "Touch.Press",
+          "type": "string"
+        },
+        "id": {
+          "description": "Identifies the touch point; it must not be in use by another active touch point.",
+          "minimum": 0,
+          "type": "number"
+        },
+        "x": {
+          "description": "Session pixels from the left edge of the session's desktop.",
+          "minimum": 0,
+          "type": "number"
+        },
+        "y": {
+          "description": "Session pixels from the top edge of the session's desktop.",
+          "minimum": 0,
+          "type": "number"
+        }
+      },
+      "required": [
+        "action",
+        "id",
+        "x",
+        "y"
+      ],
+      "type": "object"
+    },
+    {
+      "additionalProperties": false,
+      "description": "Lifts the finger of a touch point at its current position.",
+      "properties": {
+        "action": {
+          "const": "Touch.Release",
+          "type": "string"
+        },
+        "id": {
+          "description": "The touch point to lift.",
+          "minimum": 0,
+          "type": "number"
+        }
+      },
+      "required": [
+        "action",
+        "id"
+      ],
+      "type": "object"
+    },
+    {
+      "additionalProperties": false,
+      "description": "Taps at (x, y): a quick press and release.",
+      "properties": {
+        "action": {
+          "const": "Touch.Tap",
+          "type": "string"
+        },
+        "id": {
+          "description": "Identifies the touch point; it must not be in use by another active touch point.",
+          "minimum": 0,
+          "type": "number"
+        },
+        "x": {
+          "description": "Session pixels from the left edge of the session's desktop.",
+          "minimum": 0,
+          "type": "number"
+        },
+        "y": {
+          "description": "Session pixels from the top edge of the session's desktop.",
+          "minimum": 0,
+          "type": "number"
+        }
+      },
+      "required": [
+        "action",
+        "id",
+        "x",
+        "y"
+      ],
+      "type": "object"
+    },
+    {
+      "additionalProperties": false,
+      "description": "Moves a pressed touch point to (x, y).",
+      "properties": {
+        "action": {
+          "const": "Touch.Move",
+          "type": "string"
+        },
+        "async": {
+          "description": "Run in parallel with the next actions, until Control.Join.",
+          "type": "boolean"
+        },
+        "duration": {
+          "description": "Milliseconds the input takes; with async it runs in parallel with the next actions.",
+          "minimum": 0,
+          "type": "number"
+        },
+        "id": {
+          "description": "The touch point to move.",
+          "minimum": 0,
+          "type": "number"
+        },
+        "x": {
+          "description": "Session pixels from the left edge of the session's desktop.",
+          "minimum": 0,
+          "type": "number"
+        },
+        "y": {
+          "description": "Session pixels from the top edge of the session's desktop.",
+          "minimum": 0,
+          "type": "number"
+        }
+      },
+      "required": [
+        "action",
+        "id",
+        "x",
+        "y"
+      ],
+      "type": "object"
+    },
+    {
+      "additionalProperties": false,
+      "description": "Lifts all touch points.",
+      "properties": {
+        "action": {
+          "const": "Touch.Reset",
+          "type": "string"
+        }
+      },
+      "required": [
+        "action"
+      ],
+      "type": "object"
+    },
+    {
+      "additionalProperties": false,
+      "description": "Types text as Unicode characters, independent of the keyboard layout. \\n is typed as Enter and \\t as Tab; use Keyboard.Tap for other keys.",
+      "properties": {
+        "action": {
+          "const": "Keyboard.Type",
+          "type": "string"
+        },
+        "pause": {
+          "description": "Milliseconds between keystrokes.",
+          "minimum": 0,
+          "type": "number"
+        },
+        "sensitive": {
+          "description": "Hide the text from the action log and the on-screen visualization, e.g. for passwords.",
+          "type": "boolean"
+        },
+        "text": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "text"
+      ],
+      "type": "object"
+    },
+    {
+      "additionalProperties": false,
+      "description": "Presses and releases a key, with modifiers held, e.g. key S with modifiers [\"Ctrl\"] for Ctrl+S.",
+      "properties": {
+        "action": {
+          "const": "Keyboard.Tap",
+          "type": "string"
+        },
+        "key": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "maximum": 254,
+              "minimum": 1,
+              "type": "integer"
+            }
+          ],
+          "description": "A key name of System.Windows.Forms.Keys (e.g. Enter, Tab, F5, A, D1, Left), an alias (Ctrl, Alt, Shift, Win, Esc, Backspace, 0-9), or a virtual key code number."
+        },
+        "modifiers": {
+          "description": "Modifier keys held during the key: Shift, Ctrl, Alt, Win.",
+          "items": {
+            "enum": [
+              "Shift",
+              "Ctrl",
+              "Alt",
+              "Win"
+            ],
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "action",
+        "key"
+      ],
+      "type": "object"
+    },
+    {
+      "additionalProperties": false,
+      "description": "Presses the modifiers, then the key, and holds them until Keyboard.Release.",
+      "properties": {
+        "action": {
+          "const": "Keyboard.Press",
+          "type": "string"
+        },
+        "key": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "maximum": 254,
+              "minimum": 1,
+              "type": "integer"
+            }
+          ],
+          "description": "A key name of System.Windows.Forms.Keys (e.g. Enter, Tab, F5, A, D1, Left), an alias (Ctrl, Alt, Shift, Win, Esc, Backspace, 0-9), or a virtual key code number."
+        },
+        "modifiers": {
+          "description": "Modifier keys held during the key: Shift, Ctrl, Alt, Win.",
+          "items": {
+            "enum": [
+              "Shift",
+              "Ctrl",
+              "Alt",
+              "Win"
+            ],
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "action",
+        "key"
+      ],
+      "type": "object"
+    },
+    {
+      "additionalProperties": false,
+      "description": "Releases the key, then the modifiers.",
+      "properties": {
+        "action": {
+          "const": "Keyboard.Release",
+          "type": "string"
+        },
+        "key": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "maximum": 254,
+              "minimum": 1,
+              "type": "integer"
+            }
+          ],
+          "description": "A key name of System.Windows.Forms.Keys (e.g. Enter, Tab, F5, A, D1, Left), an alias (Ctrl, Alt, Shift, Win, Esc, Backspace, 0-9), or a virtual key code number."
+        },
+        "modifiers": {
+          "description": "Modifier keys held during the key: Shift, Ctrl, Alt, Win.",
+          "items": {
+            "enum": [
+              "Shift",
+              "Ctrl",
+              "Alt",
+              "Win"
+            ],
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "action",
+        "key"
+      ],
+      "type": "object"
+    },
+    {
+      "additionalProperties": false,
+      "description": "Releases all pressed keys.",
+      "properties": {
+        "action": {
+          "const": "Keyboard.Reset",
+          "type": "string"
+        }
+      },
+      "required": [
+        "action"
+      ],
+      "type": "object"
+    },
+    {
+      "additionalProperties": false,
+      "description": "Captures the session's whole desktop.",
+      "properties": {
+        "action": {
+          "const": "Capture.Screen",
+          "type": "string"
+        },
+        "format": {
+          "description": "Png (default) or Jpeg; inline captures are always PNG.",
+          "enum": [
+            "Png",
+            "Jpeg"
+          ],
+          "type": "string"
+        },
+        "output": {
+          "description": "Inline (default): returned as an image in the result. File: saved, the result has the path. Both.",
+          "enum": [
+            "Inline",
+            "File",
+            "Both"
+          ],
+          "type": "string"
+        },
+        "path": {
+          "description": "File path for File and Both; default: a file in the session's capture folder.",
+          "type": "string"
+        },
+        "resolution": {
+          "description": "Largest image size: the capture is scaled down to fit, never up; the result reports the scale.",
+          "properties": {
+            "height": {
+              "minimum": 1,
+              "type": "number"
+            },
+            "width": {
+              "minimum": 1,
+              "type": "number"
+            }
+          },
+          "required": [
+            "width",
+            "height"
+          ],
+          "type": "object"
+        },
+        "tag": {
+          "description": "A label returned with the capture; default: its index in the sequence.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "action"
+      ],
+      "type": "object"
+    },
+    {
+      "additionalProperties": false,
+      "description": "Captures one window; prefer it over Capture.Screen to save context.",
+      "properties": {
+        "action": {
+          "const": "Capture.Window",
+          "type": "string"
+        },
+        "format": {
+          "description": "Png (default) or Jpeg; inline captures are always PNG.",
+          "enum": [
+            "Png",
+            "Jpeg"
+          ],
+          "type": "string"
+        },
+        "output": {
+          "description": "Inline (default): returned as an image in the result. File: saved, the result has the path. Both.",
+          "enum": [
+            "Inline",
+            "File",
+            "Both"
+          ],
+          "type": "string"
+        },
+        "path": {
+          "description": "File path for File and Both; default: a file in the session's capture folder.",
+          "type": "string"
+        },
+        "resolution": {
+          "description": "Largest image size: the capture is scaled down to fit, never up; the result reports the scale.",
+          "properties": {
+            "height": {
+              "minimum": 1,
+              "type": "number"
+            },
+            "width": {
+              "minimum": 1,
+              "type": "number"
+            }
+          },
+          "required": [
+            "width",
+            "height"
+          ],
+          "type": "object"
+        },
+        "tag": {
+          "description": "A label returned with the capture; default: its index in the sequence.",
+          "type": "string"
+        },
+        "window": {
+          "description": "A window ID from Window.Enumerate; default: the active window.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "action"
+      ],
+      "type": "object"
+    },
+    {
+      "additionalProperties": false,
+      "description": "Captures a rectangle of the session's desktop.",
+      "properties": {
+        "action": {
+          "const": "Capture.Region",
+          "type": "string"
+        },
+        "format": {
+          "description": "Png (default) or Jpeg; inline captures are always PNG.",
+          "enum": [
+            "Png",
+            "Jpeg"
+          ],
+          "type": "string"
+        },
+        "height": {
+          "description": "Session pixels.",
+          "minimum": 1,
+          "type": "number"
+        },
+        "output": {
+          "description": "Inline (default): returned as an image in the result. File: saved, the result has the path. Both.",
+          "enum": [
+            "Inline",
+            "File",
+            "Both"
+          ],
+          "type": "string"
+        },
+        "path": {
+          "description": "File path for File and Both; default: a file in the session's capture folder.",
+          "type": "string"
+        },
+        "resolution": {
+          "description": "Largest image size: the capture is scaled down to fit, never up; the result reports the scale.",
+          "properties": {
+            "height": {
+              "minimum": 1,
+              "type": "number"
+            },
+            "width": {
+              "minimum": 1,
+              "type": "number"
+            }
+          },
+          "required": [
+            "width",
+            "height"
+          ],
+          "type": "object"
+        },
+        "tag": {
+          "description": "A label returned with the capture; default: its index in the sequence.",
+          "type": "string"
+        },
+        "width": {
+          "description": "Session pixels.",
+          "minimum": 1,
+          "type": "number"
+        },
+        "x": {
+          "description": "Session pixels from the left edge of the session's desktop.",
+          "minimum": 0,
+          "type": "number"
+        },
+        "y": {
+          "description": "Session pixels from the top edge of the session's desktop.",
+          "minimum": 0,
+          "type": "number"
+        }
+      },
+      "required": [
+        "action",
+        "x",
+        "y",
+        "width",
+        "height"
+      ],
+      "type": "object"
+    },
+    {
+      "additionalProperties": false,
+      "description": "Waits until the text appears on the screen, found with OCR, so it may not be 100% accurate.",
+      "properties": {
+        "action": {
+          "const": "Capture.WaitForText",
+          "type": "string"
+        },
+        "interval": {
+          "description": "Milliseconds between checks, default 500.",
+          "minimum": 1,
+          "type": "number"
+        },
+        "text": {
+          "type": "string"
+        },
+        "timeout": {
+          "description": "Milliseconds to wait at most, default 10000; when it expires the sequence stops with a Timeout error.",
+          "minimum": 0,
+          "type": "number"
+        }
+      },
+      "required": [
+        "action",
+        "text"
+      ],
+      "type": "object"
+    },
+    {
+      "additionalProperties": false,
+      "description": "Waits until the screen stops changing; use it instead of a fixed Control.Wait after an action whose effect takes an unknown time. Animations such as a blinking caret keep the screen changing, so limit the check to a window or region.",
+      "properties": {
+        "action": {
+          "const": "Capture.WaitForStable",
+          "type": "string"
+        },
+        "height": {
+          "description": "Only check this region: height in session pixels.",
+          "minimum": 1,
+          "type": "number"
+        },
+        "interval": {
+          "description": "Milliseconds between checks, default 100.",
+          "minimum": 1,
+          "type": "number"
+        },
+        "stable": {
+          "description": "Milliseconds the screen must stay the same, default 500.",
+          "minimum": 1,
+          "type": "number"
+        },
+        "timeout": {
+          "description": "Milliseconds to wait at most, default 10000; when it expires the sequence stops with a Timeout error.",
+          "minimum": 0,
+          "type": "number"
+        },
+        "width": {
+          "description": "Only check this region: width in session pixels.",
+          "minimum": 1,
+          "type": "number"
+        },
+        "window": {
+          "description": "Only check this window.",
+          "type": "string"
+        },
+        "x": {
+          "description": "Only check this region: left edge in session pixels.",
+          "minimum": 0,
+          "type": "number"
+        },
+        "y": {
+          "description": "Only check this region: top edge in session pixels.",
+          "minimum": 0,
+          "type": "number"
+        }
+      },
+      "required": [
+        "action"
+      ],
+      "type": "object"
+    },
+    {
+      "additionalProperties": false,
+      "description": "Lists the open top-level windows: ID, title, process, position, size, state, and which one is in the foreground.",
+      "properties": {
+        "action": {
+          "const": "Window.Enumerate",
+          "type": "string"
+        }
+      },
+      "required": [
+        "action"
+      ],
+      "type": "object"
+    },
+    {
+      "additionalProperties": false,
+      "description": "Brings a window to the foreground and gives it keyboard focus, restoring it if minimized. Use it before typing into a window.",
+      "properties": {
+        "action": {
+          "const": "Window.Focus",
+          "type": "string"
+        },
+        "window": {
+          "description": "A window ID from Window.Enumerate, e.g. \"0x0001A2B4\".",
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "window"
+      ],
+      "type": "object"
+    },
+    {
+      "additionalProperties": false,
+      "description": "Moves a window's top-left corner to (x, y).",
+      "properties": {
+        "action": {
+          "const": "Window.Move",
+          "type": "string"
+        },
+        "window": {
+          "description": "A window ID from Window.Enumerate, e.g. \"0x0001A2B4\".",
+          "type": "string"
+        },
+        "x": {
+          "description": "Session pixels from the left edge of the session's desktop.",
+          "type": "number"
+        },
+        "y": {
+          "description": "Session pixels from the top edge of the session's desktop.",
+          "type": "number"
+        }
+      },
+      "required": [
+        "action",
+        "window",
+        "x",
+        "y"
+      ],
+      "type": "object"
+    },
+    {
+      "additionalProperties": false,
+      "description": "Resizes a window.",
+      "properties": {
+        "action": {
+          "const": "Window.Resize",
+          "type": "string"
+        },
+        "height": {
+          "description": "Session pixels.",
+          "minimum": 1,
+          "type": "number"
+        },
+        "width": {
+          "description": "Session pixels.",
+          "minimum": 1,
+          "type": "number"
+        },
+        "window": {
+          "description": "A window ID from Window.Enumerate, e.g. \"0x0001A2B4\".",
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "window",
+        "width",
+        "height"
+      ],
+      "type": "object"
+    },
+    {
+      "additionalProperties": false,
+      "description": "Minimizes a window.",
+      "properties": {
+        "action": {
+          "const": "Window.Minimize",
+          "type": "string"
+        },
+        "window": {
+          "description": "A window ID from Window.Enumerate, e.g. \"0x0001A2B4\".",
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "window"
+      ],
+      "type": "object"
+    },
+    {
+      "additionalProperties": false,
+      "description": "Maximizes a window.",
+      "properties": {
+        "action": {
+          "const": "Window.Maximize",
+          "type": "string"
+        },
+        "window": {
+          "description": "A window ID from Window.Enumerate, e.g. \"0x0001A2B4\".",
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "window"
+      ],
+      "type": "object"
+    },
+    {
+      "additionalProperties": false,
+      "description": "Restores a window to its previous size and position.",
+      "properties": {
+        "action": {
+          "const": "Window.Restore",
+          "type": "string"
+        },
+        "window": {
+          "description": "A window ID from Window.Enumerate, e.g. \"0x0001A2B4\".",
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "window"
+      ],
+      "type": "object"
+    },
+    {
+      "additionalProperties": false,
+      "description": "Asks a window to close, as its X button does; the application may ask for confirmation first.",
+      "properties": {
+        "action": {
+          "const": "Window.Close",
+          "type": "string"
+        },
+        "window": {
+          "description": "A window ID from Window.Enumerate, e.g. \"0x0001A2B4\".",
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "window"
+      ],
+      "type": "object"
+    },
+    {
+      "additionalProperties": false,
+      "description": "Runs a command in the session. Synchronous by default: waits for the exit and returns the exit code and the output and error streams (each truncated to 64 KB). Use async for GUI applications, which otherwise block until closed: it returns the process ID at once.",
+      "properties": {
+        "action": {
+          "const": "Process.Run",
+          "type": "string"
+        },
+        "args": {
+          "description": "Arguments, passed without shell parsing with shell None.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "async": {
+          "description": "Return the process ID at once and run in parallel; wait for it later with Process.WaitForProcess.",
+          "type": "boolean"
+        },
+        "command": {
+          "description": "The command for the shell, or with shell None the path of an executable.",
+          "type": "string"
+        },
+        "shell": {
+          "description": "PowerShell (default, Windows PowerShell), Pwsh (PowerShell 7), Cmd, or None (no shell parsing).",
+          "enum": [
+            "PowerShell",
+            "Pwsh",
+            "Cmd",
+            "None"
+          ],
+          "type": "string"
+        },
+        "timeout": {
+          "description": "Milliseconds to wait for the exit, default 10000; when it expires the sequence stops with a Timeout error and the process keeps running.",
+          "minimum": 0,
+          "type": "number"
+        },
+        "workingDirectory": {
+          "description": "Default: the user's profile folder.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "command"
+      ],
+      "type": "object"
+    },
+    {
+      "additionalProperties": false,
+      "description": "Asks a process to exit gracefully: its windows get a close request, console processes get Ctrl+C. Returns its exit code; use Process.Kill if it does not exit.",
+      "properties": {
+        "action": {
+          "const": "Process.Stop",
+          "type": "string"
+        },
+        "pid": {
+          "description": "The process ID, e.g. from Process.Run or Process.Enumerate.",
+          "type": "number"
+        },
+        "timeout": {
+          "description": "Milliseconds to wait at most, default 10000; when it expires the sequence stops with a Timeout error.",
+          "minimum": 0,
+          "type": "number"
+        }
+      },
+      "required": [
+        "action",
+        "pid"
+      ],
+      "type": "object"
+    },
+    {
+      "additionalProperties": false,
+      "description": "Terminates a process immediately, without a chance to save or clean up.",
+      "properties": {
+        "action": {
+          "const": "Process.Kill",
+          "type": "string"
+        },
+        "pid": {
+          "description": "The process ID, e.g. from Process.Run or Process.Enumerate.",
+          "type": "number"
+        },
+        "tree": {
+          "description": "Also terminate its child processes.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "action",
+        "pid"
+      ],
+      "type": "object"
+    },
+    {
+      "additionalProperties": false,
+      "description": "Waits for a process to exit and returns its exit code, and for processes started with Process.Run also their output.",
+      "properties": {
+        "action": {
+          "const": "Process.WaitForProcess",
+          "type": "string"
+        },
+        "pid": {
+          "description": "The process ID, e.g. from Process.Run or Process.Enumerate.",
+          "type": "number"
+        },
+        "timeout": {
+          "description": "Milliseconds to wait at most, default 10000; when it expires the sequence stops with a Timeout error.",
+          "minimum": 0,
+          "type": "number"
+        }
+      },
+      "required": [
+        "action",
+        "pid"
+      ],
+      "type": "object"
+    },
+    {
+      "additionalProperties": false,
+      "description": "Lists the running processes of the session with their IDs, names, CPU and memory use.",
+      "properties": {
+        "action": {
+          "const": "Process.Enumerate",
+          "type": "string"
+        }
+      },
+      "required": [
+        "action"
+      ],
+      "type": "object"
+    },
+    {
+      "additionalProperties": false,
+      "description": "Reads the session's clipboard (separate from the user's). Without format: the list of formats on the clipboard and the text, if any. Images are returned like captures.",
+      "properties": {
+        "action": {
+          "const": "Clipboard.Read",
+          "type": "string"
+        },
+        "format": {
+          "description": "Text, Html, Image, Files or Raw.",
+          "enum": [
+            "Text",
+            "Html",
+            "Image",
+            "Files",
+            "Raw"
+          ],
+          "type": "string"
+        },
+        "output": {
+          "description": "For images: Inline (default), File or Both.",
+          "enum": [
+            "Inline",
+            "File",
+            "Both"
+          ],
+          "type": "string"
+        },
+        "path": {
+          "description": "For images: the file path for File and Both.",
+          "type": "string"
+        },
+        "resolution": {
+          "description": "For images: the largest image size.",
+          "properties": {
+            "height": {
+              "minimum": 1,
+              "type": "number"
+            },
+            "width": {
+              "minimum": 1,
+              "type": "number"
+            }
+          },
+          "required": [
+            "width",
+            "height"
+          ],
+          "type": "object"
+        }
+      },
+      "required": [
+        "action"
+      ],
+      "type": "object"
+    },
+    {
+      "additionalProperties": false,
+      "description": "Replaces the session's clipboard content; offer several formats at once (e.g. Text and Html), as applications do.",
+      "properties": {
+        "action": {
+          "const": "Clipboard.Write",
+          "type": "string"
+        },
+        "content": {
+          "items": {
+            "properties": {
+              "data": {
+                "description": "text and html: a string; image and raw: base64; files: an array of paths."
+              },
+              "format": {
+                "enum": [
+                  "Text",
+                  "Html",
+                  "Image",
+                  "Files",
+                  "Raw"
+                ],
+                "type": "string"
+              },
+              "name": {
+                "description": "raw: a registered clipboard format name or a standard format number.",
+                "type": "string"
+              },
+              "path": {
+                "description": "image: a PNG file to put on the clipboard instead of data.",
+                "type": "string"
+              }
+            },
+            "required": [
+              "format"
+            ],
+            "type": "object"
+          },
+          "minItems": 1,
+          "type": "array"
+        }
+      },
+      "required": [
+        "action",
+        "content"
+      ],
+      "type": "object"
+    }
+  ]
+}

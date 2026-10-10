@@ -323,8 +323,13 @@ namespace SecondShell::Actions
 }
 ```
 
-- One header per group, each with all actions of its group: `ControlActions.h`, `MouseActions.h`, `KeyboardActions.h`, `TouchActions.h`, `PenActions.h`, `GamepadActions.h`, `CaptureActions.h`, `WindowActions.h`, `ProcessActions.h`, `ClipboardActions.h`. Each action derives from `Action` (directly, or through a small template base that implements `Kind()` and `Type()`).
-- Results: `CaptureResult` (tag, size, scale, path, base64 image when inline), `ProcessResult`, `WindowListResult`, `ProcessListResult`, `ClipboardResult`, `InputStateResult` (what was held when a sequence stopped).
+- One header per group, each with all actions of its group: `ControlActions.h`, `MouseActions.h`, `KeyboardActions.h`, `TouchActions.h`, `CaptureActions.h`, `WindowActions.h`, `ProcessActions.h`, `ClipboardActions.h`. Pen actions are not designed yet (Design.md has none), and gamepad actions are deferred with gamepad support. Each action derives from `TypedAction<kind, type, TBase = Action>`, which implements `Kind()` and `Type()`; the capture actions share the described base `CaptureAction` (tag, output, path, format, resolution).
+- `Action` also has `IsAsync()` and `WaitTimeout()` (virtual, overridden by the actions with `async` / `timeout`), so the sequence runner needs no per-type code. `Action` and `ActionResult` are not abstract, because Axodox descriptors instantiate their types.
+- **All action and result descriptors are defined in one file, `Actions.cpp`**: a derived descriptor copies its base's properties and registers with the base while it is constructed, which needs the base constructed first, guaranteed only within one translation unit.
+- **`ActionCatalog`** lists every action type. It parses an action by its `"action"` name (case-insensitive) with that type's own descriptor, rejects unknown properties (typos), and builds the JSON schema the AI sees: `anyOf` the actions, each with `"action"` as a constant, its required properties and `additionalProperties: false`. A `json_type_metadata` specialization makes every `value_ptr<Action>` property (e.g. `RunSequenceRequest::Steps`) use this schema and validation. The plain descriptors can't do this: they validate and describe only the static type's properties.
+- Enum values are PascalCase identifiers in the schema and parsed case-insensitively (`"inline"` works). Keys use `KeyConverter` / `KeySchema`: a `Keys` name, an alias, or a virtual key code number. `WindowId` is a hex string type.
+- Not done yet: numeric properties are described as `"number"` (Axodox has no integer schema), and the process info has CPU and memory only (no GPU, disk, network).
+- Results (type discriminator `"type"`): `ActionResult` (status, error, message) and `CaptureResult` (tag, `CapturedImage`: size, scale, format, base64 data, path), `ProcessResult`, `ProcessListResult`, `WindowListResult`, `ClipboardResult`. What was held when a sequence stopped is an `InputState` in `RunSequenceResponse::ReleasedInput` and `ResetInputResponse`.
 - Small shared types: `MouseButton`, `GamepadButton`, `GamepadAxis`, `KeyModifier` (named enums), `KeyNames` (the `System.Windows.Forms.Keys` names and aliases mapped to virtual-key codes), `WindowId` (HWND as a hex string), `ClipboardContent` (format and data).
 
 ### 3.4 Protocol (`SecondShell::Protocol`)
@@ -345,6 +350,8 @@ The requests, responses and notifications between the processes, as described ty
 | Host → MCP | `sequence/progress` (notification) | Progress of a running sequence, forwarded as MCP progress notifications |
 
 `notifications/cancelled` (as in MCP: `requestId`, `reason`) cancels a running request on any link.
+
+Implemented in `DriverProtocol.h` and `HostProtocol.h` (plus `EmptyResponse`, `ProtocolErrors`: `ErrorCode` <-> JSON-RPC code 1000 + value). Each request declares `using ResponseType`. `input/forward` carries the user's input as input actions (`Mouse.Move`, `Keyboard.Press`, ...), so interactive mode needs no event model of its own. `actions/execute` has an `actionId`; async actions answer when started and report through `actions/completed`. `frames/subscribe` returns the texture handles, size and the adapter LUID. The host request types mirror the seven MCP tools (`RunSequenceRequest` carries the MCP `progressToken`, which the MCP tool's own argument type must not expose).
 
 ### 3.5 Environment (`SecondShell::Environment`)
 

@@ -3,6 +3,8 @@
 #include <windows.h>
 #include <unknwn.h>
 
+#include <fstream>
+
 #include <winrt/base.h>
 
 #include "Include/Axodox.Infrastructure.h"

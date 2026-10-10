@@ -57,19 +57,23 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="pch.h" />
+    <ClInclude Include="JsonSnapshot.h" />
     <ClInclude Include="MemoryTransport.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="ActionTests.cpp" />
     <ClCompile Include="CancellationTokenTests.cpp" />
     <ClCompile Include="EnvironmentTests.cpp" />
     <ClCompile Include="JsonRpcMessageTests.cpp" />
     <ClCompile Include="JsonRpcPeerTests.cpp" />
+    <ClCompile Include="JsonSnapshot.cpp" />
     <ClCompile Include="MemoryTransport.cpp" />
     <ClCompile Include="PipeTransportTests.cpp" />
     <ClCompile Include="ProductInfoTests.cpp" />
+    <ClCompile Include="ProtocolTests.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\SecondShell.Common\SecondShell.Common.vcxproj">

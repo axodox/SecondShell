@@ -1,0 +1,401 @@
+{
+  "anyOf": [
+    {
+      "additionalProperties": false,
+      "properties": {
+        "error": {
+          "enum": [
+            "SessionNotActive",
+            "UserInterrupted",
+            "AgentInputDisabled",
+            "Timeout",
+            "InvalidArgument",
+            "ActionFailed",
+            "SetupRequired"
+          ],
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "Succeeded",
+            "Failed",
+            "Cancelled"
+          ],
+          "type": "string"
+        },
+        "type": {
+          "const": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "type": "object"
+    },
+    {
+      "additionalProperties": false,
+      "properties": {
+        "error": {
+          "enum": [
+            "SessionNotActive",
+            "UserInterrupted",
+            "AgentInputDisabled",
+            "Timeout",
+            "InvalidArgument",
+            "ActionFailed",
+            "SetupRequired"
+          ],
+          "type": "string"
+        },
+        "image": {
+          "properties": {
+            "data": {
+              "type": "string"
+            },
+            "format": {
+              "enum": [
+                "Png",
+                "Jpeg"
+              ],
+              "type": "string"
+            },
+            "height": {
+              "type": "number"
+            },
+            "path": {
+              "type": "string"
+            },
+            "scale": {
+              "description": "Image pixels per session pixel: divide image coordinates by it to get session pixels.",
+              "type": "number"
+            },
+            "width": {
+              "type": "number"
+            }
+          },
+          "type": "object"
+        },
+        "message": {
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "Succeeded",
+            "Failed",
+            "Cancelled"
+          ],
+          "type": "string"
+        },
+        "tag": {
+          "type": "string"
+        },
+        "type": {
+          "const": "Capture",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "type": "object"
+    },
+    {
+      "additionalProperties": false,
+      "properties": {
+        "error": {
+          "enum": [
+            "SessionNotActive",
+            "UserInterrupted",
+            "AgentInputDisabled",
+            "Timeout",
+            "InvalidArgument",
+            "ActionFailed",
+            "SetupRequired"
+          ],
+          "type": "string"
+        },
+        "exitCode": {
+          "type": "number"
+        },
+        "message": {
+          "type": "string"
+        },
+        "pid": {
+          "type": "number"
+        },
+        "status": {
+          "enum": [
+            "Succeeded",
+            "Failed",
+            "Cancelled"
+          ],
+          "type": "string"
+        },
+        "stderr": {
+          "type": "string"
+        },
+        "stderrTruncated": {
+          "type": "boolean"
+        },
+        "stdout": {
+          "type": "string"
+        },
+        "stdoutTruncated": {
+          "type": "boolean"
+        },
+        "type": {
+          "const": "Process",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "type": "object"
+    },
+    {
+      "additionalProperties": false,
+      "properties": {
+        "error": {
+          "enum": [
+            "SessionNotActive",
+            "UserInterrupted",
+            "AgentInputDisabled",
+            "Timeout",
+            "InvalidArgument",
+            "ActionFailed",
+            "SetupRequired"
+          ],
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        },
+        "processes": {
+          "items": {
+            "properties": {
+              "cpuPercent": {
+                "type": "number"
+              },
+              "memoryBytes": {
+                "type": "number"
+              },
+              "name": {
+                "type": "string"
+              },
+              "parentPid": {
+                "type": "number"
+              },
+              "path": {
+                "type": "string"
+              },
+              "pid": {
+                "type": "number"
+              }
+            },
+            "type": "object"
+          },
+          "type": "array"
+        },
+        "status": {
+          "enum": [
+            "Succeeded",
+            "Failed",
+            "Cancelled"
+          ],
+          "type": "string"
+        },
+        "type": {
+          "const": "ProcessList",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "type": "object"
+    },
+    {
+      "additionalProperties": false,
+      "properties": {
+        "error": {
+          "enum": [
+            "SessionNotActive",
+            "UserInterrupted",
+            "AgentInputDisabled",
+            "Timeout",
+            "InvalidArgument",
+            "ActionFailed",
+            "SetupRequired"
+          ],
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "Succeeded",
+            "Failed",
+            "Cancelled"
+          ],
+          "type": "string"
+        },
+        "type": {
+          "const": "WindowList",
+          "type": "string"
+        },
+        "windows": {
+          "items": {
+            "properties": {
+              "height": {
+                "type": "number"
+              },
+              "isForeground": {
+                "type": "boolean"
+              },
+              "pid": {
+                "type": "number"
+              },
+              "processName": {
+                "type": "string"
+              },
+              "state": {
+                "enum": [
+                  "Normal",
+                  "Minimized",
+                  "Maximized"
+                ],
+                "type": "string"
+              },
+              "title": {
+                "type": "string"
+              },
+              "width": {
+                "type": "number"
+              },
+              "window": {
+                "type": "string"
+              },
+              "x": {
+                "type": "number"
+              },
+              "y": {
+                "type": "number"
+              }
+            },
+            "type": "object"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "type": "object"
+    },
+    {
+      "additionalProperties": false,
+      "properties": {
+        "content": {
+          "properties": {
+            "data": {
+              "description": "text and html: a string; image and raw: base64; files: an array of paths."
+            },
+            "format": {
+              "enum": [
+                "Text",
+                "Html",
+                "Image",
+                "Files",
+                "Raw"
+              ],
+              "type": "string"
+            },
+            "name": {
+              "description": "raw: a registered clipboard format name or a standard format number.",
+              "type": "string"
+            },
+            "path": {
+              "description": "image: a PNG file to put on the clipboard instead of data.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "format"
+          ],
+          "type": "object"
+        },
+        "error": {
+          "enum": [
+            "SessionNotActive",
+            "UserInterrupted",
+            "AgentInputDisabled",
+            "Timeout",
+            "InvalidArgument",
+            "ActionFailed",
+            "SetupRequired"
+          ],
+          "type": "string"
+        },
+        "formats": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "image": {
+          "properties": {
+            "data": {
+              "type": "string"
+            },
+            "format": {
+              "enum": [
+                "Png",
+                "Jpeg"
+              ],
+              "type": "string"
+            },
+            "height": {
+              "type": "number"
+            },
+            "path": {
+              "type": "string"
+            },
+            "scale": {
+              "description": "Image pixels per session pixel: divide image coordinates by it to get session pixels.",
+              "type": "number"
+            },
+            "width": {
+              "type": "number"
+            }
+          },
+          "type": "object"
+        },
+        "message": {
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "Succeeded",
+            "Failed",
+            "Cancelled"
+          ],
+          "type": "string"
+        },
+        "type": {
+          "const": "Clipboard",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "type": "object"
+    }
+  ]
+}

@@ -56,6 +56,25 @@
     <ClInclude Include="pch.h" />
     <ClInclude Include="CommonApi.h" />
     <ClInclude Include="ProductInfo.h" />
+    <ClInclude Include="Action.h" />
+    <ClInclude Include="ActionCatalog.h" />
+    <ClInclude Include="ActionEnums.h" />
+    <ClInclude Include="ActionResult.h" />
+    <ClInclude Include="ActionValues.h" />
+    <ClInclude Include="CaptureActions.h" />
+    <ClInclude Include="ClipboardActions.h" />
+    <ClInclude Include="ControlActions.h" />
+    <ClInclude Include="DriverProtocol.h" />
+    <ClInclude Include="EmptyResponse.h" />
+    <ClInclude Include="HostProtocol.h" />
+    <ClInclude Include="KeyboardActions.h" />
+    <ClInclude Include="KeyNames.h" />
+    <ClInclude Include="MouseActions.h" />
+    <ClInclude Include="ProcessActions.h" />
+    <ClInclude Include="ProtocolErrors.h" />
+    <ClInclude Include="TouchActions.h" />
+    <ClInclude Include="WindowActions.h" />
+    <ClInclude Include="WindowId.h" />
     <ClInclude Include="AppEnvironment.h" />
     <ClInclude Include="CancellationToken.h" />
     <ClInclude Include="IMessageTransport.h" />
@@ -70,6 +89,15 @@
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="ProductInfo.cpp" />
+    <ClCompile Include="ActionCatalog.cpp" />
+    <ClCompile Include="Actions.cpp" />
+    <ClCompile Include="ActionValues.cpp" />
+    <ClCompile Include="DriverProtocol.cpp" />
+    <ClCompile Include="EmptyResponse.cpp" />
+    <ClCompile Include="HostProtocol.cpp" />
+    <ClCompile Include="KeyNames.cpp" />
+    <ClCompile Include="ProtocolErrors.cpp" />
+    <ClCompile Include="WindowId.cpp" />
     <ClCompile Include="AppEnvironment.cpp" />
     <ClCompile Include="CancellationToken.cpp" />
     <ClCompile Include="IMessageTransport.cpp" />
