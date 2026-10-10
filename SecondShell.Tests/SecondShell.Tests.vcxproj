@@ -57,11 +57,18 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="pch.h" />
+    <ClInclude Include="MemoryTransport.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="CancellationTokenTests.cpp" />
+    <ClCompile Include="EnvironmentTests.cpp" />
+    <ClCompile Include="JsonRpcMessageTests.cpp" />
+    <ClCompile Include="JsonRpcPeerTests.cpp" />
+    <ClCompile Include="MemoryTransport.cpp" />
+    <ClCompile Include="PipeTransportTests.cpp" />
     <ClCompile Include="ProductInfoTests.cpp" />
   </ItemGroup>
   <ItemGroup>

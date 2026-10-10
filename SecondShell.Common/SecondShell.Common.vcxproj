@@ -56,12 +56,28 @@
     <ClInclude Include="pch.h" />
     <ClInclude Include="CommonApi.h" />
     <ClInclude Include="ProductInfo.h" />
+    <ClInclude Include="AppEnvironment.h" />
+    <ClInclude Include="CancellationToken.h" />
+    <ClInclude Include="IMessageTransport.h" />
+    <ClInclude Include="JsonRpcError.h" />
+    <ClInclude Include="JsonRpcMessage.h" />
+    <ClInclude Include="JsonRpcPeer.h" />
+    <ClInclude Include="PipeNames.h" />
+    <ClInclude Include="PipeTransport.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="ProductInfo.cpp" />
+    <ClCompile Include="AppEnvironment.cpp" />
+    <ClCompile Include="CancellationToken.cpp" />
+    <ClCompile Include="IMessageTransport.cpp" />
+    <ClCompile Include="JsonRpcError.cpp" />
+    <ClCompile Include="JsonRpcMessage.cpp" />
+    <ClCompile Include="JsonRpcPeer.cpp" />
+    <ClCompile Include="PipeNames.cpp" />
+    <ClCompile Include="PipeTransport.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

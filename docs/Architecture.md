@@ -211,6 +211,8 @@ namespace SecondShell::Rpc
 }
 ```
 
+A `PipeTransport` is created in the connection's connected event (so no message arrives before it subscribes) and dropped when `Closed` is raised, since the channel belongs to the messaging server or client. Tests use an in-memory transport pair (`SecondShell.Tests\MemoryTransport`), which delivers on its own thread like a pipe; it is not part of the shipped library.
+
 The pipes use Axodox.Common's messaging layer (`messaging_channel` / `messaging_server` / `messaging_client`, which already has TCP implementations) with a named pipe implementation added to Axodox.Common (section 9). Named pipes rather than loopback TCP, because:
 
 - **Access control**: the pipe's access list allows only the current user, and `PIPE_REJECT_REMOTE_CLIENTS` refuses remote clients. A loopback TCP port is open to every local user and process.
@@ -228,11 +230,25 @@ namespace SecondShell::Rpc
   {
     static Axodox::Json::json_object_descriptor<JsonRpcError> json_description;
 
-    int32_t Code = 0;
+    int32_t Code = 0;  //JsonRpcErrorCode (JSON-RPC's codes, ConnectionClosed, Timeout, RequestCancelled) or an application code
     std::string Message;
-    std::optional<Axodox::Infrastructure::value_ptr<Axodox::Json::json_value>> Data;
+    Axodox::Infrastructure::value_ptr<Axodox::Json::json_value> Data;
   };
-  //JsonRpcRequest, JsonRpcResponse, JsonRpcNotification: the JSON-RPC 2.0 envelopes
+
+  //The JSON-RPC 2.0 envelope: request, notification or response, with params and result as raw JSON.
+  //Written and parsed by hand, because its fields depend on the kind of message (see below).
+  struct JsonRpcMessage
+  {
+    Axodox::Infrastructure::value_ptr<Axodox::Json::json_value> Id;
+    std::string Method;
+    Axodox::Infrastructure::value_ptr<Axodox::Json::json_value> Params;
+    Axodox::Infrastructure::value_ptr<Axodox::Json::json_value> Result;
+    std::optional<JsonRpcError> Error;
+
+    JsonRpcMessageKind Kind() const;
+    std::string ToString() const;
+    static Axodox::Infrastructure::expected<JsonRpcMessage, JsonRpcError> Parse(std::string_view text);
+  };
 
   template<typename TResponse>
   using RpcResult = std::variant<TResponse, JsonRpcError>;
@@ -252,7 +268,7 @@ namespace SecondShell::Rpc
     template<typename TOwner, typename TNotification>
     void AddNotificationHandler(TOwner* owner, void(TOwner::*handler)(const TNotification& notification));
 
-    template<typename TRequest, typename TResponse>
+    template<typename TRequest, typename TResponse = typename TRequest::ResponseType>
     RpcResult<TResponse> Request(const TRequest& request, std::chrono::milliseconds timeout, const CancellationToken& cancellation);
 
     template<typename TNotification>
@@ -264,11 +280,14 @@ namespace SecondShell::Rpc
 }
 ```
 
-- Arguments are validated against the request type's schema before the handler runs; failures become `InvalidArgument` errors.
-- Exceptions in handlers are logged and become error responses.
-- Cancellation: an incoming cancellation notification (MCP's `notifications/cancelled`, or the same message on the internal links) cancels the handler's `CancellationToken`.
+- A method is declared by its request type: the descriptor name is the method name, and the type names its response with `using ResponseType = ...;`, so `Request` deduces it.
+- Params are validated against the request type's schema before the handler runs; failures become `InvalidParams` errors naming the property. Exceptions in handlers are logged and become `InternalError` responses.
+- Threads: each incoming request runs on its own thread (guarded by the peer's `lifetime_source`), so a long request doesn't hold up others. Notifications and responses are handled on the transport's thread, in order; a notification handler therefore must not wait for a response of the same peer.
+- Cancellation: MCP's `notifications/cancelled` (`requestId`, `reason`) is used on every link. An incoming one cancels the handler's `CancellationToken`, and the cancelled request gets no response, as MCP specifies. A request whose timeout expires or whose token is cancelled sends it to the other side and returns `Timeout` or `RequestCancelled`.
+- A closed transport fails the pending requests with `ConnectionClosed` and cancels the running handlers.
+- Why the envelope is written by hand: a request has an ID and a notification does not; a response always has an ID (null if the request's ID could not be read) and exactly one of `result` and `error`, and an empty result must still be written. One descriptor cannot express that. Params and results stay descriptor-based.
 
-`CancellationToken` is a small shared type (an Axodox `manual_reset_event` and a flag) used by every cancellable operation. If Axodox.Common's `async_operation` cancellation covers the same need, it is used instead.
+`CancellationToken` (`Cancel`, `IsCancelled`, `WaitFor`, a `Cancelled` event) is used by every cancellable operation.
 
 ### 3.3 Actions (`SecondShell::Actions`)
 
@@ -325,7 +344,7 @@ The requests, responses and notifications between the processes, as described ty
 | MCP → host | `session/initialize`, `session/check`, `session/shutdown`, `sequence/run`, `display/set`, `display/get`, `capture/configure` | One method per MCP tool |
 | Host → MCP | `sequence/progress` (notification) | Progress of a running sequence, forwarded as MCP progress notifications |
 
-`$/cancel` (notification, request ID) cancels a running request on any link.
+`notifications/cancelled` (as in MCP: `requestId`, `reason`) cancels a running request on any link.
 
 ### 3.5 Environment (`SecondShell::Environment`)
 
@@ -1195,7 +1214,7 @@ General-purpose pieces SecondShell needs, which fit Axodox.Common better than Se
 
 | Addition | Module | Contents | Needed for |
 |---|---|---|---|
-| **Named pipe messaging** | `Networking/Messaging/Pipes` | `named_pipe_messaging_channel` (a `messaging_channel` over a pipe, with `peer_session_id()` and `peer_process_id()`), `named_pipe_messaging_server`, `named_pipe_messaging_client` (connects and reconnects), `named_pipe_security` (current-user-only access list, `PIPE_REJECT_REMOTE_CLIENTS`) | All communication between SecondShell's processes |
+| **Named pipe messaging** (implemented in stage 2, branch `named_pipe_messaging`) | `Networking/Messaging/Pipes` | `named_pipe_messaging_channel` (a `messaging_channel` over a pipe, with `peer_session_id()` and `peer_process_id()`), `named_pipe_messaging_server`, `named_pipe_messaging_client` (connects and reconnects; refuses pipes another user created), `named_pipe_security` (current-user-only access list, `PIPE_REJECT_REMOTE_CLIENTS`); the first pipe instance claims the name, so another process cannot take it over | All communication between SecondShell's processes |
 | **Shared textures with keyed mutex** | `Graphics/Textures` | Shared NT-handle textures with `IDXGIKeyedMutex`, a lock type releasing the mutex when destroyed, opening by handle and by name, handle duplication into another process (similar to Asgard's `GraphicsMutex` / `GraphicsLock`) | Shared frames (section 3.6) |
 | **JSON-RPC 2.0 peer** | `Json` or `Networking` | A generic version of `JsonRpcPeer`: typed handlers keyed by descriptor name, requests with ID matching, notifications, cancellation, over any text message transport | All three links; also useful for other JSON-RPC protocols |
 | **WinUI 3 swap chain** | `Graphics/Swap Chains` | `WinUiSwapChain` for `Microsoft::UI::Xaml::Controls::SwapChainPanel`, the counterpart of the UWP-only `XamlSwapChain` | The host's session view |

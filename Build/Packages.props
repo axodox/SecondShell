@@ -19,4 +19,9 @@
 
   <!-- Machine-specific settings, e.g. AxodoxCommon-Location to build against a local Axodox.Common repository. -->
   <Import Project="$(MSBuildThisFileDirectory)local.props" Condition="Exists('$(MSBuildThisFileDirectory)local.props')" />
+
+  <!-- A local Axodox.Common is a project reference outside the solution, which would otherwise be built for its default platform. -->
+  <PropertyGroup Condition="'$(AxodoxCommon-Location)'!=''">
+    <ShouldUnsetParentConfigurationAndPlatform>false</ShouldUnsetParentConfigurationAndPlatform>
+  </PropertyGroup>
 </Project>

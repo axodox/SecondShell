@@ -34,7 +34,8 @@ Small throwaway programs (in a `Spikes` folder, not product code) for the assump
 
 **Builds**:
 - In Axodox.Common (`G:\dev\axodox-common`): named pipe messaging (`named_pipe_messaging_channel`, `_server`, `_client`, `named_pipe_security`) with its unit tests.
-- In SecondShell.Common: `IMessageTransport`, `PipeTransport`, an in-memory transport for tests, the JSON-RPC types and `JsonRpcPeer`, `CancellationToken`, `AppEnvironment`, `PipeNames`.
+- In SecondShell.Common: `IMessageTransport`, `PipeTransport`, the JSON-RPC types and `JsonRpcPeer`, `CancellationToken`, `AppEnvironment`, `PipeNames`.
+- In SecondShell.Tests: an in-memory transport pair for the tests.
 
 **Test (unit)**:
 - requests, responses, notifications, errors, cancellation, timeouts, over the in-memory transport and over a real pipe;
@@ -113,12 +114,14 @@ From here on, the developer can test on their own through the MCP probe.
 - **MCP probe**: the session keeps working while the window is minimized, resized or moved, and Stop interrupts a running sequence with `UserInterrupted`;
 - **manual (you)**: the session view, overlay animations, interactive mode with mouse, keyboard and clipboard, and the behaviour of the dialogs.
 
-## Stage 8 – Touch, pen, gamepad
+## Stage 8 – Touch and pen
 
-**Builds**: `TouchInjector`, `PenInjector`, `GamepadInjector` (or the alternatives chosen in stage 1), their actions and handlers, and the `TouchOverlay` and `GamepadOverlay` elements.
+**Builds**: `TouchInjector`, `PenInjector` (`InputInjector`, with the synthetic pointer fallback; Findings.md 2.14), their actions and handlers, and the `TouchOverlay` element.
+
+Gamepad support is deferred: an `InputInjector` gamepad is not seen by Windows.Gaming.Input, XInput or GameInput (Findings.md 2.15). Options for later: a packaged build with `inputInjectionBrokered`, or a virtual controller driver.
 
 **Test**:
-- **MCP probe**: a small test app in the child session (built for the purpose) records pointer and gamepad input, and the probe compares it with the injected sequence;
+- **MCP probe**: a small test app in the child session (built for the purpose) records pointer input, and the probe compares it with the injected sequence;
 - **manual (you)**: a real game or touch app, if wanted.
 
 ## Stage 9 – Setup, settings and AI client integrations
