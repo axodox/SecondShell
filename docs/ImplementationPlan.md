@@ -11,7 +11,7 @@ From stage 5 on, SecondShell can drive its own child session end to end. From th
 | 0 Skeleton | Done | `master` (c6dd982) |
 | 1 Spikes | Done; results in Findings.md 2.11–2.15; gamepad deferred | branch `stage_1_and_2` (ee19502) |
 | 2 Transport, JSON-RPC | Done, tested (unit + real pipe) | branch `stage_1_and_2` (9f88267); Axodox.Common branch `named_pipe_messaging` (1b18ba7) |
-| 3 Actions, protocol | Done, tested (52 SecondShell tests pass, x64 + ARM64 build); not yet committed | working tree on `stage_1_and_2` |
+| 3 Actions, protocol | Done, tested (52 SecondShell tests pass, x64 + ARM64 build) | branch `stage_1_and_2` (505c4a3) |
 | 4 MCP server | Next | |
 
 Notes for continuing:
