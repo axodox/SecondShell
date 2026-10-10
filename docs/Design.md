@@ -131,10 +131,10 @@ The driver injects all input inside the child session with **`Windows.UI.Input.P
 | Device | `InputInjector` methods | Status |
 |---|---|---|
 | Keyboard | `InjectKeyboardInput` | Verified unpackaged in the child session (Findings.md 2.9): Unicode text (`InjectedInputKeyOptions.Unicode`, layout-independent, typed `ÁÉŐŰ` correctly into Notepad) and virtual keys (Ctrl+S, Ctrl+W). |
-| Mouse | `InjectMouseInput` | Verified: absolute move in session pixels. Buttons and both wheels to verify. |
-| Touch | `InitializeTouchInjection`, `InjectTouchInput`, `UninitializeTouchInjection` | *To verify in the child session.* |
-| Pen | `InitializePenInjection`, `InjectPenInput`, `UninitializePenInjection` | *To verify in the child session.* |
-| Gamepad | `InitializeGamepadInjection`, `InjectGamepadInput`, `UninitializeGamepadInjection` | *To verify:* whether games using XInput or GameInput (not only `Windows.Gaming.Input`) see the injected controller. If they don't, the alternative is a virtual controller driver, which needs elevation to install. |
+| Mouse | `InjectMouseInput` | Verified: absolute move in session pixels, all buttons and both wheels (Findings.md 2.14). |
+| Touch | `InitializeTouchInjection`, `InjectTouchInput`, `UninitializeTouchInjection` | Verified in the child session: tap, drag, multi-touch, as `WM_POINTER` touch input (Findings.md 2.14). The contact rectangle is in absolute screen pixels. |
+| Pen | `InitializePenInjection`, `InjectPenInput`, `UninitializePenInjection` | Verified in the child session: hover, pressure, tilt, rotation, barrel button, eraser (`Inverted` + `Eraser`) (Findings.md 2.14). |
+| Gamepad | `InitializeGamepadInjection`, `InjectGamepadInput`, `UninitializeGamepadInjection` | **Deferred.** From an unpackaged process the injected controller is not seen by Windows.Gaming.Input, XInput or GameInput (Findings.md 2.15). Options for later: a packaged build with `inputInjectionBrokered`, or a virtual controller driver (elevation to install). The gamepad actions below are kept as the target design. |
 
 `InputInjector.TryCreate()` works unpackaged, although the API is documented as needing the restricted capability `inputInjectionBrokered`, and it is still in the `Preview` namespace. Both could change in a future Windows version. The driver therefore keeps its injection code behind one internal interface, with the Win32 APIs as a fallback if `TryCreate()` ever fails:
 

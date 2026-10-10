@@ -1,4 +1,4 @@
-#Build output
+﻿#Build output
 bin/
 obj/
 Generated Files/
@@ -15,3 +15,7 @@ packages/
 
 #Machine-specific build settings
 Build/local.props
+
+#Spike exchange folder (files passed between the sessions) and raw run results
+Spikes/exchange/
+Spikes/results/

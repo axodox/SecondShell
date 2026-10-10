@@ -1,0 +1,10 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Window
+  x:Class="RdpHost.MainWindow"
+  xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  Title="SecondShell spike host">
+  <ScrollViewer x:Name="LogScroller" Padding="12">
+    <TextBlock x:Name="LogText" FontFamily="Consolas" FontSize="12" TextWrapping="Wrap" IsTextSelectionEnabled="True" />
+  </ScrollViewer>
+</Window>

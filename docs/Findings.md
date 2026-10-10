@@ -2,7 +2,7 @@
 
 What we learned from the Windows Simulator 16.0 (Visual Studio 2019 era) and from tests on this machine, to guide the SecondShell design: an MCP server that gives an AI agent its own Windows desktop to work in (e.g. testing desktop applications).
 
-Status legend: **Verified** = tested on this machine (Windows 11 Pro 26300, 2026-10-10). **From code** = read from decompiled Simulator sources. **Assumption** = not yet tested.
+Status legend: **Verified** = tested on this machine (Windows 11 Pro 26300, 2026-10-10; sections 2.11 to 2.15: 2026-10-11). **From code** = read from decompiled Simulator sources. **Assumption** = not yet tested.
 
 ## 1. How the Windows Simulator works
 
@@ -120,6 +120,84 @@ In the 2.9 test, Notepad in the child session restored the user's own open Notep
 
 **Consequence:** apps in the child session work on the user's real data and settings; see Design.md, Session lifecycle.
 
+### 2.11 A WinUI 3 process can own the RDP control in a never-shown window (stage 1, spike 1)
+
+`Spikes/RdpHost` is a WinUI 3 app built like the real host (unpackaged, self-contained, Windows App SDK 2.5.1). It hosts `MsRdpClient9NotSafeForScripting` with ATL (`AtlAxWin`) in its own top-level Win32 window, created without `WS_VISIBLE` and never shown. Its own WinUI window is shown without activation (`AppWindow.Show(false)`). In the child session, `Spikes/SessionCheck` (started by `RunOnce`, behind the session guard) checked every 2 s that a GDI capture shows a freshly painted colour and that an `InputInjector` mouse move lands exactly.
+
+| RDP control on | Host window | Sign-in | Program started | Fresh captures | Mouse moves | Disconnects | Host took focus |
+|---|---|---|---|---|---|---|---|
+| WinUI UI thread (`MainSTA`) | never shown | 1.4 s | 12.8 s | 30 / 30 | 30 / 30 | 0 | no |
+| Dedicated STA thread, WinUI window minimized | never shown | 1.4 s | 13.1 s | 15 / 15 | 15 / 15 | 0 | no |
+| WinUI UI thread | message-only window (`HWND_MESSAGE` parent) | 1.3 s | 11.8 s | 10 / 10 | 10 / 10 | 0 | no |
+| WinUI UI thread | off-screen (−5000, −5000), shown without activation | 1.4 s | 14.7 s | 10 / 10 | 10 / 10 | 0 | no |
+
+- Events on connect: `OnConnecting`, `OnConnected` (0.3 s), `OnLogonError(-2)`, `OnLoginComplete` (1.3 to 1.4 s); on `WTSLogoffSession`: `OnDisconnected(3)`. `MsRdpClient7NotSafeForScripting` at 1024×768 behaves the same.
+- The control reports `Connected` throughout, the window stays invisible and not iconic, and no child session is left after logoff.
+- Event names were read from mstscax's type library at run time (`IMsTscAxEvents`), so the sink needs no hard-coded dispatch IDs.
+
+**Consequence:** the host structure in Design.md works as planned. The control can live on the WinUI UI thread or on its own STA thread; both pump messages correctly. A message-only window is an option too: it can never appear in Alt+Tab, on the taskbar or on screen.
+
+### 2.12 Processes started from a packaged app write into the package, not the real profile
+
+The spikes were first run from a terminal inside the Claude desktop app, which is an MSIX package (`Claude_pzs8sxrjxfjjc`). Every process started from there inherited the package context, including `RdpHost`:
+
+- Writes to HKCU (the `RunOnce` and `Run` entries, any other key) and below `%LOCALAPPDATA%` went into the package's private registry and `LocalCache`. The processes themselves saw their writes, but nothing outside the package did. Explorer in the child session enumerated `RunOnce` and `Run` and found none of the entries (Shell-Core events 9705/9706 with no 9707), and a program in the child session got `DirectoryNotFoundException` for the exchange folder.
+- Writes to `AppData\Roaming` (the Startup folder), `C:\Users\Public` and other drives went through, and reads see the real state merged with the private one. This made the problem look like a Windows change at first.
+- `PROC_THREAD_ATTRIBUTE_DESKTOP_APP_POLICY` (values 1, 2, 4, 5, 6) did not help: children started with it still wrote into the package.
+- Asking the running Explorer to start the program (`IShellWindows` → desktop view → `IShellDispatch2::ShellExecute`, `Spikes/Breakaway --explorer`) did: that process writes to the real profile, and its `RunOnce` entry starts the program in the child session as in 2.8.
+
+**Consequences:**
+
+- AI clients can be packaged apps (the Claude desktop app is). `SecondShell.Mcp.exe` started by such a client runs in its package context, and a host started directly from it would too: its `RunOnce` entry would never reach Explorer. `HostLauncher` must start the host outside the caller's package context (through Explorer as above, or another broker), and the host should check at startup that it is not in one.
+- This answers the MSIX open question in section 5 for virtualized processes: a `RunOnce` entry written with registry write virtualization on is redirected into the package. SecondShell's own MSIX build needs virtualization turned off for that key (or must write it from outside the package).
+
+### 2.13 Shared frames across sessions work, on the same adapter (stage 1, spike 2)
+
+`Spikes/SharedFrames` in the child session captures the primary monitor with `Windows.Graphics.Capture` and copies each frame into a texture created with `D3D11_RESOURCE_MISC_SHARED_NTHANDLE | D3D11_RESOURCE_MISC_SHARED_KEYEDMUTEX`. It opens the host process (`OpenProcess(PROCESS_DUP_HANDLE)`, same user, other session), duplicates the texture handle and a small metadata section into it, and hands each frame over with the keyed mutex (key 0 → writer, key 1 → reader). `RdpHost --frames` opens the handle with `OpenSharedResource1` and reads frames for 15 to 20 s. A counter window repainting at ~60 Hz kept the screen changing.
+
+| Host and writer adapter | Result | Rate | FrameArrived → host acquire | Release → acquire | Reader holds lock |
+|---|---|---|---|---|---|
+| NVIDIA RTX 5090 (the child session's display adapter) | frames arrive, content correct | 31.8 fps | p50 0.09 ms, p95 0.12 ms | p50 0.06 ms | p50 0.07 ms |
+| AMD Radeon iGPU (both sides) | frames arrive | 31.8 fps | p50 0.14 ms, p95 0.19 ms | p50 0.12 ms | p50 0.10 ms |
+| Writer NVIDIA, host AMD | `OpenSharedResource1` fails with `E_INVALIDARG` | — | — | — | — |
+
+- `GraphicsCaptureSession.IsSupported()` is true in the child session, and `IsBorderRequired(false)` works unpackaged. The saved frame showed the child session's desktop with the counter window and cursor.
+- In the child session, DXGI lists the NVIDIA adapter twice (a second LUID without outputs), the AMD iGPU and the Basic Render Driver; the session's output (`\\.\DISPLAY1`, 1920×1080) is on the NVIDIA adapter that the host also sees.
+- Capture runs at ~32 fps although the screen changes at ~60 Hz: the child session composes at about 30 fps, presumably the RDP default (not verified; `DWMFRAMEINTERVAL` would be the knob, machine-wide).
+- `Direct3D11CaptureFrame.SystemRelativeTime` is consistently ~30 ms (one frame) later than the moment the frame arrives, so it can't be used to measure capture latency; the table uses the writer's QPC time at `FrameArrived` (QPC is shared across sessions).
+- Apart from a single ~100 ms outlier at startup, the transfer costs well under a millisecond. With one texture the writer skipped frames while the reader held it; the ring of textures planned in Architecture.md 3.6 avoids that.
+
+**Consequence:** the session display design holds; no fallback to encoded frames is needed. Both processes must use the same adapter, as planned (the driver reports the LUID, the host creates its device on it).
+
+### 2.14 Touch, pen, mouse buttons and wheels reach desktop apps (stage 1, spike 4)
+
+`Spikes/TouchPen` in the child session records the pointer and mouse messages of a plain Win32 window (per-monitor DPI aware, 96 DPI) and injects input with `InputInjector`, then with the Win32 fallback (`CreateSyntheticPointerDevice` + `InjectSyntheticPointerInput`).
+
+| Input | `InputInjector` | Synthetic pointer device |
+|---|---|---|
+| Mouse left, right, middle, X1 buttons; vertical and horizontal wheel | all received at the injected position | — |
+| Touch tap, 20-step drag | `WM_POINTER*` type touch with pressure and orientation; promoted to `WM_LBUTTONDOWN/UP` | same |
+| Two simultaneous touch contacts | two pointer IDs; the spread was also turned into a zoom gesture (`WM_MOUSEWHEEL`) | not tested |
+| Pen hover, stroke with pressure, tilt, rotation | `WM_POINTER*` type pen, pressure 0.3 → 307/1024, tilt (15, −10), rotation 30; promoted to left button | same (no rotation set) |
+| Pen barrel button | `PEN_FLAG_BARREL`, promoted to right button | not tested |
+| Pen eraser | `Inverted` while hovering and `Inverted \| Eraser` in contact give `PEN_FLAG_INVERTED` / `PEN_FLAG_ERASER`; `Eraser` alone is ignored | not tested |
+
+- `InjectedInputTouchInfo.Contact` is in absolute screen pixels (left, top, bottom, right), not offsets around the point; with offsets the contact area arrives empty.
+- Pressure for `InputInjector` is 0..1 and arrives scaled to 0..1024.
+
+**Consequence:** `InputInjector` covers mouse, touch and pen for desktop apps; the synthetic pointer fallback works too. Not tested: UWP / WinUI apps and multi-touch with the fallback.
+
+### 2.15 An injected gamepad is invisible to Windows.Gaming.Input, XInput and GameInput (stage 1, spike 3)
+
+`Spikes/Gamepad --inject` in the child session (foreground window) calls `InitializeGamepadInjection`, injects neutral, A + left stick X 0.5 + right trigger 1.0, B + left stick Y −0.75 and neutral (each re-sent every 100 ms for 2 s), then `UninitializeGamepadInjection`, while polling all three APIs every 50 ms.
+
+- All calls succeed, but no API sees a new controller or any reading: `Gamepad.Gamepads` stays empty, `XInputGetState` reports no connected slot, GameInput (in-box v0 API, `GameInputCreate` S_OK) reports no gamepad reading or device. Only a real HID device of the machine (vid 0B05, pid 18E5) shows up as a `RawGameController`, in both sessions.
+- The same with a separate reader process in the child session that owns the foreground window.
+- A read-only observer in the user's session saw no new controller either.
+- Not tested: whether a UWP / packaged app would see it, and injection in the user's own session (not allowed by the test rules).
+
+**Consequence:** gamepad support cannot rely on `InputInjector` for desktop apps. The alternatives from Design.md remain: a virtual controller driver (elevation to install) or no gamepad support.
+
 ## 3. Proposed architecture
 
 ```
@@ -158,12 +236,17 @@ Parent session (user's desktop)            Child session (agent's desktop)
 - **Why do some disconnected child sessions log off and others persist?** See 2.3.
 - ~~**Posted keyboard messages**~~: tested, don't work while hidden (2.6).
 - ~~**Driver startup without focus**~~: answered in 2.8 (`RunOnce` entry, no elevation or focus needed).
-- **MSIX**: does a `RunOnce` entry written from inside a package reach Explorer, or is it redirected into the package (see Design.md, Deployment)?
-- **`InputInjector`** for mouse buttons and wheels, touch, pen and gamepad in the child session, and whether XInput/GameInput games see an injected gamepad (2.9).
+- **MSIX**: does a `RunOnce` entry written from inside a package reach Explorer, or is it redirected into the package (see Design.md, Deployment)? *Partly answered in 2.12:* with registry write virtualization on, it is redirected. Still to test: SecondShell's own package with virtualization turned off for that key.
+- ~~**`InputInjector`** for mouse buttons and wheels, touch, pen and gamepad~~: answered in 2.14 (mouse, touch, pen work) and 2.15 (gamepad is not seen by any API).
+- **Starting the host from a packaged AI client** (2.12): which broker `HostLauncher` uses (Explorer's `ShellExecute` works), and how the host detects that it was started inside a package context.
+- **Child session frame rate** (2.13): ~30 fps; whether it can be raised per session, and whether it matters for interactive mode.
+- **ARM64**: stage 1 spikes build for ARM64 but were run only on x64.
 - **First-time prompt:** a credential prompt from a background process (launched from VS Code) didn't come to the front. The first-time prompt needs a foreground-capable path.
 - **Starting the agent in the session:** which of the three options to use. Check whether the `Session:N!clsid:` moniker works unelevated with a per-user (HKCU) COM registration.
 - **Packaged app behaviour** in the child session, for the apps that will actually be tested.
 
 ## Test scripts
 
-The scripts that produced these results are kept in [Spikes/Findings](../Spikes/Findings/README.md), with a table mapping each script to its section.
+The scripts that produced these results are kept in [Spikes/Findings](../Spikes/Findings/README.md), with a table mapping each script to its section. The stage 1 spike programs (sections 2.11 to 2.15) are in [Spikes](../Spikes/README.md).
+
+Versions for sections 2.11 to 2.15: Windows 11 Pro 26300.9550 (26H2); mstscax.dll 10.0.26100.9549; Windows App SDK 2.5.1 (Microsoft.UI.Xaml.dll 3.2.3.0); NVIDIA GeForce RTX 5090, driver 32.0.16.1714; AMD Radeon iGPU, driver 32.0.21042.62; GameInput.dll 0.2309.26100.9278; x64 only.
