@@ -35,7 +35,7 @@ namespace SecondShell::Protocol
     {
       { &InitializeSessionRequest::Display, "display", { .is_required = false, .schema = { .description = "Display settings; default: 1920x1080 at 100%." } } },
       { &InitializeSessionRequest::Capture, "capture", { .is_required = false, .schema = { .description = "Capture defaults, as Configure-Capture sets them." } } },
-      { &InitializeSessionRequest::ExistingSession, "existingSession", { .is_required = false, .schema = { .description = "If a session is left over from before: Resume it with its apps, or Reset it (log off and start a new one)." } } },
+      { &InitializeSessionRequest::ExistingSession, "existingSession", { .is_required = false, .schema = { .description = "Required when a child session exists already, e.g. from before a restart: Reset logs it off, closing its applications, and starts a new one. Resume is not supported yet." } } },
       { &InitializeSessionRequest::Timeout, "timeout", { .is_required = false, .schema = { .description = "Milliseconds to wait for the session, default 60000.", .minimum = 0 } } }
     });
 

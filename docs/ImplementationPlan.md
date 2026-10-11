@@ -13,13 +13,14 @@ From stage 5 on, SecondShell can drive its own child session end to end. From th
 | 2 Transport, JSON-RPC | Done, tested (unit + real pipe) | branch `stage_1_and_2` (9f88267); Axodox.Common branch `named_pipe_messaging` (1b18ba7) |
 | 3 Actions, protocol | Done, tested (52 SecondShell tests pass, x64 + ARM64 build) | branch `stage_1_and_2` (505c4a3) |
 | 4 MCP server | Done, tested (68 SecondShell tests pass, incl. the MCP probe; x64 + ARM64 build); manual test in Claude Code open | branch `stage_1_and_2` (this commit, "Stage 4: MCP server"); Axodox.Common `named_pipe_messaging` (23b59e5) |
-| 5 Session and driver core | Next | |
+| 5 Session and driver core | Built except the credential stub (docs/CredentialStub.md); unit tests pass (87); end-to-end test waits for the credentials | branch `stage_1_and_2` ("Stage 5: session and driver core"); Axodox.Common `named_pipe_messaging` (ec9d54f) |
 
 Notes for continuing:
 - SecondShell builds against the local Axodox.Common (`Build\local.props`, gitignored, points to `G:\dev\axodox-common\Axodox.Common.Desktop`) until an Axodox.Common NuGet release contains the named pipe messaging.
 - Commands run from the Claude desktop app's terminal are inside its MSIX package context: their HKCU and `%LOCALAPPDATA%` writes are redirected (Findings.md 2.12). Anything that must write the real profile (spike runs, later the host) is started through `Spikes\bin\...\Breakaway.exe --explorer`.
 - Schema snapshots: `SecondShell.Tests\Snapshots\*.json`; rewrite them with `SECONDSHELL_UPDATE_SNAPSHOTS=1` after an intended change and review the diff. `Tools.json` is what AI clients see from `tools/list`.
 - The MCP probe (`McpProbeTests`) runs `bin\<platform>\<configuration>\SecondShell.Mcp.exe` with the real pipe name, so it expects no SecondShell host to be running for the current user.
+- Stage 5: `SecondShell\CredentialProvider` is a stub, so `Initialize-Session` fails until it is implemented ([CredentialStub.md](CredentialStub.md)); the first sign-in is a manual test. Logs: `%LOCALAPPDATA%\SecondShell\Logs\host.log` and `driver.log`.
 - Axodox.Common fixes made in stage 4: `named_pipe_messaging_client::connect` (one attempt, no retries), `supports_new` no longer breaks `dependency_container::resolve` of abstract types (MSVC 14.50), and polymorphic values parsed into a `value_ptr` keep their type when copied (they were sliced to the base).
 
 ## Testing approach

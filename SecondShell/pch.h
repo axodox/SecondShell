@@ -4,6 +4,16 @@
 #include <unknwn.h>
 #include <restrictederrorinfo.h>
 #include <hstring.h>
+#include <wtsapi32.h>
+
+#include <atlbase.h>
+#include <atlcom.h>
+#include <atlhost.h>
+
+#include <deque>
+#include <fstream>
+#include <future>
+#include <unordered_set>
 
 //Undefine GetCurrentTime macro to prevent conflict with Storyboard::GetCurrentTime
 #undef GetCurrentTime
@@ -13,6 +23,7 @@
 #include <winrt/Windows.ApplicationModel.Activation.h>
 #include <winrt/Microsoft.UI.Composition.h>
 #include <winrt/Microsoft.UI.Dispatching.h>
+#include <winrt/Microsoft.UI.Windowing.h>
 #include <winrt/Microsoft.UI.Xaml.h>
 #include <winrt/Microsoft.UI.Xaml.Controls.h>
 #include <winrt/Microsoft.UI.Xaml.Controls.Primitives.h>
@@ -26,4 +37,5 @@
 
 #include "Include/Axodox.Infrastructure.h"
 #include "Include/Axodox.Json.h"
+#include "Include/Axodox.Networking.h"
 #include "Include/Axodox.Threading.h"

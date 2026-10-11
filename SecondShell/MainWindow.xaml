@@ -8,11 +8,14 @@
     <MicaBackdrop />
   </Window.SystemBackdrop>
 
-  <Grid>
+  <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="8">
     <TextBlock
       x:Name="VersionText"
       HorizontalAlignment="Center"
-      VerticalAlignment="Center"
       Style="{StaticResource SubtitleTextBlockStyle}" />
-  </Grid>
+    <TextBlock
+      x:Name="StatusText"
+      HorizontalAlignment="Center"
+      Text="Session: Stopped" />
+  </StackPanel>
 </Window>

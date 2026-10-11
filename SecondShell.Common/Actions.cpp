@@ -10,6 +10,7 @@
 #include "TouchActions.h"
 #include "WindowActions.h"
 
+using namespace Axodox::Infrastructure;
 using namespace Axodox::Json;
 using namespace std;
 using namespace std::chrono;
@@ -417,6 +418,27 @@ namespace SecondShell::Actions
       { &ActionResult::Error, "error", { .is_required = false } },
       { &ActionResult::Message, "message", { .is_required = false } }
     });
+
+  value_ptr<ActionResult> ActionResult::Succeeded()
+  {
+    return make_value<ActionResult>();
+  }
+
+  value_ptr<ActionResult> ActionResult::Cancelled()
+  {
+    auto result = make_value<ActionResult>();
+    result->Status = ActionStatus::Cancelled;
+    return result;
+  }
+
+  value_ptr<ActionResult> ActionResult::Failed(ErrorCode error, string message)
+  {
+    auto result = make_value<ActionResult>();
+    result->Status = ActionStatus::Failed;
+    result->Error = error;
+    result->Message = move(message);
+    return result;
+  }
 
   json_object_descriptor<CaptureResult> CaptureResult::json_description = describe_json_object<CaptureResult, ActionResult>(
     { .name = "Capture" },

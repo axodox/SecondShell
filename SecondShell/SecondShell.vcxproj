@@ -47,6 +47,7 @@
     <PlatformToolset>v145</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
     <DesktopCompatible>true</DesktopCompatible>
+    <UseOfAtl>Static</UseOfAtl>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)'=='Debug'" Label="Configuration">
     <UseDebugLibraries>true</UseDebugLibraries>
@@ -66,12 +67,28 @@
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
+      <AdditionalDependencies>wtsapi32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
     <Manifest Include="app.manifest" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="ActionLog.h" />
+    <ClInclude Include="AgentControl.h" />
+    <ClInclude Include="CaptureStore.h" />
+    <ClInclude Include="ChildSessionApi.h" />
+    <ClInclude Include="CredentialProvider.h" />
+    <ClInclude Include="DriverLauncher.h" />
+    <ClInclude Include="DriverLink.h" />
+    <ClInclude Include="IDriverLink.h" />
+    <ClInclude Include="McpConnection.h" />
+    <ClInclude Include="McpRequestHandler.h" />
+    <ClInclude Include="RdpClient.h" />
+    <ClInclude Include="RdpHostWindow.h" />
+    <ClInclude Include="SequenceRunner.h" />
+    <ClInclude Include="SessionManager.h" />
+    <ClInclude Include="StaThread.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="App.xaml.h">
       <DependentUpon>App.xaml</DependentUpon>
@@ -94,6 +111,24 @@
     <ClCompile Include="MainWindow.xaml.cpp">
       <DependentUpon>MainWindow.xaml</DependentUpon>
     </ClCompile>
+    <ClCompile Include="ActionLog.cpp" />
+    <ClCompile Include="AgentControl.cpp" />
+    <ClCompile Include="CaptureStore.cpp" />
+    <ClCompile Include="ChildSessionApi.cpp" />
+    <ClCompile Include="CredentialProvider.cpp" />
+    <ClCompile Include="DriverLauncher.cpp" />
+    <ClCompile Include="DriverLink.cpp" />
+    <ClCompile Include="IDriverLink.cpp" />
+    <ClCompile Include="McpConnection.cpp" />
+    <ClCompile Include="McpRequestHandler.cpp" />
+    <ClCompile Include="RdpClient.cpp" />
+    <ClCompile Include="RdpHostWindow.cpp">
+      <!-- #import does not work with /MP -->
+      <MultiProcessorCompilation>false</MultiProcessorCompilation>
+    </ClCompile>
+    <ClCompile Include="SequenceRunner.cpp" />
+    <ClCompile Include="SessionManager.cpp" />
+    <ClCompile Include="StaThread.cpp" />
     <ClCompile Include="$(GeneratedFilesDir)module.g.cpp" />
   </ItemGroup>
   <ItemGroup>

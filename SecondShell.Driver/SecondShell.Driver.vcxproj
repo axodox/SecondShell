@@ -51,16 +51,43 @@
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
+      <AdditionalDependencies>d3d11.lib;dxgi.lib;dwmapi.lib;shlwapi.lib;windowscodecs.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="ActionExecutor.h" />
+    <ClInclude Include="CaptureActionHandler.h" />
+    <ClInclude Include="CaptureEncoder.h" />
+    <ClInclude Include="HostConnection.h" />
+    <ClInclude Include="IKeyboardInjector.h" />
+    <ClInclude Include="IMouseInjector.h" />
+    <ClInclude Include="InputInjectorProvider.h" />
+    <ClInclude Include="InputStateTracker.h" />
+    <ClInclude Include="KeyboardActionHandler.h" />
+    <ClInclude Include="KeyboardInjector.h" />
+    <ClInclude Include="MotionAnimator.h" />
+    <ClInclude Include="MouseActionHandler.h" />
+    <ClInclude Include="MouseInjector.h" />
+    <ClInclude Include="ScreenCapturer.h" />
     <ClInclude Include="pch.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="ActionExecutor.cpp" />
+    <ClCompile Include="CaptureActionHandler.cpp" />
+    <ClCompile Include="CaptureEncoder.cpp" />
+    <ClCompile Include="HostConnection.cpp" />
+    <ClCompile Include="InputInjectorProvider.cpp" />
+    <ClCompile Include="InputStateTracker.cpp" />
+    <ClCompile Include="KeyboardActionHandler.cpp" />
+    <ClCompile Include="KeyboardInjector.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="MotionAnimator.cpp" />
+    <ClCompile Include="MouseActionHandler.cpp" />
+    <ClCompile Include="MouseInjector.cpp" />
+    <ClCompile Include="ScreenCapturer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\SecondShell.Common\SecondShell.Common.vcxproj">

@@ -76,7 +76,7 @@
             "type": "object"
           },
           "existingSession": {
-            "description": "If a session is left over from before: Resume it with its apps, or Reset it (log off and start a new one).",
+            "description": "Required when a child session exists already, e.g. from before a restart: Reset logs it off, closing its applications, and starts a new one. Resume is not supported yet.",
             "enum": [
               "Resume",
               "Reset"

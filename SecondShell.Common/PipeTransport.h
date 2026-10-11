@@ -4,8 +4,8 @@
 namespace SecondShell::Rpc
 {
   //A transport over one connection of a named pipe messaging server or client, one message per pipe message.
-  //Create it in the connection's connected event, so no message arrives before it subscribes, and drop it when Closed
-  //is raised: the channel belongs to the server or client and is destroyed after it disconnects.
+  //Create it in the connection's connected event, so no message arrives before it subscribes. The channel belongs to
+  //the server or client, which may destroy it after it disconnects: from then on, the transport no longer touches it.
   class SECONDSHELL_COMMON_API PipeTransport : public IMessageTransport
   {
   public:
@@ -18,7 +18,10 @@ namespace SecondShell::Rpc
     uint32_t PeerProcessId() const;
 
   private:
+    mutable std::mutex _mutex;
     Axodox::Networking::named_pipe_messaging_channel* _channel;
+    uint32_t _peerSessionId;
+    uint32_t _peerProcessId;
     Axodox::Infrastructure::event_subscription _messageReceivedSubscription;
     Axodox::Infrastructure::event_subscription _disconnectedSubscription;
 

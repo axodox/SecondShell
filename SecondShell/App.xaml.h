@@ -1,8 +1,11 @@
 #pragma once
 #include "App.xaml.g.h"
+#include "MainWindow.xaml.h"
+#include "SessionManager.h"
 
 namespace winrt::SecondShell::implementation
 {
+  //The composition root of the host.
   struct App : AppT<App>
   {
     App();
@@ -10,6 +13,12 @@ namespace winrt::SecondShell::implementation
     void OnLaunched(const Microsoft::UI::Xaml::LaunchActivatedEventArgs& eventArgs);
 
   private:
-    Microsoft::UI::Xaml::Window _window{ nullptr };
+    std::unique_ptr<Axodox::Infrastructure::dependency_container> _container;
+    winrt::com_ptr<MainWindow> _window;
+    Axodox::Infrastructure::event_subscription _stateChangedSubscription;
+
+    void RegisterServices();
+    bool StartServices();
+    void ShowWindow();
   };
 }

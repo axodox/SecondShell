@@ -14,4 +14,9 @@ namespace winrt::SecondShell::implementation
     InitializeComponent();
     VersionText().Text(to_hstring(std::format("{} {}", ProductInfo::Name(), ProductInfo::Version())));
   }
+
+  void MainWindow::ShowSessionState(::SecondShell::Protocol::SessionState state)
+  {
+    StatusText().Text(to_hstring(std::format("Session: {}", Axodox::Infrastructure::to_string(state))));
+  }
 }

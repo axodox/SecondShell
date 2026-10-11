@@ -1176,6 +1176,14 @@ Runtime classes in `winrt::SecondShell::implementation`, declared in IDL. Views 
 | View models | `MainViewModel`, `SessionViewModel`, `ActionLogViewModel`, `IntegrationsViewModel`, `SettingsViewModel`, `StatusViewModel` | State and actions for the views |
 | Converters | `BooleanToVisibilityConverter`, `SessionStateToTextConverter`, `SessionStateToBrushConverter`, `ControlModeToTextConverter`, `IntegrationStatusToTextConverter` | Value conversion for bindings |
 
+### 6.8 Stage 5 implementation notes
+
+- **Driver** (`SecondShell.Driver`): `main.cpp` is the composition root. `HostConnection::Open` connects to the driver pipe and refuses a host in the driver's own session (the driver's half of the guard); `ActionExecutor` adds its handlers; `HostConnection::Hello` starts the peer and asks the host to accept the driver; only then does `ScreenCapturer` start. The handlers also refuse to run before acceptance. Mouse, keyboard and capture actions are implemented (`MouseActionHandler`, `KeyboardActionHandler`, `CaptureActionHandler`); other kinds fail with "not available yet". Presses and releases go through `InputStateTracker`, which releases and reports what is held. `ScreenCapturer` keeps the newest frame; `CaptureEncoder` scales and encodes on the CPU (WIC). The driver logs to `driver.log` (Axodox `logger::file`).
+- **Host session**: `RdpClient` runs `RdpHostWindow` (the hidden ATL-hosted control, `#import`ed in one file) on a `StaThread`. `CredentialProvider` is the only class handling credentials and is a stub (docs/CredentialStub.md). `SessionManager` sequences start and shutdown: setup check, a left-over child session only with `existingSession: Reset` (it may belong to another tool), `DriverLauncher::Arm`, sign-in, `DriverLink::Expect(childSessionId)`, wait for the driver. Cleanup logs off only a child session this host connected to.
+- **Session guard (host)**: `DriverLink` accepts one driver whose pipe session ID equals the expected child session ID; with no expected session, every driver is refused.
+- **Sequencing**: `SequenceRunner` runs Control.* itself and the rest on the driver, one sequence at a time; async actions are tracked by action ID until `Control.Join`, whose failure is the first failed async action. A failed step stops the sequence, input is released, and held input is reported. `CaptureStore` decides inline or file (inline beyond the limit goes to file, with a message), forces PNG inline, and saves files. `AgentControl` and `ActionLog` are minimal until the UI (stage 7).
+- **Not yet**: `display/set` (stage 6), resuming a session, restarting a crashed driver, the setup checker beyond "child sessions enabled", settings storage.
+
 ## 7. Key flows
 
 ### Starting a session (`Initialize-Session`)

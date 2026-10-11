@@ -48,11 +48,12 @@
   </ImportGroup>
   <ItemDefinitionGroup>
     <ClCompile>
-      <AdditionalIncludeDirectories>$(VCInstallDir)UnitTest\include;$(SecondShellRoot)SecondShell.Common;$(SecondShellRoot)SecondShell.Mcp;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(VCInstallDir)UnitTest\include;$(SecondShellRoot)SecondShell.Common;$(SecondShellRoot)SecondShell.Mcp;$(SecondShellRoot)SecondShell.Driver;$(SecondShellRoot)SecondShell;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <AdditionalLibraryDirectories>$(VCInstallDir)UnitTest\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>shlwapi.lib;windowscodecs.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -67,6 +68,9 @@
     </ClCompile>
     <ClCompile Include="ActionTests.cpp" />
     <ClCompile Include="CancellationTokenTests.cpp" />
+    <ClCompile Include="CaptureEncoderTests.cpp" />
+    <ClCompile Include="DriverInputTests.cpp" />
+    <ClCompile Include="DriverLinkTests.cpp" />
     <ClCompile Include="EnvironmentTests.cpp" />
     <ClCompile Include="JsonRpcMessageTests.cpp" />
     <ClCompile Include="JsonRpcPeerTests.cpp" />
@@ -78,7 +82,23 @@
     <ClCompile Include="PipeTransportTests.cpp" />
     <ClCompile Include="ProductInfoTests.cpp" />
     <ClCompile Include="ProtocolTests.cpp" />
+    <ClCompile Include="SequenceRunnerTests.cpp" />
     <ClCompile Include="SessionToolSourceTests.cpp" />
+  </ItemGroup>
+  <ItemGroup Label="SecondShell.Driver">
+    <ClCompile Include="..\SecondShell.Driver\CaptureEncoder.cpp" />
+    <ClCompile Include="..\SecondShell.Driver\InputStateTracker.cpp" />
+    <ClCompile Include="..\SecondShell.Driver\KeyboardActionHandler.cpp" />
+    <ClCompile Include="..\SecondShell.Driver\MotionAnimator.cpp" />
+    <ClCompile Include="..\SecondShell.Driver\MouseActionHandler.cpp" />
+  </ItemGroup>
+  <ItemGroup Label="SecondShell">
+    <ClCompile Include="..\SecondShell\ActionLog.cpp" />
+    <ClCompile Include="..\SecondShell\AgentControl.cpp" />
+    <ClCompile Include="..\SecondShell\CaptureStore.cpp" />
+    <ClCompile Include="..\SecondShell\DriverLink.cpp" />
+    <ClCompile Include="..\SecondShell\IDriverLink.cpp" />
+    <ClCompile Include="..\SecondShell\SequenceRunner.cpp" />
   </ItemGroup>
   <ItemGroup Label="SecondShell.Mcp">
     <ClCompile Include="..\SecondShell.Mcp\HostClient.cpp" />

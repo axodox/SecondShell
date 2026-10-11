@@ -13,6 +13,10 @@ namespace SecondShell::Actions
     std::optional<std::string> Message;
 
     virtual ~ActionResult() = default;
+
+    static Axodox::Infrastructure::value_ptr<ActionResult> Succeeded();
+    static Axodox::Infrastructure::value_ptr<ActionResult> Cancelled();
+    static Axodox::Infrastructure::value_ptr<ActionResult> Failed(ErrorCode error, std::string message);
   };
 
   struct SECONDSHELL_COMMON_API CaptureResult : public ActionResult
