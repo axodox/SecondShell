@@ -11,6 +11,9 @@ namespace SecondShell::Tests
     static std::string ToCanonicalString(const Axodox::Json::json_value& json);
     static void AssertMatches(std::string_view name, const Axodox::Json::json_value& json);
 
+    //Compares JSON with the expected JSON text, ignoring member order and formatting.
+    static void AssertEqual(std::string_view expected, const Axodox::Json::json_value& actual);
+
   private:
     static void Write(std::string& text, const Axodox::Json::json_value& json, size_t depth);
   };

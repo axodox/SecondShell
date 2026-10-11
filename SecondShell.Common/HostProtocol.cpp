@@ -5,11 +5,6 @@ using namespace Axodox::Json;
 
 namespace SecondShell::Protocol
 {
-  namespace
-  {
-    const char* const _timeout = "Milliseconds to wait at most; when it expires the tool returns a Timeout error.";
-  }
-
   json_object_descriptor<DisplaySettings> DisplaySettings::json_description = describe_json_object<DisplaySettings>({
     { &DisplaySettings::Width, "width", { .schema = { .description = "Session pixels.", .minimum = 640, .maximum = 8192 } } },
     { &DisplaySettings::Height, "height", { .schema = { .description = "Session pixels.", .minimum = 480, .maximum = 8192 } } },
@@ -50,7 +45,7 @@ namespace SecondShell::Protocol
   json_object_descriptor<ShutdownSessionRequest> ShutdownSessionRequest::json_description = describe_json_object<ShutdownSessionRequest>(
     { .name = "session/shutdown", .description = "Logs the session off, closing all its applications." },
     {
-      { &ShutdownSessionRequest::Timeout, "timeout", { .is_required = false, .schema = { .description = _timeout, .minimum = 0 } } }
+      { &ShutdownSessionRequest::Timeout, "timeout", { .is_required = false, .schema = { .description = "Milliseconds to wait for the session to log off, default 30000.", .minimum = 0 } } }
     });
 
   json_object_descriptor<RunSequenceResponse> RunSequenceResponse::json_description = describe_json_object<RunSequenceResponse>({
@@ -61,11 +56,16 @@ namespace SecondShell::Protocol
     { &RunSequenceResponse::ReleasedInput, "releasedInput", { .is_required = false } }
     });
 
-  json_object_descriptor<RunSequenceRequest> RunSequenceRequest::json_description = describe_json_object<RunSequenceRequest>(
-    { .name = "sequence/run", .description = "Runs actions in order in the session, until one fails: input, captures, windows, processes, clipboard. Captures are returned as images." },
+  json_object_descriptor<RunSequenceArguments> RunSequenceArguments::json_description = describe_json_object<RunSequenceArguments>(
+    "Runs actions in order in the session, until one fails: input, captures, windows, processes, clipboard. Captures are returned as images.",
     {
-      { &RunSequenceRequest::Steps, "steps", { .is_required = true, .schema = { .description = "The actions, run in order. Coordinates are session pixels.", .min_items = 1 } } },
-      { &RunSequenceRequest::Timeout, "timeout", { .is_required = false, .schema = { .description = "Milliseconds for the whole sequence, default 60000.", .minimum = 0 } } },
+      { &RunSequenceArguments::Steps, "steps", { .is_required = true, .schema = { .description = "The actions, run in order. Coordinates are session pixels.", .min_items = 1 } } },
+      { &RunSequenceArguments::Timeout, "timeout", { .is_required = false, .schema = { .description = "Milliseconds for the whole sequence, default 60000.", .minimum = 0 } } }
+    });
+
+  json_object_descriptor<RunSequenceRequest> RunSequenceRequest::json_description = describe_json_object<RunSequenceRequest, RunSequenceArguments>(
+    { .name = "sequence/run" },
+    {
       { &RunSequenceRequest::ProgressToken, "progressToken", { .is_required = false } }
     });
 

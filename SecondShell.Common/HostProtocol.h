@@ -73,6 +73,7 @@ namespace SecondShell::Protocol
   {
     static Axodox::Json::json_object_descriptor<InitializeSessionRequest> json_description;
     using ResponseType = SessionResponse;
+    static constexpr std::chrono::milliseconds DefaultTimeout{ 60000 };
 
     std::optional<DisplaySettings> Display;
     std::optional<CaptureSettings> Capture;
@@ -90,6 +91,7 @@ namespace SecondShell::Protocol
   {
     static Axodox::Json::json_object_descriptor<ShutdownSessionRequest> json_description;
     using ResponseType = EmptyResponse;
+    static constexpr std::chrono::milliseconds DefaultTimeout{ 30000 };
 
     std::optional<uint32_t> Timeout;
   };
@@ -107,14 +109,23 @@ namespace SecondShell::Protocol
     std::optional<Actions::InputState> ReleasedInput;                                 //what was held when the sequence stopped early
   };
 
-  struct SECONDSHELL_COMMON_API RunSequenceRequest
+  //The arguments of the Run-Sequence tool.
+  struct SECONDSHELL_COMMON_API RunSequenceArguments
+  {
+    static Axodox::Json::json_object_descriptor<RunSequenceArguments> json_description;
+    static constexpr std::chrono::milliseconds DefaultTimeout{ 60000 };
+
+    std::vector<Axodox::Infrastructure::value_ptr<Actions::Action>> Steps;
+    std::optional<uint32_t> Timeout;
+  };
+
+  //The tool's arguments, and a progress token, which the AI does not set.
+  struct SECONDSHELL_COMMON_API RunSequenceRequest : public RunSequenceArguments
   {
     static Axodox::Json::json_object_descriptor<RunSequenceRequest> json_description;
     using ResponseType = RunSequenceResponse;
 
-    std::vector<Axodox::Infrastructure::value_ptr<Actions::Action>> Steps;
-    std::optional<uint32_t> Timeout;
-    Axodox::Infrastructure::value_ptr<Axodox::Json::json_value> ProgressToken;  //the MCP progress token, echoed in sequence/progress
+    Axodox::Infrastructure::value_ptr<Axodox::Json::json_value> ProgressToken;  //echoed in sequence/progress
   };
 
   //Host to MCP server: a step of a running sequence finished.

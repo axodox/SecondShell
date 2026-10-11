@@ -45,6 +45,13 @@ namespace SecondShell::Tests
     }
   }
 
+  void JsonSnapshot::AssertEqual(string_view expected, const json_value& actual)
+  {
+    auto expectedJson = json_value::from_string(expected);
+    Assert::IsTrue(bool(expectedJson), L"the expected JSON should be valid");
+    Assert::AreEqual(ToCanonicalString(*expectedJson), ToCanonicalString(actual));
+  }
+
   void JsonSnapshot::Write(string& text, const json_value& json, size_t depth)
   {
     auto indent = [&](size_t level) { text.append(level * 2, ' '); };

@@ -6,11 +6,13 @@
 #include "KeyboardActions.h"
 #include "MouseActions.h"
 #include "ProcessActions.h"
+#include "StrictJson.h"
 #include "TouchActions.h"
 #include "WindowActions.h"
 
 using namespace Axodox::Infrastructure;
 using namespace Axodox::Json;
+using namespace SecondShell::Rpc;
 using namespace std;
 
 namespace SecondShell::Actions
@@ -42,36 +44,12 @@ namespace SecondShell::Actions
       return schema;
     }
 
-    template<typename TObject>
-    string PropertyNames()
-    {
-      string result;
-      for (auto& property : TObject::json_description.properties())
-      {
-        if (!result.empty()) result += ", ";
-        result += property.name();
-      }
-      return result.empty() ? "none" : result;
-    }
-
     template<typename TAction>
     expected<value_ptr<Action>> ParseAction(const json_object& json)
     {
-      auto& description = TAction::json_description;
-
-      //Unknown properties are most likely mistakes, which would otherwise be silently ignored
-      for (auto& [name, value] : json.value)
-      {
-        if (name == description.type_discriminator()) continue;
-        if (!description.find_property(name)) return format_unexpected("{}: unknown property '{}'; its properties are: {}.", description.name(), name, PropertyNames<TAction>());
-      }
-
-      auto validation = description.validate(json);
-      if (!validation) return format_unexpected("{}: {}", description.name(), validation.error());
-
       auto action = make_value<TAction>();
-      auto parsing = description.from_json(*action, &json);
-      if (!parsing) return format_unexpected("{}: {}", description.name(), parsing.error());
+      auto parsing = StrictJson::Parse(json, *action);
+      if (!parsing) return format_unexpected("{}: {}", TAction::json_description.name(), parsing.error());
 
       return value_ptr<Action>(move(action));
     }

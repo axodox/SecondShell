@@ -48,7 +48,7 @@
   </ImportGroup>
   <ItemDefinitionGroup>
     <ClCompile>
-      <AdditionalIncludeDirectories>$(VCInstallDir)UnitTest\include;$(SecondShellRoot)SecondShell.Common;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(VCInstallDir)UnitTest\include;$(SecondShellRoot)SecondShell.Common;$(SecondShellRoot)SecondShell.Mcp;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -58,6 +58,7 @@
   <ItemGroup>
     <ClInclude Include="pch.h" />
     <ClInclude Include="JsonSnapshot.h" />
+    <ClInclude Include="McpTestClient.h" />
     <ClInclude Include="MemoryTransport.h" />
   </ItemGroup>
   <ItemGroup>
@@ -70,14 +71,33 @@
     <ClCompile Include="JsonRpcMessageTests.cpp" />
     <ClCompile Include="JsonRpcPeerTests.cpp" />
     <ClCompile Include="JsonSnapshot.cpp" />
+    <ClCompile Include="McpProbeTests.cpp" />
+    <ClCompile Include="McpServerTests.cpp" />
+    <ClCompile Include="McpTestClient.cpp" />
     <ClCompile Include="MemoryTransport.cpp" />
     <ClCompile Include="PipeTransportTests.cpp" />
     <ClCompile Include="ProductInfoTests.cpp" />
     <ClCompile Include="ProtocolTests.cpp" />
+    <ClCompile Include="SessionToolSourceTests.cpp" />
+  </ItemGroup>
+  <ItemGroup Label="SecondShell.Mcp">
+    <ClCompile Include="..\SecondShell.Mcp\HostClient.cpp" />
+    <ClCompile Include="..\SecondShell.Mcp\HostLauncher.cpp" />
+    <ClCompile Include="..\SecondShell.Mcp\McpContent.cpp" />
+    <ClCompile Include="..\SecondShell.Mcp\McpMessages.cpp" />
+    <ClCompile Include="..\SecondShell.Mcp\McpServer.cpp" />
+    <ClCompile Include="..\SecondShell.Mcp\SessionToolSource.cpp" />
+    <ClCompile Include="..\SecondShell.Mcp\ToolSource.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\SecondShell.Common\SecondShell.Common.vcxproj">
       <Project>{98849BA5-9DF3-45CE-8AC1-2FC0616C9659}</Project>
+    </ProjectReference>
+    <!-- Built first for the MCP probe, which runs it -->
+    <ProjectReference Include="..\SecondShell.Mcp\SecondShell.Mcp.vcxproj">
+      <Project>{1AD79B60-0C9F-4B5D-AA70-377B440CF5B0}</Project>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+      <LinkLibraryDependencies>false</LinkLibraryDependencies>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

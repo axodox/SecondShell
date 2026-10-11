@@ -2,6 +2,10 @@
 #include <winsock2.h>
 #include <windows.h>
 #include <unknwn.h>
+#include <comdef.h>
+#include <exdisp.h>
+#include <shldisp.h>
+#include <shlobj.h>
 
 #include <fstream>
 

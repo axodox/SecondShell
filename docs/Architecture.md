@@ -351,7 +351,7 @@ The requests, responses and notifications between the processes, as described ty
 
 `notifications/cancelled` (as in MCP: `requestId`, `reason`) cancels a running request on any link.
 
-Implemented in `DriverProtocol.h` and `HostProtocol.h` (plus `EmptyResponse`, `ProtocolErrors`: `ErrorCode` <-> JSON-RPC code 1000 + value). Each request declares `using ResponseType`. `input/forward` carries the user's input as input actions (`Mouse.Move`, `Keyboard.Press`, ...), so interactive mode needs no event model of its own. `actions/execute` has an `actionId`; async actions answer when started and report through `actions/completed`. `frames/subscribe` returns the texture handles, size and the adapter LUID. The host request types mirror the seven MCP tools (`RunSequenceRequest` carries the MCP `progressToken`, which the MCP tool's own argument type must not expose).
+Implemented in `DriverProtocol.h` and `HostProtocol.h` (plus `EmptyResponse`, `ProtocolErrors`: `ErrorCode` <-> JSON-RPC code 1000 + value). Each request declares `using ResponseType`. `input/forward` carries the user's input as input actions (`Mouse.Move`, `Keyboard.Press`, ...), so interactive mode needs no event model of its own. `actions/execute` has an `actionId`; async actions answer when started and report through `actions/completed`. `frames/subscribe` returns the texture handles, size and the adapter LUID. The host request types are the arguments of the seven MCP tools; `RunSequenceRequest` extends the tool's `RunSequenceArguments` with the progress token, which the AI does not set.
 
 ### 3.5 Environment (`SecondShell::Environment`)
 
@@ -682,17 +682,10 @@ A small console program: MCP over stdio on one side, the host's pipe on the othe
 
 **Why a hand-written MCP layer.** There is no official C++ MCP SDK, and the community libraries (fastmcpp, gopher-mcp, TinyMCP, mcp-cpp) are early-stage or beta, target older protocol revisions and bring their own JSON libraries. SecondShell needs only the stdio transport, the server side and tools: a small amount of code on the JSON-RPC peer (section 3.2), shaped after Asgard's `Holomaps.Mcp.Shared` (transport → JSON-RPC → MCP protocol → tool sources). If a mature C++ MCP SDK appears, only `StdioTransport` and `McpServer` would be replaced.
 
-**Schemas from types.** Each tool's argument and result types are described types. Their descriptors give the tool's name, description, `inputSchema` and `outputSchema`, and validate incoming arguments. The tool definitions the AI client sees, the parsing and the validation can therefore never disagree.
+**Schemas from types.** Each tool's argument and result types are described types. Their descriptors give the tool's description, `inputSchema` and `outputSchema`, and parse incoming arguments. The tool definitions the AI client sees, the parsing and the validation can therefore never disagree.
 
 ```cpp
-//Composition root: container, stdio transport, peer, MCP server; runs until stdin closes.
-class McpApplication
-{
-public:
-  int Run();
-};
-
-//Newline-delimited JSON-RPC over stdin / stdout; stderr is only used for logging.
+//MCP's stdio transport: one message per line. Takes over stdout; everything else written there goes to stderr.
 class StdioTransport : public Rpc::IMessageTransport
 {
 public:
@@ -700,37 +693,37 @@ public:
 
   virtual void Send(std::string_view message) override;
   virtual bool IsOpen() const override;
+
+  void Run();  //reads on the calling thread until the client closes stdin
 };
 
-//The MCP methods on the JSON-RPC peer: initialize (version negotiation, capabilities), ping,
-//tools/list and tools/call (routed to the tool sources), notifications/initialized, notifications/cancelled.
+//The MCP methods on the JSON-RPC peer of the IMessageTransport in the container: initialize (version negotiation,
+//capabilities), ping, tools/list and tools/call, which go to the tools of registry<ToolSource>.
 class McpServer
 {
 public:
   explicit McpServer(Axodox::Infrastructure::dependency_container* container);
 
-  void Start();
-
-private:
-  Rpc::RpcResult<InitializeResponse> Initialize(const InitializeRequest& request, const CancellationToken& cancellation);
-  Rpc::RpcResult<PingResponse> Ping(const PingRequest& request, const CancellationToken& cancellation);
-  Rpc::RpcResult<ListToolsResponse> ListTools(const ListToolsRequest& request, const CancellationToken& cancellation);
-  Rpc::RpcResult<CallToolResponse> CallTool(const CallToolRequest& request, const CancellationToken& cancellation);
+  void Start();  //after the tool sources are registered
 };
 
-//A set of tools, registered in registry<ToolSource>. A derived source adds each tool from a member function;
-//the tool's name, description and schemas come from the argument and result types.
+//What a tool call has besides its arguments.
+struct ToolContext
+{
+  const Rpc::CancellationToken& Cancellation;
+  std::function<void(uint32_t completed, uint32_t total, std::string_view message)> ReportProgress;  //empty if not asked for
+  std::vector<Axodox::Infrastructure::value_ptr<ContentBlock>> Content;                            //added after the result
+};
+
+//A set of tools, registered in registry<ToolSource>. A derived source adds each tool from a member function.
 class ToolSource
 {
 public:
-  virtual ~ToolSource() = default;
-
   std::span<const ToolDefinition> Tools() const;
-  std::optional<ToolResult> CallTool(std::string_view name, const Axodox::Json::json_object& arguments, ToolContext& context);
 
 protected:
   template<typename TSource, typename TArguments, typename TResult>
-  void AddTool(TResult(TSource::*tool)(const TArguments& arguments, ToolContext& context));
+  void AddTool(const char* name, Rpc::RpcResult<TResult>(TSource::*tool)(const TArguments& arguments, ToolContext& context));
 };
 
 //The seven SecondShell tools; each forwards to the host through HostClient.
@@ -738,38 +731,45 @@ class SessionToolSource : public ToolSource
 {
 public:
   explicit SessionToolSource(Axodox::Infrastructure::dependency_container* container);
-
-private:
-  InitializeSessionResult InitializeSession(const InitializeSessionArguments& arguments, ToolContext& context);
-  CheckSessionResult CheckSession(const CheckSessionArguments& arguments, ToolContext& context);
-  ShutdownSessionResult ShutdownSession(const ShutdownSessionArguments& arguments, ToolContext& context);
-  RunSequenceResult RunSequence(const RunSequenceArguments& arguments, ToolContext& context);
-  SetDisplayResult SetDisplay(const SetDisplayArguments& arguments, ToolContext& context);
-  GetDisplayResult GetDisplay(const GetDisplayArguments& arguments, ToolContext& context);
-  ConfigureCaptureResult ConfigureCapture(const ConfigureCaptureArguments& arguments, ToolContext& context);
 };
 
-//The JSON-RPC connection to the host: starts the host if needed, reconnects after a host restart.
+//The JSON-RPC connection to the host. Connects when it is needed: on first use, and again after the host restarted.
 class HostClient
 {
 public:
   explicit HostClient(Axodox::Infrastructure::dependency_container* container);
+  HostClient(Axodox::Infrastructure::dependency_container* container, std::string pipeName);  //tests
 
-  template<typename TRequest, typename TResponse>
-  Rpc::RpcResult<TResponse> Request(const TRequest& request, const CancellationToken& cancellation);
+  bool IsRunning();
+  std::optional<Rpc::JsonRpcError> Start(const Rpc::CancellationToken& cancellation);  //launches the host unless it runs
+
+  template<typename TRequest, typename TResponse = typename TRequest::ResponseType>
+  Rpc::RpcResult<TResponse> Request(const TRequest& request, std::chrono::milliseconds timeout, const Rpc::CancellationToken& cancellation);
+
+  Axodox::Infrastructure::event_publisher<HostClient*, const Protocol::SequenceProgressNotification&> SequenceProgress;
 };
 
-//Starts SecondShell.exe and waits for its pipe.
+//Starts SecondShell.exe through the running Explorer (IShellWindows → desktop view → IShellDispatch2::ShellExecute).
 class HostLauncher
 {
 public:
   explicit HostLauncher(Axodox::Infrastructure::dependency_container* container);
 
-  void EnsureRunning(std::chrono::milliseconds timeout);
+  void Launch();
 };
 ```
 
-`ToolContext` carries the cancellation token and the progress reporter of the current call. MCP content types (text, image, structured content) are small described types in `McpContent.h`; `RunSequenceResult` turns inline captures into image content.
+- **Composition root**: `main.cpp` creates the `StdioTransport`, registers it as the container's `IMessageTransport`, adds `SessionToolSource` to `registry<ToolSource>`, starts `McpServer` and calls `Run`. Unit tests do the same with an in-memory transport.
+- **Messages**: `McpMessages.h` (initialize, ping, tools/list, tools/call, `notifications/progress`) and `McpContent.h` (`ContentBlock` with `TextContent` and `ImageContent`, type discriminator `"type"`). The server answers in the client's protocol revision if it knows it (2025-11-25, 2025-06-18, 2025-03-26, 2024-11-05), otherwise in the newest. Its `instructions` tell the AI what SecondShell is and how to start.
+- **Tools**: the name is given to `AddTool`; the description and `inputSchema` come from the argument type (its description moved to the tool, `additionalProperties: false`), `outputSchema` from the result type. Arguments are parsed with `StrictJson` (Common), as actions are: unknown properties are rejected.
+- **Results**: a result becomes `structuredContent`, and the same JSON as a text block (MCP's recommendation for clients that don't read structured content), followed by `ToolContext::Content`. Invalid arguments and errors from the host are **tool errors** (`isError`, text `"<ErrorCode>: <message>"` via `ProtocolErrors::ToText`), which the AI sees and can react to; an unknown tool is a JSON-RPC `InvalidParams` error, as MCP specifies. A sequence that stopped at a failed step is a successful call: its result has `failedStep`, `error` and `message`.
+- **The seven tools** take the host's request types as arguments (`InitializeSessionRequest`, ...), so their descriptions are written once. `Run-Sequence` takes `RunSequenceArguments`, which `RunSequenceRequest` extends with the progress token. `Set-Display`, `Get-Display` and `Configure-Capture` only forward (`SessionToolSource::Forward<TRequest>`).
+- **Starting the host**: only `Initialize-Session` starts it (`HostClient::Start`: launch, then try to connect every 250 ms for up to 30 s). Without a host, `Check-Session` answers with the state `Stopped`, and the other tools fail with `SessionNotActive`. `HostLauncher` goes through Explorer because the host must run outside the AI client's package context (its `RunOnce` entry would be virtualized, Findings.md 2.12) and outside its process tree (clients end their servers' trees, and the host outlives the MCP server).
+- **Connections**: `HostClient` connects with `named_pipe_messaging_client::connect` (one attempt, no background retries) whenever it has no open connection. A connection (channel, `PipeTransport`, `JsonRpcPeer`) is shared by the requests using it, so a disconnect never destroys a channel under a running request; the next request connects again.
+- **Timeouts**: requests to the host wait for the tool's own timeout (or its default: `InitializeSessionRequest::DefaultTimeout` 60 s, `ShutdownSessionRequest` 30 s, `RunSequenceArguments` 60 s) plus 10 s for the host to answer; tools without a timeout wait 30 s.
+- **Progress**: when a `tools/call` has a progress token, `Run-Sequence` sends the host a token of its own; `HostClient` raises `SequenceProgress` for each `sequence/progress`, and the call forwards those with its token as `notifications/progress`.
+- **Captures**: inline captures in a `Run-Sequence` result move to image content (with a caption naming the tag, size and scale), and the structured result keeps everything but the data.
+- **Known gaps**: unknown properties are rejected only at the top level of tool arguments and actions, not in nested objects (e.g. `display`). Logs go to stderr only when it is a console (Axodox's logger writes with `WriteConsole`), so an AI client sees none; a log file follows with the host. On the host side, `PipeTransport` must not outlive its channel: the host's per-connection objects must be dropped in the server's disconnect event (stage 5).
 
 ## 6. SecondShell (host)
 
@@ -1208,7 +1208,8 @@ Unit tests in the same framework as Axodox.Common's tests, each with its own loc
 
 - Actions: parsing by discriminator, validation errors, generated schemas.
 - `JsonRpcPeer`: requests, responses, notifications, errors, cancellation, over an in-memory transport.
-- `McpServer` and `ToolSource`: recorded MCP sessions.
+- `McpServer` and `ToolSource`: recorded MCP exchanges with test tools (`McpTestClient` over the in-memory transport); `SessionToolSource` against a fake host on a pipe of its own; the tool schemas as a snapshot (`Tools.json`).
+- MCP probe: runs `SecondShell.Mcp.exe` and speaks MCP over its stdio (expects no host running).
 - `SequenceRunner`: async actions, `Control.Join`, timeouts, stop on failure, interruption, with a fake `IDriverLink`.
 - `JsonConfigEditor` and the integrations: merging into existing configs, backups, removal.
 - `KeyNames`, `ShellCommandBuilder`, `CaptureStore` decisions, `ClipboardFormatConverter`.
@@ -1221,7 +1222,7 @@ General-purpose pieces SecondShell needs, which fit Axodox.Common better than Se
 
 | Addition | Module | Contents | Needed for |
 |---|---|---|---|
-| **Named pipe messaging** (implemented in stage 2, branch `named_pipe_messaging`) | `Networking/Messaging/Pipes` | `named_pipe_messaging_channel` (a `messaging_channel` over a pipe, with `peer_session_id()` and `peer_process_id()`), `named_pipe_messaging_server`, `named_pipe_messaging_client` (connects and reconnects; refuses pipes another user created), `named_pipe_security` (current-user-only access list, `PIPE_REJECT_REMOTE_CLIENTS`); the first pipe instance claims the name, so another process cannot take it over | All communication between SecondShell's processes |
+| **Named pipe messaging** (implemented in stage 2, branch `named_pipe_messaging`) | `Networking/Messaging/Pipes` | `named_pipe_messaging_channel` (a `messaging_channel` over a pipe, with `peer_session_id()` and `peer_process_id()`), `named_pipe_messaging_server`, `named_pipe_messaging_client` (connects and reconnects, or `connect` once; refuses pipes another user created), `named_pipe_security` (current-user-only access list, `PIPE_REJECT_REMOTE_CLIENTS`); the first pipe instance claims the name, so another process cannot take it over | All communication between SecondShell's processes |
 | **Shared textures with keyed mutex** | `Graphics/Textures` | Shared NT-handle textures with `IDXGIKeyedMutex`, a lock type releasing the mutex when destroyed, opening by handle and by name, handle duplication into another process (similar to Asgard's `GraphicsMutex` / `GraphicsLock`) | Shared frames (section 3.6) |
 | **JSON-RPC 2.0 peer** | `Json` or `Networking` | A generic version of `JsonRpcPeer`: typed handlers keyed by descriptor name, requests with ID matching, notifications, cancellation, over any text message transport | All three links; also useful for other JSON-RPC protocols |
 | **WinUI 3 swap chain** | `Graphics/Swap Chains` | `WinUiSwapChain` for `Microsoft::UI::Xaml::Controls::SwapChainPanel`, the counterpart of the UWP-only `XamlSwapChain` | The host's session view |

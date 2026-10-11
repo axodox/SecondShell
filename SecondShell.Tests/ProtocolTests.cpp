@@ -154,11 +154,6 @@ namespace SecondShell::Tests
       Assert::IsFalse(ProtocolErrors::TryGetCode(JsonRpcError{ JsonRpcErrorCode::InternalError, "x" }).has_value());
     }
 
-    TEST_METHOD(RunSequenceSchemaMatchesSnapshot)
-    {
-      JsonSnapshot::AssertMatches("RunSequenceRequest", *RunSequenceRequest::json_description.to_json());
-    }
-
     TEST_METHOD(KeyNamesHaveCanonicalNames)
     {
       Assert::AreEqual(string("Enter"), KeyNames::ToString(0x0D));

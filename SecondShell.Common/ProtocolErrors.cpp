@@ -25,4 +25,10 @@ namespace SecondShell::Protocol
 
     return nullopt;
   }
+
+  string ProtocolErrors::ToText(const JsonRpcError& error)
+  {
+    auto code = error.Code == int32_t(JsonRpcErrorCode::Timeout) ? ErrorCode::Timeout : TryGetCode(error);
+    return code ? format("{}: {}", to_string(*code), error.Message) : error.Message;
+  }
 }

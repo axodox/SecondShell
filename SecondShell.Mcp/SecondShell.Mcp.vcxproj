@@ -54,13 +54,30 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="HostClient.h" />
+    <ClInclude Include="HostLauncher.h" />
+    <ClInclude Include="McpContent.h" />
+    <ClInclude Include="McpMessages.h" />
+    <ClInclude Include="McpServer.h" />
+    <ClInclude Include="SessionToolSource.h" />
+    <ClInclude Include="StdioTransport.h" />
+    <ClInclude Include="ToolContext.h" />
+    <ClInclude Include="ToolSource.h" />
     <ClInclude Include="pch.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="HostClient.cpp" />
+    <ClCompile Include="HostLauncher.cpp" />
+    <ClCompile Include="McpContent.cpp" />
+    <ClCompile Include="McpMessages.cpp" />
+    <ClCompile Include="McpServer.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="SessionToolSource.cpp" />
+    <ClCompile Include="StdioTransport.cpp" />
+    <ClCompile Include="ToolSource.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\SecondShell.Common\SecondShell.Common.vcxproj">

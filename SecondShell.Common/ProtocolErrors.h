@@ -10,5 +10,8 @@ namespace SecondShell::Protocol
   {
     static Rpc::JsonRpcError Make(Actions::ErrorCode code, std::string message);
     static std::optional<Actions::ErrorCode> TryGetCode(const Rpc::JsonRpcError& error);
+
+    //For the AI: "<code>: <message>" for SecondShell's errors and timeouts, the message for others.
+    static std::string ToText(const Rpc::JsonRpcError& error);
   };
 }
