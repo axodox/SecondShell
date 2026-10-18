@@ -14,7 +14,7 @@ packages/
 .vs/
 
 #Machine-specific build settings
-Build/local.props
+Build/local.props*
 
 #Spike exchange folder (files passed between the sessions) and raw run results
 Spikes/exchange/

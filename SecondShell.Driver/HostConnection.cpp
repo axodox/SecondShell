@@ -14,47 +14,63 @@ using namespace std::chrono;
 
 namespace SecondShell::Driver
 {
-  const milliseconds _connectInterval{ 500 };
+  namespace
+  {
+    uint32_t CurrentSessionId()
+    {
+      DWORD sessionId = 0;
+      winrt::check_bool(ProcessIdToSessionId(GetCurrentProcessId(), &sessionId));
+      return sessionId;
+    }
+  }
 
-  HostConnection::HostConnection(dependency_container* /*container*/)
+  HostConnection::HostConnection(dependency_container* /*container*/) :
+    _client(PipeNames::Driver()),
+    _connectedSubscription(_client.connected({ this, &HostConnection::OnConnected }))
   { }
 
-  HostConnection::~HostConnection() = default;
+  HostConnection::~HostConnection()
+  {
+    //Waits for a connected handler in progress, e.g. a host appearing after Open timed out, and prevents new ones
+    _connectedSubscription.reset();
+  }
 
   bool HostConnection::Open(milliseconds timeout)
   {
-    //The host may be busy accepting another connection, so try for a while
-    auto deadline = steady_clock::now() + timeout;
-    while (!_channel)
+    //The client retries until the host is there, e.g. while it is busy accepting another connection
+    _client.open();
+    if (!_connected.wait(timeout))
     {
-      try
-      {
-        _channel = named_pipe_messaging_client::connect(PipeNames::Driver());
-      }
-      catch (const exception& exception)
-      {
-        if (steady_clock::now() > deadline)
-        {
-          _logger.log(log_severity::warning, "No host: {}", exception.what());
-          return false;
-        }
-        this_thread::sleep_for(_connectInterval);
-      }
-    }
-
-    //A host in this session means this is not its child session, e.g. a leftover startup entry ran at a normal logon
-    DWORD sessionId = 0;
-    winrt::check_bool(ProcessIdToSessionId(GetCurrentProcessId(), &sessionId));
-    if (_channel->peer_session_id() == sessionId)
-    {
-      _logger.log(log_severity::warning, "The host is in this session ({}), so this is not its child session.", sessionId);
+      _logger.log(log_severity::warning, "No host within {}.", duration_cast<seconds>(timeout));
       return false;
     }
 
-    _transport = make_shared<PipeTransport>(_channel.get());
-    _peer = make_unique<JsonRpcPeer>(_transport);
-    _closedSubscription = _transport->Closed([this](IMessageTransport*) { _closed.set(); });
-    return true;
+    return _peer != nullptr;
+  }
+
+  void HostConnection::OnConnected(messaging_client* client, messaging_channel* channel)
+  {
+    //A host in this session means this is not its child session, e.g. a leftover startup entry ran at a normal logon;
+    //closing the client before the channel opens leaves it unopened, and stops the reconnects
+    auto pipe = static_cast<named_pipe_messaging_channel*>(channel);
+    auto sessionId = CurrentSessionId();
+    if (pipe->remote_peer().session_id == sessionId)
+    {
+      _logger.log(log_severity::warning, "The host is in this session ({}), so this is not its child session.", sessionId);
+      client->close();
+    }
+    else
+    {
+      //Without reconnecting after the host is gone, the transport and the peer are never replaced while in use
+      _transport = make_shared<PipeTransport>(pipe);
+      _peer = make_unique<JsonRpcPeer>(_transport);
+      _closedSubscription = _transport->Closed([this](IMessageTransport*) {
+        _client.close();
+        _closed.set();
+        });
+    }
+
+    _connected.set();
   }
 
   JsonRpcPeer& HostConnection::Peer()
@@ -65,7 +81,6 @@ namespace SecondShell::Driver
   bool HostConnection::Hello(milliseconds timeout)
   {
     _peer->Start();
-    _channel->open();
 
     CancellationToken noCancellation;
     auto result = _peer->Request(DriverHelloRequest{ ProductInfo::Version() }, timeout, noCancellation);
@@ -83,7 +98,7 @@ namespace SecondShell::Driver
     }
 
     _isAccepted = true;
-    _logger.log(log_severity::information, "Accepted by the host (process {}).", _channel->peer_process_id());
+    _logger.log(log_severity::information, "Accepted by the host (process {}).", _transport->PeerProcessId());
     return true;
   }
 

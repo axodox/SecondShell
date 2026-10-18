@@ -4,6 +4,7 @@
 #include "McpServer.h"
 #include "McpTestClient.h"
 #include "SessionToolSource.h"
+#include "TestPipeName.h"
 
 using namespace Axodox::Infrastructure;
 using namespace Axodox::Json;
@@ -126,7 +127,7 @@ namespace SecondShell::Tests
 
   TEST_CLASS(SessionToolSourceTests)
   {
-    string _pipeName = format("SecondShell.Tests.Host.{}.{}", GetCurrentProcessId(), GetTickCount64());
+    string _pipeName = UniquePipeName("Host");
     McpTestClient _client;
     dependency_container _container;
 
@@ -145,6 +146,41 @@ namespace SecondShell::Tests
       json_value* isError;
       Assert::IsTrue(toolResult.as<json_object>().try_get_value("isError", isError) && isError->as<json_boolean>().value, L"the tool should fail");
       return Content(toolResult).value.at(0)->as<json_object>().at("text")->as<json_string>().value;
+    }
+
+    string SessionState()
+    {
+      return StructuredContent(*_client.CallTool("Check-Session", "{}")).at("session")->as<json_object>().at("state")->as<json_string>().value;
+    }
+
+    //The client reconnects once a second, so changes of the host take a while to show
+    template<typename TPredicate>
+    static bool Eventually(TPredicate&& predicate)
+    {
+      for (auto attempt = 0; attempt < 50; attempt++)
+      {
+        if (predicate()) return true;
+        this_thread::sleep_for(100ms);
+      }
+
+      return false;
+    }
+
+    //A host restarting on the same pipe; it cannot open until the previous host's pipe instances are closed.
+    void StartHost(optional<FakeHost>& host)
+    {
+      auto isStarted = Eventually([&] {
+        try
+        {
+          host.emplace(_pipeName);
+          return true;
+        }
+        catch (const exception&)
+        {
+          return false;
+        }
+        });
+      Assert::IsTrue(isStarted, L"the host should start");
     }
 
   public:
@@ -168,6 +204,29 @@ namespace SecondShell::Tests
 
       result = _client.CallTool("Get-Display", "{}");
       Assert::IsTrue(ErrorText(*result).starts_with("SessionNotActive: "));
+    }
+
+    TEST_METHOD(AHostStartedLaterIsFound)
+    {
+      Assert::AreEqual(string("Stopped"), SessionState());
+
+      FakeHost host{ _pipeName };
+      Assert::IsTrue(Eventually([&] { return SessionState() == "Ready"; }), L"the client should connect to the host");
+    }
+
+    TEST_METHOD(RequestsWorkAgainOnceTheHostIsBack)
+    {
+      auto configureCapture = [&] { return ErrorText(*_client.CallTool("Configure-Capture", R"({"capture": {"inlineLimit": 2}})")); };
+
+      optional<FakeHost> host;
+      StartHost(host);
+      Assert::AreEqual(string("AgentInputDisabled: The user has taken control."), configureCapture());
+
+      host.reset();
+      Assert::IsTrue(Eventually([&] { return configureCapture().starts_with("SessionNotActive: "); }), L"requests should fail while the host is gone");
+
+      StartHost(host);
+      Assert::IsTrue(Eventually([&] { return configureCapture().starts_with("AgentInputDisabled: "); }), L"requests should reach the host once it is back");
     }
 
     TEST_METHOD(InitializeSessionForwardsItsSettings)

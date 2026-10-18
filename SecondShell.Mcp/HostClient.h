@@ -7,7 +7,8 @@
 
 namespace SecondShell::Mcp
 {
-  //The JSON-RPC connection to the host. Connects when it is needed: on first use, and again after the host restarted.
+  //The JSON-RPC connection to the host. Starts connecting on first use; after that its client connects whenever the host
+  //is there, also after the host restarted.
   class HostClient
   {
     inline static const Axodox::Infrastructure::logger _logger{ "HostClient" };
@@ -29,7 +30,7 @@ namespace SecondShell::Mcp
     template<typename TRequest, typename TResponse = typename TRequest::ResponseType>
     Rpc::RpcResult<TResponse> Request(const TRequest& request, std::chrono::milliseconds timeout, const Rpc::CancellationToken& cancellation)
     {
-      auto connection = Connect();
+      auto connection = CurrentConnection();
       if (!connection) return Protocol::ProtocolErrors::Make(Actions::ErrorCode::SessionNotActive, "SecondShell is not running; start a session with Initialize-Session.");
 
       return Peer(*connection).template Request<TRequest, TResponse>(request, timeout, cancellation);
@@ -40,14 +41,20 @@ namespace SecondShell::Mcp
 
   private:
     std::shared_ptr<HostLauncher> _launcher;
-    std::string _pipeName;
+
+    //Declared before the connection, which uses its channel, so it is destroyed after it
+    Axodox::Networking::named_pipe_messaging_client _client;
+    Axodox::Infrastructure::event_subscription _connectedSubscription;
+    std::once_flag _openOnce;
+    Axodox::Threading::manual_reset_event _hasConnected;
 
     std::mutex _mutex;
     std::shared_ptr<Connection> _connection;
 
-    std::shared_ptr<Connection> Connect();
+    std::shared_ptr<Connection> CurrentConnection();
     static Rpc::JsonRpcPeer& Peer(Connection& connection);
 
+    void OnConnected(Axodox::Networking::messaging_client* client, Axodox::Networking::messaging_channel* channel);
     void OnSequenceProgress(const Protocol::SequenceProgressNotification& notification);
   };
 }

@@ -2,6 +2,7 @@
 #include "DriverLink.h"
 #include "JsonRpcPeer.h"
 #include "PipeTransport.h"
+#include "TestPipeName.h"
 
 using namespace Axodox::Infrastructure;
 using namespace Axodox::Networking;
@@ -21,31 +22,48 @@ namespace SecondShell::Tests
     {
     public:
       explicit TestDriver(string_view pipeName) :
-        _channel(named_pipe_messaging_client::connect(pipeName)),
-        _peer(make_shared<PipeTransport>(_channel.get()))
+        _client(pipeName),
+        _connectedSubscription(_client.connected({ this, &TestDriver::OnConnected }))
       {
-        _peer.Start();
-        _channel->open();
+        _client.open();
+        Assert::IsTrue(_connected.wait(5s), L"the driver should connect");
+      }
+
+      ~TestDriver()
+      {
+        _connectedSubscription.reset();
       }
 
       DriverHelloResponse Hello()
       {
         CancellationToken noCancellation;
-        auto result = _peer.Request(DriverHelloRequest{ "test" }, 5s, noCancellation);
+        auto result = _peer->Request(DriverHelloRequest{ "test" }, 5s, noCancellation);
         if (auto error = get_if<JsonRpcError>(&result)) Assert::Fail(to_wstring(error->Message).c_str());
         return get<DriverHelloResponse>(result);
       }
 
     private:
-      unique_ptr<named_pipe_messaging_channel> _channel;
-      JsonRpcPeer _peer;
+      named_pipe_messaging_client _client;
+      event_subscription _connectedSubscription;
+      Axodox::Threading::manual_reset_event _connected;
+      unique_ptr<JsonRpcPeer> _peer;
+
+      void OnConnected(messaging_client* /*client*/, messaging_channel* channel)
+      {
+        //The first connection only: the client reconnects if the host drops it
+        if (_peer) return;
+
+        _peer = make_unique<JsonRpcPeer>(make_shared<PipeTransport>(static_cast<named_pipe_messaging_channel*>(channel)));
+        _peer->Start();
+        _connected.set();
+      }
     };
   }
 
   //The host's half of the session guard. The test driver runs in this process, so in this session.
   TEST_CLASS(DriverLinkTests)
   {
-    string _pipeName = format("SecondShell.Tests.Driver.{}.{}", GetCurrentProcessId(), GetTickCount64());
+    string _pipeName = UniquePipeName("Driver");
     dependency_container _container;
     shared_ptr<DriverLink> _link;
     uint32_t _sessionId = 0;

@@ -5,7 +5,7 @@
     <SecondShellRoot>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..'))\</SecondShellRoot>
     <SecondShellPackages>$(SecondShellRoot)packages\</SecondShellPackages>
 
-    <AxodoxCommonPackageDir>$(SecondShellPackages)Axodox.Common.1.0.120\</AxodoxCommonPackageDir>
+    <AxodoxCommonPackageDir>$(SecondShellPackages)Axodox.Common.1.0.124-named-pipe-messaging\</AxodoxCommonPackageDir>
     <CppWinRTPackageDir>$(SecondShellPackages)Microsoft.Windows.CppWinRT.2.0.250303.1\</CppWinRTPackageDir>
     <WilPackageDir>$(SecondShellPackages)Microsoft.Windows.ImplementationLibrary.1.0.260126.7\</WilPackageDir>
     <SdkBuildToolsPackageDir>$(SecondShellPackages)Microsoft.Windows.SDK.BuildTools.10.0.26100.4654\</SdkBuildToolsPackageDir>

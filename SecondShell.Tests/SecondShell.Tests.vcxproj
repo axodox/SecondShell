@@ -61,6 +61,7 @@
     <ClInclude Include="JsonSnapshot.h" />
     <ClInclude Include="McpProbe.h" />
     <ClInclude Include="McpTestClient.h" />
+    <ClInclude Include="TestPipeName.h" />
     <ClInclude Include="MemoryTransport.h" />
   </ItemGroup>
   <ItemGroup>

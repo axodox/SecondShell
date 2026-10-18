@@ -20,8 +20,7 @@ namespace SecondShell::Rpc
   private:
     mutable std::mutex _mutex;
     Axodox::Networking::named_pipe_messaging_channel* _channel;
-    uint32_t _peerSessionId;
-    uint32_t _peerProcessId;
+    Axodox::Networking::named_pipe_peer_description _remotePeer;
     Axodox::Infrastructure::event_subscription _messageReceivedSubscription;
     Axodox::Infrastructure::event_subscription _disconnectedSubscription;
 

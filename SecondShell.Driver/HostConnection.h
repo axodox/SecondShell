@@ -28,11 +28,16 @@ namespace SecondShell::Driver
     void WaitUntilClosed();
 
   private:
-    std::unique_ptr<Axodox::Networking::named_pipe_messaging_channel> _channel;
+    //Declared before the transport and the peer, which use its channel, so it is destroyed after them
+    Axodox::Networking::named_pipe_messaging_client _client;
+    Axodox::Infrastructure::event_subscription _connectedSubscription;
+    Axodox::Threading::manual_reset_event _connected;
     std::shared_ptr<Rpc::PipeTransport> _transport;
     std::unique_ptr<Rpc::JsonRpcPeer> _peer;
     Axodox::Infrastructure::event_subscription _closedSubscription;
     Axodox::Threading::manual_reset_event _closed;
     std::atomic_bool _isAccepted = false;
+
+    void OnConnected(Axodox::Networking::messaging_client* client, Axodox::Networking::messaging_channel* channel);
   };
 }

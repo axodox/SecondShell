@@ -8,8 +8,7 @@ namespace SecondShell::Rpc
 {
   PipeTransport::PipeTransport(named_pipe_messaging_channel* channel) :
     _channel(channel),
-    _peerSessionId(channel->peer_session_id()),
-    _peerProcessId(channel->peer_process_id()),
+    _remotePeer(channel->remote_peer()),
     _messageReceivedSubscription(_channel->message_received({ this, &PipeTransport::OnChannelMessageReceived })),
     _disconnectedSubscription(_channel->disconnected({ this, &PipeTransport::OnChannelDisconnected }))
   { }
@@ -30,12 +29,12 @@ namespace SecondShell::Rpc
 
   uint32_t PipeTransport::PeerSessionId() const
   {
-    return _peerSessionId;
+    return _remotePeer.session_id;
   }
 
   uint32_t PipeTransport::PeerProcessId() const
   {
-    return _peerProcessId;
+    return _remotePeer.process_id;
   }
 
   void PipeTransport::OnChannelMessageReceived(messaging_channel* /*channel*/, span<const uint8_t> message)

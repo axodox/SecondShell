@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "JsonRpcPeer.h"
 #include "PipeTransport.h"
+#include "TestPipeName.h"
 
 using namespace Axodox::Infrastructure;
 using namespace Axodox::Json;
@@ -62,7 +63,7 @@ namespace SecondShell::Tests
   public:
     TEST_METHOD(PeersTalkOverAPipe)
     {
-      auto name = format("SecondShell.Tests.{}.{}", GetCurrentProcessId(), GetTickCount64());
+      auto name = UniquePipeName("Transport");
 
       //Server: one service per connection, created before the channel opens
       named_pipe_messaging_server server{ name };
