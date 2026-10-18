@@ -3,6 +3,7 @@
 #include "CaptureEncoder.h"
 #include "ChildSessionApi.h"
 #include "HostWindow.h"
+#include "PhraseMatcher.h"
 #include "McpProbe.h"
 
 using namespace Axodox::Infrastructure;
@@ -196,23 +197,31 @@ namespace SecondShell::Tests
     }
 
     //A console of its own, started as the agent would; its window reports the cmd in it as its process. It is awaited
-    //by a text inside its banner: OCR misses the letter at the window's very edge.
+    //by its window, not by its banner's text: an earlier test's console may show the same text.
     static pair<string, uint32_t> StartConsole()
     {
       auto before = WindowIds();
-      RunSucceeding(R"([
-        { "action": "Process.Run", "command": "conhost.exe", "shell": "None", "args": ["cmd.exe", "/d"], "async": true },
-        { "action": "Capture.WaitForText", "text": "All rights reserved" }
-      ])");
+      RunSucceeding(R"([{ "action": "Process.Run", "command": "conhost.exe", "shell": "None", "args": ["cmd.exe", "/d"], "async": true }])");
+      return WaitForNewWindow(before);
+    }
 
-      auto result = RunSucceeding(R"([{ "action": "Window.Enumerate" }])");
-      for (auto& item : ResultAt(result, 0).at("windows")->as<json_array>().value)
+    //A window opened since the windows given, with its process; e.g. a new console, whose banner text an earlier
+    //console may show too, so the text cannot tell that the new one is there.
+    static pair<string, uint32_t> WaitForNewWindow(const set<string>& before)
+    {
+      auto deadline = chrono::steady_clock::now() + 10s;
+      do
       {
-        auto& window = item->as<json_object>();
-        if (!before.contains(StringOf(window, "window"))) return { StringOf(window, "window"), uint32_t(NumberOf(window, "pid")) };
-      }
+        auto result = RunSucceeding(R"([{ "action": "Window.Enumerate" }])");
+        for (auto& item : ResultAt(result, 0).at("windows")->as<json_array>().value)
+        {
+          auto& window = item->as<json_object>();
+          if (!before.contains(StringOf(window, "window"))) return { StringOf(window, "window"), uint32_t(NumberOf(window, "pid")) };
+        }
+        this_thread::sleep_for(200ms);
+      } while (chrono::steady_clock::now() < deadline);
 
-      Assert::Fail(L"the console should have a window");
+      Assert::Fail(L"a new window should open");
     }
 
     //That the session's screen keeps changing: a console opened by the agent shows in the next capture. Without OCR,
@@ -299,19 +308,26 @@ namespace SecondShell::Tests
 
     TEST_METHOD(TypedTextAppearsInTheCapture)
     {
-      auto result = RunSucceeding(R"([
+      RunSucceeding(R"([
         { "action": "Keyboard.Tap", "key": "R", "modifiers": ["Win"] },
-        { "action": "Capture.WaitForStable" },
-        { "action": "Keyboard.Type", "text": "conhost.exe cmd.exe /d\n" },
-        { "action": "Capture.WaitForText", "text": "All rights reserved" },
-        { "action": "Keyboard.Type", "text": "echo Typed into the second session\n" },
-        { "action": "Capture.WaitForText", "text": "Typed into the second session" },
-        { "action": "Capture.Screen" }
+        { "action": "Capture.WaitForStable" }
       ])");
+      auto before = WindowIds();
+      RunSucceeding(R"([{ "action": "Keyboard.Type", "text": "conhost.exe cmd.exe /d\n" }])");
+      auto [console, pid] = WaitForNewWindow(before);
 
-      //The capture, not only the driver's own OCR, shows it; the text has no "l", which OCR reads as "1" in consoles
-      auto text = RecognizeText(FirstImageOf(result));
-      Assert::IsTrue(text.find("Typed into the second session") != string::npos, to_wstring(text).c_str());
+      RunSucceeding(With(R"([
+        { "action": "Window.Focus", "window": "%window%" },
+        { "action": "Keyboard.Type", "text": "echo Typed into the second session\n" },
+        { "action": "Capture.WaitForText", "text": "Typed into the second session" }
+      ])", { { "window", console } }));
+
+      //The capture, not only the driver's own waits, shows it: the console's window, read as the waits read windows
+      //(OCR of the whole screen is unreliable over a busy wallpaper, OcrOptions.md)
+      auto capture = RunSucceeding(With(R"([{ "action": "Capture.Window", "window": "%window%" }])", { { "window", console } }));
+
+      auto text = RecognizeText(FirstImageOf(capture));
+      Assert::IsTrue(PhraseMatcher("Typed into the second session").IsIn(text), to_wstring(text).c_str());
     }
 
     TEST_METHOD(TheDriverRefusesTheUserSession)
