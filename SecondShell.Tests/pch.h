@@ -1,6 +1,8 @@
 #pragma once
 #include <winsock2.h>
 #include <windows.h>
+#include <tlhelp32.h>
+#include <wtsapi32.h>
 #include <unknwn.h>
 #include <comdef.h>
 #include <wincred.h>
@@ -17,13 +19,18 @@
 
 #include <deque>
 #include <fstream>
+#include <future>
 #include <unordered_set>
 
 #include <winrt/base.h>
 #include <winrt/Windows.Foundation.h>
 #include <winrt/Windows.Foundation.Collections.h>
+#include <winrt/Windows.Globalization.h>
 #include <winrt/Windows.Graphics.Capture.h>
 #include <winrt/Windows.Graphics.DirectX.Direct3D11.h>
+#include <winrt/Windows.Graphics.Imaging.h>
+#include <winrt/Windows.Media.Ocr.h>
+#include <winrt/Windows.Storage.Streams.h>
 
 #include "Include/Axodox.Infrastructure.h"
 #include "Include/Axodox.Json.h"

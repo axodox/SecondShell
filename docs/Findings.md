@@ -118,7 +118,9 @@ Not yet tested: mouse buttons and wheels, touch, pen, gamepad (and whether XInpu
 
 In the 2.9 test, Notepad in the child session restored the user's own open Notepad tabs, including one with unsaved changes (`*qBittorrent-data.ini`), from the shared profile. It also wrote its window state (`LocalState\WindowState\*.bin`) back to the shared profile. The tab contents (`LocalState\TabState`) were not modified by the test.
 
-**Consequence:** apps in the child session work on the user's real data and settings; see Design.md, Session lifecycle.
+The first stage 5 end-to-end run (2026-10-18) followed the plan's scenario: Win+R, `notepad`, type, capture. Notepad opened on the user's restored `qBittorrent-data.ini` tab, and the typed text went into it; the first word, typed 4 s after the launch, was lost while Notepad was starting. The test's clean-up (Ctrl+A, Delete, Ctrl+W) emptied the tab and brought up "Save changes?" with Save as the default button. Escape did not reach the dialog; clicking Cancel and undoing every change restored the tab, and nothing was saved.
+
+**Consequence:** apps in the child session work on the user's real data and settings; see Design.md, Session lifecycle. Tests type only into apps that restore nothing from the profile, such as `conhost.exe cmd.exe /d`, and never clean up with keys that could save or close a document.
 
 ### 2.11 A WinUI 3 process can own the RDP control in a never-shown window (stage 1, spike 1)
 

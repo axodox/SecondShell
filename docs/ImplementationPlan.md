@@ -4,7 +4,7 @@ The implementation of [Architecture.md](Architecture.md) in stages. Each stage e
 
 From stage 5 on, SecondShell can drive its own child session end to end. From then on, most behaviour can be tested by running sequences through the MCP server, without anyone watching the screen.
 
-## Status (2026-10-11)
+## Status (2026-10-18)
 
 | Stage | State | Where |
 |---|---|---|
@@ -13,7 +13,7 @@ From stage 5 on, SecondShell can drive its own child session end to end. From th
 | 2 Transport, JSON-RPC | Done, tested (unit + real pipe) | branch `stage_1_and_2` (9f88267); Axodox.Common branch `named_pipe_messaging` (1b18ba7) |
 | 3 Actions, protocol | Done, tested (52 SecondShell tests pass, x64 + ARM64 build) | branch `stage_1_and_2` (505c4a3) |
 | 4 MCP server | Done, tested (68 SecondShell tests pass, incl. the MCP probe; x64 + ARM64 build); manual test in Claude Code open | branch `stage_1_and_2` (this commit, "Stage 4: MCP server"); Axodox.Common `named_pipe_messaging` (23b59e5) |
-| 5 Session and driver core | Built, incl. credentials (uncommitted); unit tests pass (93, x64 + ARM64 build); first manual sign-in done: MCP → host launch → reset → prompt → sign-in → saved → driver accepted → Ready | branch `stage_1_and_2` ("Stage 5: session and driver core"); Axodox.Common `named_pipe_messaging` (ec9d54f) |
+| 5 Session and driver core | Done, tested: unit tests (93, x64 + ARM64 build); `SessionProbeTests` end to end (sign-in with the saved password, Win+R console, typing, capture checked by OCR, driver guard, logoff) | branch `stage_1_and_2` (5: 72f83eb, credentials: 523b9c1, end-to-end tests uncommitted); Axodox.Common `named_pipe_messaging` (ec9d54f + logger fix, uncommitted) |
 
 Notes for continuing:
 - SecondShell builds against the local Axodox.Common (`Build\local.props`, gitignored, points to `G:\dev\axodox-common\Axodox.Common.Desktop`) until an Axodox.Common NuGet release contains the named pipe messaging.
@@ -22,6 +22,8 @@ Notes for continuing:
 - The MCP probe (`McpProbeTests`) runs `bin\<platform>\<configuration>\SecondShell.Mcp.exe` with the real pipe name, so it expects no SecondShell host to be running for the current user.
 - Fixed during the first end-to-end run: `HostLauncher` asked the shell view's background object for `IShellFolderViewDual` directly (Explorer hands it out only as `IDispatch`; E_NOINTERFACE); `winrt::hresult_error` escaped `HostClient::Start` and `JsonRpcPeer::RunRequest` (abort); the sign-in loop used `reset_event::wait(0ms)`, which in Axodox waits forever (a zero timeout means none), so it hung after sign-in; it now tests the event with `operator bool`.
 - Stage 5: the first sign-in is a manual test: `Initialize-Session` shows the Windows credential prompt over the SecondShell window; the password is saved (Credential Manager, `SecondShell:ChildSession`, DPAPI-encrypted) once the sign-in succeeds, so later runs, and the MCP probe, are unattended. The prompt's time counts toward the `Initialize-Session` timeout (60 s by default). Still open: verifying the rejected-password path (reasons 3847 and 4615 are from the documentation; 2055 was seen), and the "Forget saved password" command (settings page, stage 7) and its uninstaller step. Logs: `%LOCALAPPDATA%\SecondShell\Logs\host.log` and `driver.log`.
+- Stage 5 end-to-end: `build.ps1 -SessionTests` runs only `SessionProbeTests`, which signs in to the child session (`existingSession` Reset), drives it, logs it off and closes the host window; it needs the saved password and no running host. The native test adapter ignores `TestCategory` traits, so the tests are selected by class name. Messages to `SecondShell.Mcp.exe` must be single lines (stdio is framed by line). Shutdown now goes through a `Stopping` state, so the planned disconnect no longer reports `Failed`.
+- Axodox.Common fix made in stage 5: log file lines are written by the thread that logs, not by the logging worker. Process exit terminated the worker first (with Axodox.Common as a DLL, its static destructors run after the other threads are gone), so a driver that exited at once, e.g. refused by the guard, lost its last lines.
 - Axodox.Common fixes made in stage 4: `named_pipe_messaging_client::connect` (one attempt, no retries), `supports_new` no longer breaks `dependency_container::resolve` of abstract types (MSVC 14.50), and polymorphic values parsed into a `value_ptr` keep their type when copied (they were sliced to the base).
 
 ## Testing approach
@@ -101,9 +103,10 @@ Small throwaway programs (in a `Spikes` folder, not product code) for the assump
 - **unit**: `SequenceRunner` with a fake driver link (order, async, Join, timeouts, failure handling, held-input reporting);
 - **MCP probe, end to end**:
   - Initialize-Session starts the host, which signs in to the child session; the driver starts via RunOnce and is accepted;
-  - a sequence opens Notepad with Win+R, types text, and captures the screen, and the capture shows the text;
+  - a sequence opens a console (`conhost.exe cmd.exe /d`) with Win+R, types a command, and captures the screen, and the capture shows the text (OCR); not Notepad, which restores the user's own tabs (Findings.md 2.10);
   - Shutdown-Session logs the session off;
 - **guard**: the driver started in the user's own session exits without doing anything;
+- the probe, guard and logoff tests are `SessionProbeTests` (`build.ps1 -SessionTests`); the normal test run leaves them out, as they need the saved password and log off the child session;
 - **manual (you)**: the first-time password prompt.
 
 From here on, the developer can test on their own through the MCP probe.

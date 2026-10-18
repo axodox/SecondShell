@@ -2,10 +2,12 @@
 #Examples:
 #  .\build.ps1                                      (Debug x64, with tests)
 #  .\build.ps1 -Configurations Debug,Release -Platforms x64,ARM64
+#  .\build.ps1 -SessionTests                       (only the tests that sign in to the child session)
 param(
   [string[]]$Configurations = @("Debug"),
   [string[]]$Platforms = @("x64"),
-  [switch]$SkipTests
+  [switch]$SkipTests,
+  [switch]$SessionTests
 )
 
 $ErrorActionPreference = "Stop"
@@ -46,7 +48,9 @@ if (-not $SkipTests -and $Platforms -contains "x64")
   foreach ($configuration in $Configurations)
   {
     Write-Host "Testing $configuration x64..." -ForegroundColor Magenta
-    & $vstest (Join-Path $root "bin\x64\$configuration\SecondShell.Tests.dll") /Platform:x64
+    #The session tests need the saved password and log off the child session, so they run only when asked for
+    $filter = if ($SessionTests) { "FullyQualifiedName~SessionProbeTests" } else { "FullyQualifiedName!~SessionProbeTests" }
+    & $vstest (Join-Path $root "bin\x64\$configuration\SecondShell.Tests.dll") /Platform:x64 /TestCaseFilter:$filter
     if ($LASTEXITCODE -ne 0) { throw "Tests failed for $configuration x64." }
   }
 }

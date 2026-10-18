@@ -144,6 +144,7 @@
                   "SigningIn",
                   "StartingDriver",
                   "Ready",
+                  "Stopping",
                   "Failed"
                 ],
                 "type": "string"
@@ -215,6 +216,7 @@
                   "SigningIn",
                   "StartingDriver",
                   "Ready",
+                  "Stopping",
                   "Failed"
                 ],
                 "type": "string"

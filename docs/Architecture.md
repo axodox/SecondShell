@@ -928,7 +928,7 @@ class SessionManager
 public:
   explicit SessionManager(Axodox::Infrastructure::dependency_container* container);
 
-  SessionState State() const;  //Stopped, Connecting, SigningIn, StartingDriver, Ready, Failed
+  SessionState State() const;  //Stopped, Connecting, SigningIn, StartingDriver, Ready, Stopping, Failed
   SessionInfo Info() const;    //session ID, display, driver connected
   bool HasExistingSession() const;
 

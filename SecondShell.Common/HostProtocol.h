@@ -14,6 +14,7 @@ namespace SecondShell::Protocol
     SigningIn,
     StartingDriver,
     Ready,
+    Stopping,
     Failed
   );
 

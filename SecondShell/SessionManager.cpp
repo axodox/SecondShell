@@ -35,7 +35,7 @@ namespace SecondShell::Session
 
   SessionManager::~SessionManager()
   {
-    if (Info().State != SessionState::Stopped) Shutdown();
+    Shutdown();
   }
 
   SessionInfo SessionManager::Info() const
@@ -78,6 +78,9 @@ namespace SecondShell::Session
   void SessionManager::Shutdown()
   {
     lock_guard startLock{ _startMutex };
+    if (Info().State == SessionState::Stopped) return;
+
+    SetState(SessionState::Stopping);
     CleanUp();
     SetState(SessionState::Stopped);
   }

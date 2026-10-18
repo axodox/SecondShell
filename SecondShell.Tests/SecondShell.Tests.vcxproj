@@ -53,12 +53,13 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <AdditionalLibraryDirectories>$(VCInstallDir)UnitTest\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>crypt32.lib;shlwapi.lib;windowscodecs.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>wtsapi32.lib;crypt32.lib;shlwapi.lib;windowscodecs.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="pch.h" />
     <ClInclude Include="JsonSnapshot.h" />
+    <ClInclude Include="McpProbe.h" />
     <ClInclude Include="McpTestClient.h" />
     <ClInclude Include="MemoryTransport.h" />
   </ItemGroup>
@@ -76,6 +77,7 @@
     <ClCompile Include="JsonRpcMessageTests.cpp" />
     <ClCompile Include="JsonRpcPeerTests.cpp" />
     <ClCompile Include="JsonSnapshot.cpp" />
+    <ClCompile Include="McpProbe.cpp" />
     <ClCompile Include="McpProbeTests.cpp" />
     <ClCompile Include="McpServerTests.cpp" />
     <ClCompile Include="McpTestClient.cpp" />
@@ -84,6 +86,7 @@
     <ClCompile Include="ProductInfoTests.cpp" />
     <ClCompile Include="ProtocolTests.cpp" />
     <ClCompile Include="SequenceRunnerTests.cpp" />
+    <ClCompile Include="SessionProbeTests.cpp" />
     <ClCompile Include="SessionToolSourceTests.cpp" />
   </ItemGroup>
   <ItemGroup Label="SecondShell.Driver">
@@ -97,6 +100,7 @@
     <ClCompile Include="..\SecondShell\ActionLog.cpp" />
     <ClCompile Include="..\SecondShell\AgentControl.cpp" />
     <ClCompile Include="..\SecondShell\CaptureStore.cpp" />
+    <ClCompile Include="..\SecondShell\ChildSessionApi.cpp" />
     <ClCompile Include="..\SecondShell\Credentials.cpp" />
     <ClCompile Include="..\SecondShell\CredentialStore.cpp" />
     <ClCompile Include="..\SecondShell\DriverLink.cpp" />
