@@ -25,6 +25,9 @@ namespace SecondShell::Driver
     bool Hello(std::chrono::milliseconds timeout);
     bool IsAccepted() const;
 
+    //The host's process, at the other end of the pipe.
+    uint32_t HostProcessId() const;
+
     void WaitUntilClosed();
 
   private:

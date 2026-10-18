@@ -47,17 +47,24 @@ namespace SecondShell::Protocol
 
   json_object_descriptor<GetScreenRequest> GetScreenRequest::json_description = describe_json_object<GetScreenRequest>({ .name = "screen/get" }, {});
 
-  json_object_descriptor<SubscribeFramesResponse> SubscribeFramesResponse::json_description = describe_json_object<SubscribeFramesResponse>({
-    { &SubscribeFramesResponse::Textures, "textures" },
-    { &SubscribeFramesResponse::Width, "width" },
-    { &SubscribeFramesResponse::Height, "height" },
-    { &SubscribeFramesResponse::AdapterLuid, "adapterLuid" }
+  json_object_descriptor<SharedFrames> SharedFrames::json_description = describe_json_object<SharedFrames>({
+    { &SharedFrames::Textures, "textures" },
+    { &SharedFrames::State, "state" },
+    { &SharedFrames::Width, "width" },
+    { &SharedFrames::Height, "height" },
+    { &SharedFrames::AdapterLuid, "adapterLuid" }
     });
 
-  json_object_descriptor<SubscribeFramesRequest> SubscribeFramesRequest::json_description = describe_json_object<SubscribeFramesRequest>(
-    { .name = "frames/subscribe" },
+  json_object_descriptor<SubscribeFramesResponse> SubscribeFramesResponse::json_description = describe_json_object<SubscribeFramesResponse>({
+    { &SubscribeFramesResponse::Frames, "frames" }
+    });
+
+  json_object_descriptor<SubscribeFramesRequest> SubscribeFramesRequest::json_description = describe_json_object<SubscribeFramesRequest>({ .name = "frames/subscribe" }, {});
+
+  json_object_descriptor<FramesChangedNotification> FramesChangedNotification::json_description = describe_json_object<FramesChangedNotification>(
+    { .name = "frames/changed" },
     {
-      { &SubscribeFramesRequest::HostProcessId, "hostProcessId", { .is_required = true } }
+      { &FramesChangedNotification::Frames, "frames" }
     });
 
   json_object_descriptor<SetClipboardSyncRequest> SetClipboardSyncRequest::json_description = describe_json_object<SetClipboardSyncRequest>(

@@ -102,6 +102,11 @@ namespace SecondShell::Driver
     return true;
   }
 
+  uint32_t HostConnection::HostProcessId() const
+  {
+    return _transport->PeerProcessId();
+  }
+
   bool HostConnection::IsAccepted() const
   {
     return _isAccepted;

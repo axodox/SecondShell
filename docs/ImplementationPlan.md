@@ -133,7 +133,7 @@ From here on, the developer can test on their own through the MCP probe.
 - **Shared frames:** `SharedFrameWriter` / `SharedFrameReader`, `FramePublisher`, `FrameReceiver`, `WinUiSwapChain`, `SessionRenderer`.
 - **Overlay:** `OverlayRenderer` with the cursor, keystroke, capture flash and activity elements, and `VisualizationFeed`.
 - **Interactive mode:** read-only / interactive / Stop (`AgentControl` in the UI), `InteractiveInputForwarder`, `ClipboardSync`.
-- **UI:** `MainWindow`, `SessionPage`, `ActionLogPage`, `StatusBar`, `ExistingSessionDialog`, `CloseSessionDialog`, and their view models and converters.
+- **UI:** `MainWindow`, `SessionPage`, `ActionLogPage`, `StatusBar`, `ExistingSessionDialog`, `CloseSessionDialog`, and their view models and converters, to the look in UIDesign.md (mockups in `docs/ui/`).
 
 **Test**:
 - **MCP probe**: the session keeps working while the window is minimized, resized or moved, and Stop interrupts a running sequence with `UserInterrupted`;
@@ -152,7 +152,7 @@ Gamepad support is deferred: an `InputInjector` gamepad is not seen by Windows.G
 ## Stage 9 – Setup, settings and AI client integrations
 
 **Builds**:
-- **Setup:** the full `SetupChecker`, `MachineSetup`, `ElevatedSetupLauncher`, `RepairDialog`, `Uninstaller`.
+- **Setup:** the full `SetupChecker`, `MachineSetup` (child sessions, and the optional smooth session view), `ElevatedSetupLauncher`, `RepairDialog`, `Uninstaller`.
 - **Settings:** `SettingsPage`.
 - **Integrations:** `JsonConfigEditor`, `TomlConfigEditor`, `CliRunner`, the integrations, `IntegrationManager`, `IntegrationsPage`, `IntegrationPreviewDialog`, and `--integrate` / `--unintegrate`.
 

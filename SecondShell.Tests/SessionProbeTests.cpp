@@ -300,7 +300,7 @@ namespace SecondShell::Tests
 
     TEST_METHOD(WindowsCanBeArranged)
     {
-      auto [window, client] = StartConsole();
+      auto window = StartConsole().first;
       auto result = RunSucceeding(With(R"([
         { "action": "Window.Focus", "window": "%window%" },
         { "action": "Window.Move", "window": "%window%", "x": 100, "y": 80 },
@@ -328,11 +328,8 @@ namespace SecondShell::Tests
         Assert::IsTrue(info.at("isForeground")->as<json_boolean>().value, L"a restored window gets the foreground back");
       }
 
-      //Stopped as a user would close it
-      result = RunSucceeding(With(R"([{ "action": "Process.Stop", "pid": %pid% }])", { { "pid", to_string(client) } }));
-      Assert::IsTrue(ResultAt(result, 0).value.contains("exitCode"));
-
-      //The console closes its window a moment after cmd exits
+      //Closed as with its X button; the console then ends cmd, and closes the window a moment later
+      RunSucceeding(With(R"([{ "action": "Window.Close", "window": "%window%" }])", { { "window", window } }));
       auto isGone = false;
       for (auto attempt = 0; attempt < 20 && !isGone; attempt++)
       {

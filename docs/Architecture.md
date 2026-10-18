@@ -73,7 +73,6 @@ Extension points use Axodox.Common's `registry<T>`: consumers resolve `registry<
 |---|---|---|
 | `registry<ToolSource>` | `SessionToolSource` | `McpServer` (tools/list, tools/call) |
 | `registry<AiClientIntegration>` | one per supported AI client | `IntegrationManager` |
-| `registry<OverlayElement>` | cursor, touch, keystrokes, gamepad, capture flash, activity | `OverlayRenderer` |
 
 ### Events
 
@@ -807,6 +806,10 @@ class MachineSetup
 {
 public:
   void EnableChildSessions();
+
+  //DWMFRAMEINTERVAL = 15, about 60 fps in Remote Desktop sessions (Design.md, Smooth session view); off removes it only if
+  //SecondShell set it.
+  void SetSmoothSessionView(bool isEnabled);
 };
 
 //Starts SecondShell.exe --setup elevated (UAC) and waits for it.
@@ -1206,6 +1209,13 @@ Where the code differs from the sketches above, and why (Findings.md 2.16):
 - **Waits** (`TextRecognizer`, `ScreenConditionWaiter`): OCR in the user's profile languages (English otherwise); `Capture.WaitForText` matches without case and spacing and treats l/I/1/| and O/0 as alike, and on timeout reports what the screen showed. `Capture.WaitForStable` compares the region's pixels at each interval.
 - **Display**: `display/set` is `SessionManager::SetDisplay` rather than a `DisplayController`, as the session's display and its start lock live there: `RdpClient::UpdateDisplay` (`UpdateSessionDisplaySettings`, physical size for 96 DPI at the scale), then it waits until the driver's `screen/get` reports the new size. `ScreenCapturer::Screen` is the newest frame's size.
 - **Timeouts**: actions which wait use `WaitTimeout()`, or `Action::DefaultWaitTimeout` (10 s), in the driver; the host's sequence deadline bounds the driver request.
+
+### 6.10 Stage 7 implementation notes
+
+- **Shared frames** (`SharedFrameWriter` / `SharedFrameReader`, `FramePublisher`, `FrameReceiver`): three textures shared by NT handle with keyed mutexes (key 0 on both sides), and a shared section holding the newest frame as number << 8 | index. `frames/subscribe` takes no process ID: the driver duplicates the handles into the pipe's peer, which the guard has checked. A new screen size makes a new ring, announced with `frames/changed`.
+- **Session view** (`WinUiSwapChain`, `SessionRenderer`): `WinUiSwapChain` derives from Axodox's `SwapChain` for a WinUI 3 `SwapChainPanel` (Axodox's `XamlSwapChain` is UWP-only). The graphics objects are made on the UI thread, on the driver's adapter; the render thread checks every 8 ms and draws a new frame, or the newest again after a resize or while the overlay animates. Resizing the window never resizes the session.
+- **Overlay** (`VisualizationFeed`, `OverlayRenderer`, `OverlayElement`): `SequenceRunner` reports each step's start and finish, and released input, to `VisualizationFeed`. Its events refer to the action and result (no copies, so captures are not copied), valid while raised. `OverlayRenderer` owns its elements in drawing order (`CaptureFlashOverlay`, `ActivityOverlay`, `CursorOverlay`) instead of a `registry<OverlayElement>`, and serializes their events and draws under one lock, so the elements need no locks. `OverlayElement::Draw` returns whether it still animates. `ViewTransform` maps session pixels to view pixels (the letterbox) and carries the view's DPI scale for the overlay's own sizes. The cursor element follows the agent's moves as the driver makes them (linear over the duration) from the last known position; the session's own cursor is in the frames. A window capture flashes the whole screen, as the host does not know the window's bounds.
+- **Title and status bar** (`MainWindow`): the window draws its own title bar (`ExtendsContentIntoTitleBar`) with the product name and version, and an "Agent in control" indicator: active while `SequenceRunner` runs a sequence (`RunningChanged`), then dimmed for 8 s, as agents send sequences one after the other. The status bar shows the session state and the agent's action: `ActionLog::Start` reports each step as it starts (`ActionStarted`), each entry has a short summary (name and arguments by name, sensitive text redacted, at most 200 bytes), and the status bar's tooltip lists the last 30.
 
 ## 7. Key flows
 

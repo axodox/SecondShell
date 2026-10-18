@@ -182,6 +182,36 @@ namespace SecondShell::Tests
       Assert::IsFalse(Run(R"({"steps": [{"action": "Mouse.Click"}]})").Error.has_value());
     }
 
+    TEST_METHOD(TakingControlInterruptsTheAgentToo)
+    {
+      auto agentControl = _container.resolve<AgentControl>();
+      thread taker([&] {
+        this_thread::sleep_for(50ms);
+        agentControl->TakeControl();
+        });
+
+      auto response = Run(R"({"steps": [{"action": "Control.Wait", "duration": 5000}]})");
+      taker.join();
+      Assert::IsTrue(response.Error == ErrorCode::UserInterrupted);
+      Assert::AreNotEqual(string::npos, response.Message->find("taken control"));
+
+      response = Run(R"({"steps": [{"action": "Mouse.Click"}]})");
+      Assert::IsTrue(response.Error == ErrorCode::AgentInputDisabled);
+      agentControl->GiveBackControl();
+    }
+
+    TEST_METHOD(StoppingBetweenSequencesReleasesInput)
+    {
+      _container.resolve<SequenceRunner>();
+      auto agentControl = _container.resolve<AgentControl>();
+      agentControl->Stop();
+      Assert::AreEqual(1, _driver->ResetCount(), L"what an earlier sequence pressed is released");
+
+      agentControl->Stop();
+      Assert::AreEqual(1, _driver->ResetCount(), L"stopping again changes nothing");
+      agentControl->GiveBackControl();
+    }
+
     TEST_METHOD(WithoutDriverThereIsNoSession)
     {
       _driver->Connected = false;

@@ -334,6 +334,8 @@ When the user switches the window to interactive mode, SecondShell syncs the two
 
 ## Visualization
 
+The window's look, its status bar, log and dialogs are in UIDesign.md.
+
 The SecondShell GUI provides visual feedback to the user about the actions performed by the AI agent. All visualization is an overlay drawn by the SecondShell window on top of its view of the session. Nothing is drawn inside the child session, so the visualization never appears in captures and never affects the applications being tested.
 
 This includes:
@@ -403,11 +405,20 @@ Normal use never needs elevation. Machine-wide setup needs it once per machine, 
 
 `SecondShell.exe` checks, without elevation:
 
-- **Machine-wide**: child sessions are enabled (`WTSIsChildSessionsEnabled`). This is the only step that needs elevation.
+- **Machine-wide**: child sessions are enabled (`WTSIsChildSessionsEnabled`). This is the only required step that needs elevation.
+- **Machine-wide, optional**: the smooth session view (below) is on. Its absence is not a problem: it is reported, not repaired.
 - **Per-user**:
   - no leftover driver `RunOnce` entry exists (deleted if found, see Starting the driver);
   - the data and capture folder exists;
   - AI client integrations point at the current `SecondShell.Mcp.exe` (see AI client integration).
+
+### Smooth session view (optional)
+
+A child session is a Remote Desktop session, which Windows composes at about 30 fps; the session view then feels sluggish when the user takes control. `DWMFRAMEINTERVAL` = 15 (`HKLM\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations`, DWORD) raises it to about 60 fps (65 fps measured, Findings.md 3), which is enough for most purposes; the host draws at the screen's own refresh rate either way.
+
+- Offered as an option of the one-time setup (on by default), and in Settings; turning it on or off is a machine-wide step, so it needs elevation like the others.
+- It applies to every Remote Desktop session on the machine from its next sign-in, including incoming connections, which then use more bandwidth and encoding. The setup dialog says so.
+- Setup remembers whether the value existed before it set it; uninstall and turning it off remove it only if SecondShell set it.
 
 ### Repair
 
@@ -419,7 +430,7 @@ Normal use never needs elevation. Machine-wide setup needs it once per machine, 
 
 ### Uninstall
 
-`SecondShell.exe --uninstall` removes any leftover driver `RunOnce` entry and the AI client integrations, and offers to delete the saved password and the data folder. It leaves child sessions enabled, since other tools (e.g. the Windows Simulator) rely on them. The MSIX build offers the same cleanup in its settings, to run before the user uninstalls the package.
+`SecondShell.exe --uninstall` removes any leftover driver `RunOnce` entry and the AI client integrations, removes the smooth session view setting if SecondShell set it (elevated), and offers to delete the saved password and the data folder. It leaves child sessions enabled, since other tools (e.g. the Windows Simulator) rely on them. The MSIX build offers the same cleanup in its settings, to run before the user uninstalls the package.
 
 ## Implementation
 

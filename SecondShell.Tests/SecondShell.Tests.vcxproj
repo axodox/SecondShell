@@ -73,6 +73,7 @@
     <ClCompile Include="ClipboardFormatConverterTests.cpp" />
     <ClCompile Include="CredentialStoreTests.cpp" />
     <ClCompile Include="CaptureEncoderTests.cpp" />
+    <ClCompile Include="ActionLogTests.cpp" />
     <ClCompile Include="CaptureStoreTests.cpp" />
     <ClCompile Include="DriverInputTests.cpp" />
     <ClCompile Include="DriverLinkTests.cpp" />
@@ -114,6 +115,7 @@
     <ClCompile Include="..\SecondShell\DriverLink.cpp" />
     <ClCompile Include="..\SecondShell\IDriverLink.cpp" />
     <ClCompile Include="..\SecondShell\SequenceRunner.cpp" />
+    <ClCompile Include="..\SecondShell\VisualizationFeed.cpp" />
   </ItemGroup>
   <ItemGroup Label="SecondShell.Mcp">
     <ClCompile Include="..\SecondShell.Mcp\HostClient.cpp" />

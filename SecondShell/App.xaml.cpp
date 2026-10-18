@@ -8,6 +8,7 @@ using namespace Axodox::Infrastructure;
 using namespace ::SecondShell::Agent;
 using namespace ::SecondShell::Environment;
 using namespace ::SecondShell::Protocol;
+using namespace ::SecondShell::Rendering;
 using namespace ::SecondShell::Session;
 using namespace std;
 using namespace winrt;
@@ -68,7 +69,9 @@ namespace winrt::SecondShell::implementation
   void App::ShowWindow()
   {
     _window = make_self<MainWindow>();
-    _container->resolve<CredentialProvider>()->SetPromptOwner(Microsoft::UI::GetWindowFromWindowId(_window->AppWindow().Id()));
+    _window->UseServices(_container.get());
+    auto windowHandle = Microsoft::UI::GetWindowFromWindowId(_window->AppWindow().Id());
+    _container->resolve<CredentialProvider>()->SetPromptOwner(windowHandle);
 
     auto queue = DispatcherQueue::GetForCurrentThread();
     auto sessions = _container->resolve<SessionManager>();
@@ -76,8 +79,29 @@ namespace winrt::SecondShell::implementation
       queue.TryEnqueue([window, state] { window->ShowSessionState(state); });
       });
 
-    //Closing the window ends the session (Design.md, Session lifecycle)
-    _window->Closed([sessions](const IInspectable&, const WindowEventArgs&) { sessions->Shutdown(); });
+    _modeChangedSubscription = _container->resolve<AgentControl>()->ModeChanged([queue, window = _window](AgentControl*, ControlMode mode) {
+      queue.TryEnqueue([window, mode] { window->ShowControlMode(mode); });
+      });
+
+    _runningChangedSubscription = _container->resolve<SequenceRunner>()->RunningChanged([queue, window = _window](SequenceRunner*, bool isRunning) {
+      queue.TryEnqueue([window, isRunning] { window->ShowAgentRunning(isRunning); });
+      });
+
+    auto actionLog = _container->resolve<ActionLog>();
+    _actionStartedSubscription = actionLog->ActionStarted([queue, window = _window](ActionLog*, const string& summary) {
+      queue.TryEnqueue([window, summary] { window->ShowActionStarted(summary); });
+      });
+    _entryAddedSubscription = actionLog->EntryAdded([queue, window = _window](ActionLog*, const ActionLogEntry& entry) {
+      queue.TryEnqueue([window, entry] { window->ShowActionLogged(entry); });
+      });
+
+    //The session view, until the window closes; closing it ends the session (Design.md, Session lifecycle)
+    auto renderer = _container->resolve<SessionRenderer>();
+    renderer->Attach(_window->SessionView(), windowHandle);
+    _window->Closed([sessions, renderer](const IInspectable&, const WindowEventArgs&) {
+      renderer->Detach();
+      sessions->Shutdown();
+      });
 
     //Shown without taking the focus from the user (Design.md, Working without focus)
     _window->AppWindow().Show(false);

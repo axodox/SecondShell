@@ -61,6 +61,7 @@
     <ClInclude Include="ClipboardActionHandler.h" />
     <ClInclude Include="ClipboardFormatConverter.h" />
     <ClInclude Include="ClipboardManager.h" />
+    <ClInclude Include="FramePublisher.h" />
     <ClInclude Include="HostConnection.h" />
     <ClInclude Include="IKeyboardInjector.h" />
     <ClInclude Include="IMouseInjector.h" />
@@ -78,6 +79,7 @@
     <ClInclude Include="ScreenConditionWaiter.h" />
     <ClInclude Include="ShellCommandBuilder.h" />
     <ClInclude Include="TextRecognizer.h" />
+    <ClInclude Include="UserInputHandler.h" />
     <ClInclude Include="WindowActionHandler.h" />
     <ClInclude Include="WindowManager.h" />
     <ClInclude Include="pch.h" />
@@ -92,6 +94,7 @@
     <ClCompile Include="ClipboardActionHandler.cpp" />
     <ClCompile Include="ClipboardFormatConverter.cpp" />
     <ClCompile Include="ClipboardManager.cpp" />
+    <ClCompile Include="FramePublisher.cpp" />
     <ClCompile Include="HostConnection.cpp" />
     <ClCompile Include="InputInjectorProvider.cpp" />
     <ClCompile Include="InputStateTracker.cpp" />
@@ -108,6 +111,7 @@
     <ClCompile Include="ScreenConditionWaiter.cpp" />
     <ClCompile Include="ShellCommandBuilder.cpp" />
     <ClCompile Include="TextRecognizer.cpp" />
+    <ClCompile Include="UserInputHandler.cpp" />
     <ClCompile Include="WindowActionHandler.cpp" />
     <ClCompile Include="WindowManager.cpp" />
   </ItemGroup>
@@ -115,6 +119,9 @@
     <ProjectReference Include="..\SecondShell.Common\SecondShell.Common.vcxproj">
       <Project>{98849BA5-9DF3-45CE-8AC1-2FC0616C9659}</Project>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="..\Assets\SecondShell.rc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

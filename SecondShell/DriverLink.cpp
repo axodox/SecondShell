@@ -17,7 +17,7 @@ using namespace std::chrono;
 namespace SecondShell::Session
 {
   const milliseconds _resetTimeout{ 5000 };
-  const milliseconds _screenTimeout{ 5000 };
+  const milliseconds _queryTimeout{ 5000 };
   const milliseconds _cancellationPollInterval{ 100 };
 
   //One client of the driver pipe, accepted or not.
@@ -31,6 +31,7 @@ namespace SecondShell::Session
     {
       Peer.AddHandler(this, &Connection::Hello);
       Peer.AddNotificationHandler(this, &Connection::OnActionCompleted);
+      Peer.AddNotificationHandler(this, &Connection::OnFramesChanged);
       Peer.Start();
     }
 
@@ -49,6 +50,11 @@ namespace SecondShell::Session
     {
       if (_owner->Driver().get() == this) _owner->OnActionCompleted(notification);
     }
+
+    void OnFramesChanged(const FramesChangedNotification& notification)
+    {
+      if (_owner->Driver().get() == this) _owner->_events.raise(_owner->FramesChanged, _owner, notification.Frames);
+    }
   };
 
   DriverLink::DriverLink(dependency_container* container) :
@@ -56,6 +62,7 @@ namespace SecondShell::Session
   { }
 
   DriverLink::DriverLink(dependency_container* /*container*/, string_view pipeName) :
+    FramesChanged(_events),
     _server(pipeName),
     _clientConnectedSubscription(_server.client_connected({ this, &DriverLink::OnClientConnected })),
     _clientDisconnectedSubscription(_server.client_disconnected({ this, &DriverLink::OnClientDisconnected }))
@@ -126,13 +133,27 @@ namespace SecondShell::Session
     return driver->Peer.Request(ResetInputRequest{}, _resetTimeout, noCancellation);
   }
 
+  void DriverLink::ForwardUserInput(const ForwardUserInputNotification& input)
+  {
+    if (auto driver = Driver()) driver->Peer.Notify(input);
+  }
+
+  RpcResult<SubscribeFramesResponse> DriverLink::SubscribeFrames()
+  {
+    auto driver = Driver();
+    if (!driver) return ProtocolErrors::Make(ErrorCode::SessionNotActive, "The driver is not connected.");
+
+    CancellationToken noCancellation;
+    return driver->Peer.Request(SubscribeFramesRequest{}, _queryTimeout, noCancellation);
+  }
+
   RpcResult<ScreenResponse> DriverLink::GetScreen()
   {
     auto driver = Driver();
     if (!driver) return ProtocolErrors::Make(ErrorCode::SessionNotActive, "The driver is not connected.");
 
     CancellationToken noCancellation;
-    return driver->Peer.Request(GetScreenRequest{}, _screenTimeout, noCancellation);
+    return driver->Peer.Request(GetScreenRequest{}, _queryTimeout, noCancellation);
   }
 
   void DriverLink::OnClientConnected(messaging_server* /*server*/, messaging_channel* channel)

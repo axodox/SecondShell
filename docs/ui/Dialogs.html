@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SecondShell — dialogs</title>
+<style>
+body{margin:0;background:#141417}
+a{color:#B7AAFF}a:hover{color:#D6CEFF}
+</style>
+</head>
+<body>
+<div style="width: 100%; height: 900px; box-sizing: border-box; padding: 48px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 40px; align-content: center; background: #141417; color: #F3F3F5; font-family: 'Segoe UI Variable Text', 'Segoe UI Variable', 'Segoe UI', system-ui, sans-serif; font-size: 13px; overflow: hidden">
+
+  <!-- Existing session -->
+  <section role="dialog" aria-labelledby="existingTitle" style="display: flex; flex-direction: column; border-radius: 10px; background: #2B2B30; border: 1px solid rgba(255, 255, 255, 0.08); box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5); overflow: hidden">
+    <div style="padding: 24px 24px 20px; display: flex; flex-direction: column; gap: 12px">
+      <h2 id="existingTitle" style="margin: 0; font-size: 20px; font-weight: 600">A session is still running</h2>
+      <p style="margin: 0; color: #C8C8D0; line-height: 1.5">A child session from an earlier run is still signed in, with its apps open. Resume it to carry on where it was, or reset it to start clean.</p>
+      <div style="display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 8px; background: #232327; border: 1px solid #34343C; font-size: 12px">
+        <span aria-hidden="true" style="width: 7px; height: 7px; border-radius: 50%; background: #FFB547"></span>
+        <span style="font-weight: 600">Session 36</span>
+        <span style="color: #A8A8B3">signed in at 18:41 · disconnected</span>
+      </div>
+      <p style="margin: 0; font-size: 12px; color: #A8A8B3">Resetting signs it out; apps in it close without saving.</p>
+    </div>
+    <div style="display: flex; gap: 8px; padding: 18px 24px; background: #232327; border-top: 1px solid rgba(255, 255, 255, 0.06)">
+      <button type="button" style="flex: 1; height: 32px; border: 0; border-radius: 6px; background: #8B7CFF; color: #14121F; font: inherit; font-weight: 600">Resume</button>
+      <button type="button" style="flex: 1; height: 32px; border-radius: 6px; border: 1px solid #3A3A44; background: #2E2E35; color: #F3F3F5; font: inherit">Reset</button>
+      <button type="button" style="flex: 1; height: 32px; border-radius: 6px; border: 1px solid #3A3A44; background: #2E2E35; color: #F3F3F5; font: inherit">Cancel</button>
+    </div>
+  </section>
+
+  <!-- Closing while the agent works -->
+  <section role="dialog" aria-labelledby="closeTitle" style="display: flex; flex-direction: column; border-radius: 10px; background: #2B2B30; border: 1px solid rgba(255, 255, 255, 0.08); box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5); overflow: hidden">
+    <div style="padding: 24px 24px 20px; display: flex; flex-direction: column; gap: 12px">
+      <h2 id="closeTitle" style="margin: 0; font-size: 20px; font-weight: 600">The agent is working</h2>
+      <p style="margin: 0; color: #C8C8D0; line-height: 1.5">Closing SecondShell stops its sequence and signs the session out. Apps in the session close without saving.</p>
+      <div style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 8px; background: #232327; border: 1px solid #34343C; font-size: 12px">
+        <div aria-hidden="true" style="display: flex; align-items: flex-end; gap: 2px; height: 12px">
+          <span style="width: 3px; height: 8px; border-radius: 2px; background: #8B7CFF"></span>
+          <span style="width: 3px; height: 12px; border-radius: 2px; background: #8B7CFF"></span>
+          <span style="width: 3px; height: 6px; border-radius: 2px; background: #8B7CFF"></span>
+          <span style="width: 3px; height: 10px; border-radius: 2px; background: #8B7CFF"></span>
+        </div>
+        <span style="font-weight: 600">Running the unit tests</span>
+        <span style="color: #A8A8B3">step 6 of 7</span>
+      </div>
+      <label style="display: flex; align-items: center; gap: 8px; font-size: 12px; color: #C8C8D0"><input type="checkbox" style="width: 16px; height: 16px; accent-color: #8B7CFF; margin: 0">Don't ask when no agent is working</label>
+    </div>
+    <div style="display: flex; gap: 8px; padding: 18px 24px; background: #232327; border-top: 1px solid rgba(255, 255, 255, 0.06)">
+      <button type="button" style="flex: 1; height: 32px; border: 0; border-radius: 6px; background: #C42B1C; color: #FFFFFF; font: inherit; font-weight: 600">Close and sign out</button>
+      <button type="button" style="flex: 1; height: 32px; border-radius: 6px; border: 1px solid #3A3A44; background: #2E2E35; color: #F3F3F5; font: inherit">Keep open</button>
+    </div>
+  </section>
+
+  <!-- Integration preview -->
+  <section role="dialog" aria-labelledby="previewTitle" style="display: flex; flex-direction: column; border-radius: 10px; background: #2B2B30; border: 1px solid rgba(255, 255, 255, 0.08); box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5); overflow: hidden">
+    <div style="padding: 24px 24px 20px; display: flex; flex-direction: column; gap: 12px">
+      <h2 id="previewTitle" style="margin: 0; font-size: 20px; font-weight: 600">Add SecondShell to Cursor?</h2>
+      <p style="margin: 0; color: #C8C8D0; line-height: 1.5">This adds one entry to the file below and keeps everything else in it.</p>
+      <div style="border-radius: 8px; background: #1A1A1E; border: 1px solid #34343C; overflow: hidden">
+        <div style="padding: 6px 12px; border-bottom: 1px solid #26262C; font-family: 'Cascadia Mono', Consolas, monospace; font-size: 11px; color: #A8A8B3">%USERPROFILE%\.cursor\mcp.json</div>
+        <div style="padding: 8px 0; display: flex; flex-direction: column; font-family: 'Cascadia Mono', Consolas, monospace; font-size: 12px; line-height: 1.6">
+          <span style="padding: 0 12px; color: #A8A8B3">  "mcpServers": {</span>
+          <span style="padding: 0 12px; color: #A8A8B3">    "github": { … },</span>
+          <span style="padding: 0 12px; background: rgba(76, 195, 138, 0.12); color: #9BE3BE">+   "secondshell": {</span>
+          <span style="padding: 0 12px; background: rgba(76, 195, 138, 0.12); color: #9BE3BE">+     "command": "SecondShell.Mcp.exe"</span>
+          <span style="padding: 0 12px; background: rgba(76, 195, 138, 0.12); color: #9BE3BE">+   }</span>
+          <span style="padding: 0 12px; color: #A8A8B3">  }</span>
+        </div>
+      </div>
+      <p style="margin: 0; font-size: 12px; color: #A8A8B3">A backup is saved as mcp.json.bak. Restart Cursor afterwards.</p>
+    </div>
+    <div style="display: flex; gap: 8px; padding: 18px 24px; background: #232327; border-top: 1px solid rgba(255, 255, 255, 0.06)">
+      <button type="button" style="flex: 1; height: 32px; border: 0; border-radius: 6px; background: #8B7CFF; color: #14121F; font: inherit; font-weight: 600">Add</button>
+      <button type="button" style="flex: 1; height: 32px; border-radius: 6px; border: 1px solid #3A3A44; background: #2E2E35; color: #F3F3F5; font: inherit">Cancel</button>
+    </div>
+  </section>
+
+  <!-- Repair -->
+  <section role="dialog" aria-labelledby="repairTitle" style="display: flex; flex-direction: column; border-radius: 10px; background: #2B2B30; border: 1px solid rgba(255, 255, 255, 0.08); box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5); overflow: hidden">
+    <div style="padding: 24px 24px 20px; display: flex; flex-direction: column; gap: 12px">
+      <h2 id="repairTitle" style="margin: 0; font-size: 20px; font-weight: 600">One-time setup needed</h2>
+      <p style="margin: 0; color: #C8C8D0; line-height: 1.5">SecondShell runs the agent in a child session, a second desktop of your own account. Child sessions are not enabled on this PC yet.</p>
+      <div style="display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; border-radius: 8px; background: #232327; border: 1px solid #34343C; font-size: 12px">
+        <div style="display: flex; align-items: center; gap: 8px"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#FF9A92" stroke-width="1.6" aria-hidden="true"><circle cx="8" cy="8" r="6.5"></circle><path d="M5.5 5.5l5 5M10.5 5.5l-5 5"></path></svg><span>Child sessions enabled</span></div>
+        <div style="display: flex; align-items: center; gap: 8px"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#4CC38A" stroke-width="1.6" aria-hidden="true"><circle cx="8" cy="8" r="6.5"></circle><path d="M5 8.2l2 2 4-4.4"></path></svg><span>Remote Desktop components present</span></div>
+      </div>
+      <p style="margin: 0; font-size: 12px; color: #A8A8B3">Enabling them needs administrator rights once; SecondShell itself keeps running without them.</p>
+    </div>
+    <div style="display: flex; gap: 8px; padding: 18px 24px; background: #232327; border-top: 1px solid rgba(255, 255, 255, 0.06)">
+      <button type="button" style="flex: 1; height: 32px; display: flex; align-items: center; justify-content: center; gap: 7px; border: 0; border-radius: 6px; background: #8B7CFF; color: #14121F; font: inherit; font-weight: 600">
+        <svg width="12" height="14" viewBox="0 0 12 14" fill="none" stroke="#14121F" stroke-width="1.4" aria-hidden="true"><path d="M6 1l4.5 1.8v3.7c0 3-2 5.3-4.5 6.5C3.5 11.8 1.5 9.5 1.5 6.5V2.8z"></path></svg>
+        Set up
+      </button>
+      <button type="button" style="flex: 1; height: 32px; border-radius: 6px; border: 1px solid #3A3A44; background: #2E2E35; color: #F3F3F5; font: inherit">Not now</button>
+    </div>
+  </section>
+</div>
+</body>
+</html>

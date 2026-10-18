@@ -87,24 +87,39 @@ namespace SecondShell::Protocol
   };
 #pragma endregion
 
-#pragma region frames/subscribe
+#pragma region frames/subscribe, frames/changed
+  //A ring of shared frame textures (SharedFrames.h), as handles in the host process, which owns them.
+  struct SECONDSHELL_COMMON_API SharedFrames
+  {
+    static Axodox::Json::json_object_descriptor<SharedFrames> json_description;
+
+    std::vector<uint64_t> Textures;  //NT handles of the textures
+    uint64_t State = 0;              //the section of the SharedFrameState
+    uint32_t Width = 0;
+    uint32_t Height = 0;
+    uint64_t AdapterLuid = 0;        //the host opens the textures on a device of this adapter
+  };
+
   struct SECONDSHELL_COMMON_API SubscribeFramesResponse
   {
     static Axodox::Json::json_object_descriptor<SubscribeFramesResponse> json_description;
 
-    std::vector<uint64_t> Textures;  //NT handles, valid in the host process
-    uint32_t Width = 0;
-    uint32_t Height = 0;
-    uint64_t AdapterLuid = 0;        //the host creates its device on this adapter
+    SharedFrames Frames;
   };
 
-  //Host to driver: share the captured frames with the host process (Findings.md 2.13).
+  //Host to driver: share the captured frames with the host, the process at the other end of the pipe (Findings.md 2.13).
   struct SECONDSHELL_COMMON_API SubscribeFramesRequest
   {
     static Axodox::Json::json_object_descriptor<SubscribeFramesRequest> json_description;
     using ResponseType = SubscribeFramesResponse;
+  };
 
-    uint32_t HostProcessId = 0;
+  //Driver to host: the frames are in a new ring, e.g. after a resolution change; the previous one is not written any more.
+  struct SECONDSHELL_COMMON_API FramesChangedNotification
+  {
+    static Axodox::Json::json_object_descriptor<FramesChangedNotification> json_description;
+
+    SharedFrames Frames;
   };
 #pragma endregion
 

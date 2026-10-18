@@ -8,6 +8,29 @@ using namespace std;
 
 namespace SecondShell::Input
 {
+  //Unassigned: a press of it between a Windows or Alt key's down and up makes a shortcut which does nothing (AutoHotkey's
+  //menu mask key)
+  const uint16_t _menuMaskKey = 0xE8;
+
+  namespace
+  {
+    //Released alone, these open the Start menu or the focused window's menu bar
+    bool IsMenuKey(uint16_t virtualKey)
+    {
+      switch (virtualKey)
+      {
+      case VK_LWIN:
+      case VK_RWIN:
+      case VK_MENU:
+      case VK_LMENU:
+      case VK_RMENU:
+        return true;
+      default:
+        return false;
+      }
+    }
+  }
+
   InputStateTracker::InputStateTracker(dependency_container* container) :
     _mouse(container->resolve<IMouseInjector>()),
     _keyboard(container->resolve<IKeyboardInjector>())
@@ -55,6 +78,11 @@ namespace SecondShell::Input
   {
     lock_guard lock{ _mutex };
     InputState released;
+    if (ranges::any_of(_keys, IsMenuKey))
+    {
+      _keyboard->Press(_menuMaskKey);
+      _keyboard->Release(_menuMaskKey);
+    }
     for (auto key : _keys | views::reverse) _keyboard->Release(key);
 
     for (auto key : exchange(_keys, {})) released.Keys.push_back(KeyNames::ToString(key));

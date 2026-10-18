@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SecondShell — agent working</title>
+<style>
+body{margin:0;background:#1B1B1F}
+a{color:#B7AAFF}a:hover{color:#D6CEFF}
+@keyframes ssBar{0%,100%{transform:scaleY(.3)}50%{transform:scaleY(1)}}
+@keyframes ssFlash{0%{background-color:rgba(139,124,255,.42)}35%{background-color:rgba(139,124,255,.18)}100%{background-color:rgba(255,255,255,.04)}}
+@keyframes ssSpin{to{transform:rotate(360deg)}}
+@keyframes ssRipple{0%{transform:translate(-50%,-50%) scale(.6);opacity:.7}100%{transform:translate(-50%,-50%) scale(1.6);opacity:0}}
+</style>
+</head>
+<body>
+<div style="width: 100%; height: 900px; display: flex; flex-direction: column; background: #1B1B1F; color: #F3F3F5; font-family: 'Segoe UI Variable Text', 'Segoe UI Variable', 'Segoe UI', system-ui, sans-serif; font-size: 13px; overflow: hidden">
+
+  <!-- Title bar -->
+  <header style="height: 40px; flex: none; display: flex; align-items: center; gap: 10px; padding-left: 14px; flex-wrap: wrap">
+    <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><rect x="1.5" y="1.5" width="11" height="11" rx="3" fill="none" stroke="#8E8E99" stroke-width="1.5"></rect><rect x="5.5" y="5.5" width="11" height="11" rx="3" fill="#8B7CFF"></rect></svg>
+    <span style="font-weight: 600; font-size: 13px">SecondShell</span>
+    <span style="font-size: 12px; color: #9A9AA6">0.1.0</span>
+    <div style="flex: 1 1 auto"></div>
+    <!-- Toolbar: take control, stop, settings -->
+    <div role="toolbar" aria-label="Session" style="display: flex; align-items: center; gap: 6px">
+      <button type="button" style="height: 30px; display: flex; align-items: center; gap: 7px; padding: 0 12px; border-radius: 6px; border: 1px solid #3A3A44; background: #26262C; color: #F3F3F5; font: inherit; font-size: 12px">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#FFB547" stroke-width="1.4" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 1.5v9l2.6-2.4 1.9 4.4 1.7-.7-1.9-4.3h3.6z"></path></svg>
+        Take control
+      </button>
+      <button type="button" style="height: 30px; display: flex; align-items: center; gap: 7px; padding: 0 12px; border: 0; border-radius: 6px; background: #C42B1C; color: #FFFFFF; font: inherit; font-size: 12px; font-weight: 600">
+        <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><rect width="10" height="10" rx="2" fill="#FFFFFF"></rect></svg>
+        Stop
+      </button>
+      <div style="width: 1px; height: 18px; background: #3A3A42; margin: 0 2px"></div>
+      <button type="button" aria-label="Display: 1920 by 1080 at 100 percent" style="height: 30px; display: flex; align-items: center; gap: 7px; padding: 0 10px; border: 0; border-radius: 6px; background: transparent; color: #C8C8D0; font: inherit; font-size: 12px">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><rect x="1.5" y="2.5" width="13" height="8.5" rx="1.5"></rect><path d="M5.5 14h5M8 11v3"></path></svg>
+        1920 × 1080 · 100 %
+        <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M1.5 3.5L5 7l3.5-3.5"></path></svg>
+      </button>
+      <button type="button" aria-label="Reset session" style="width: 32px; height: 30px; display: flex; align-items: center; justify-content: center; border: 0; border-radius: 6px; background: transparent; color: #C8C8D0">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" aria-hidden="true"><path d="M13 8a5 5 0 1 1-1.6-3.7"></path><path d="M11.8 1.8v2.8H9"></path></svg>
+      </button>
+      <button type="button" aria-label="Settings" style="width: 32px; height: 30px; display: flex; align-items: center; justify-content: center; border: 0; border-radius: 6px; background: transparent; color: #C8C8D0">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><circle cx="8" cy="8" r="2.2"></circle><path d="M8 1.5v1.8M8 12.7v1.8M1.5 8h1.8M12.7 8h1.8M3.4 3.4l1.3 1.3M11.3 11.3l1.3 1.3M3.4 12.6l1.3-1.3M11.3 4.7l1.3-1.3"></path></svg>
+      </button>
+    </div>
+    <div style="display: flex; margin-left: 6px">
+      <button type="button" aria-label="Minimize" style="width: 46px; height: 40px; border: 0; background: transparent; color: #C8C8D0; display: flex; align-items: center; justify-content: center"><svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><path d="M0 5h10" stroke="currentColor"></path></svg></button>
+      <button type="button" aria-label="Maximize" style="width: 46px; height: 40px; border: 0; background: transparent; color: #C8C8D0; display: flex; align-items: center; justify-content: center"><svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><rect x=".5" y=".5" width="9" height="9" rx="1.5" fill="none" stroke="currentColor"></rect></svg></button>
+      <button type="button" aria-label="Close" style="width: 46px; height: 40px; border: 0; background: transparent; color: #C8C8D0; display: flex; align-items: center; justify-content: center"><svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><path d="M0 0l10 10M10 0L0 10" stroke="currentColor"></path></svg></button>
+    </div>
+  </header>
+
+  <!-- The session, letterboxed; its frame shows who is in control -->
+  <main style="flex: 1 1 auto; min-height: 0; background: #121215; padding: 14px; display: flex; align-items: center; justify-content: center">
+    <div style="position: relative; height: 100%; aspect-ratio: 16 / 9; max-width: 100%; border-radius: 8px; overflow: hidden; background: #17313D; box-shadow: 0 0 0 2px #8B7CFF, 0 8px 32px rgba(0, 0, 0, 0.45)">
+      <div style="position: absolute; width: 70%; aspect-ratio: 1; right: -18%; top: -30%; border-radius: 50%; background: #1C3A48"></div>
+      <div style="position: absolute; width: 46%; aspect-ratio: 1; left: -12%; bottom: -26%; border-radius: 50%; background: #142B36"></div>
+
+      <!-- An application in the session -->
+      <div style="position: absolute; left: 16%; top: 12%; width: 54%; height: 58%; border-radius: 8px; overflow: hidden; background: #0C0C0C; box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5); display: flex; flex-direction: column">
+        <div style="height: 30px; flex: none; background: #1F1F1F; display: flex; align-items: center; padding: 0 12px; font-size: 12px; color: #D0D0D0">Command Prompt</div>
+        <div style="padding: 12px 14px; font-family: 'Cascadia Mono', Consolas, monospace; font-size: 13px; line-height: 1.55; color: #CCCCCC; display: flex; flex-direction: column">
+          <span>Microsoft Windows [Version 10.0.26300]</span>
+          <span style="margin-bottom: 10px">(c) Microsoft Corporation. All rights reserved.</span>
+          <span>C:\work\app&gt;npm test</span>
+          <span style="color: #8A8A8A">&gt; app test</span>
+          <span><span style="color: #16C60C">PASS</span> src/cart.test.js</span>
+          <span><span style="color: #16C60C">PASS</span> src/checkout.test.js</span>
+          <span style="margin-top: 10px">C:\work\app&gt;_</span>
+        </div>
+      </div>
+
+      <!-- Taskbar -->
+      <div style="position: absolute; left: 0; right: 0; bottom: 0; height: 5.5%; background: rgba(28, 28, 32, 0.94); display: flex; align-items: center; justify-content: center; gap: 10px">
+        <div style="width: 20px; height: 20px; border-radius: 5px; background: #3B78D8"></div>
+        <div style="width: 20px; height: 20px; border-radius: 5px; background: #4A4A55"></div>
+        <div style="width: 20px; height: 20px; border-radius: 5px; background: #4A4A55"></div>
+        <div style="width: 20px; height: 20px; border-radius: 5px; background: #2D2D2D; box-shadow: inset 0 -2px 0 #8B8B96"></div>
+        <div style="width: 20px; height: 20px; border-radius: 5px; background: #4A4A55"></div>
+      </div>
+
+      <!-- Overlay: the agent's pointer and its last click -->
+      <div style="position: absolute; left: 38%; top: 51%; width: 64px; height: 64px; border-radius: 50%; border: 2px solid #8B7CFF; animation: ssRipple 1.6s ease-out infinite"></div>
+      <div style="position: absolute; left: 38%; top: 51%; width: 30px; height: 30px; transform: translate(-50%, -50%); border-radius: 50%; border: 2.5px solid #8B7CFF; background: rgba(139, 124, 255, 0.18)"></div>
+      <svg style="position: absolute; left: 38%; top: 51%" width="14" height="20" viewBox="0 0 14 20" aria-hidden="true"><path d="M1 1v15l4-4 3 7 2.5-1-3-7h5.5z" fill="#FFFFFF" stroke="#000000" stroke-width="1"></path></svg>
+
+      <!-- Overlay: the agent's recent actions -->
+      <div style="position: absolute; left: 1.6%; bottom: 8%; display: flex; flex-direction: column; align-items: flex-start; gap: 5px">
+        <div style="opacity: 0.45; display: flex; gap: 8px; align-items: center; padding: 4px 10px; border-radius: 6px; background: rgba(14, 14, 18, 0.8); border: 1px solid rgba(255, 255, 255, 0.07); font-size: 12px"><span style="font-weight: 600; color: #C9C0FF">Run</span><span>conhost.exe cmd.exe /d</span><span style="color: #9A9AA6">PID 8412</span></div>
+        <div style="opacity: 0.75; display: flex; gap: 8px; align-items: center; padding: 4px 10px; border-radius: 6px; background: rgba(14, 14, 18, 0.8); border: 1px solid rgba(255, 255, 255, 0.07); font-size: 12px"><span style="font-weight: 600; color: #C9C0FF">Type</span><span>npm test</span></div>
+        <div style="display: flex; gap: 8px; align-items: center; padding: 4px 10px; border-radius: 6px; background: rgba(14, 14, 18, 0.8); border: 1px solid rgba(255, 255, 255, 0.07); font-size: 12px"><span style="font-weight: 600; color: #C9C0FF">Key</span><span style="padding: 0 6px; border-radius: 4px; border: 1px solid #55555F; border-bottom-width: 2px; background: #2A2A31; font-family: 'Cascadia Mono', Consolas, monospace; font-size: 11px">Enter</span></div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Status bar: activity, the current action, the session, the log -->
+  <footer style="height: 38px; flex: none; display: flex; align-items: center; gap: 14px; padding: 0 12px; background: #202024; border-top: 1px solid rgba(255, 255, 255, 0.06); flex-wrap: wrap; overflow: hidden">
+    <div style="display: flex; align-items: center; gap: 9px">
+      <div aria-hidden="true" style="display: flex; align-items: center; gap: 2px; height: 14px">
+        <span style="width: 3px; height: 14px; border-radius: 2px; background: #8B7CFF; animation: ssBar 0.9s ease-in-out infinite"></span>
+        <span style="width: 3px; height: 14px; border-radius: 2px; background: #8B7CFF; animation: ssBar 0.9s ease-in-out 0.15s infinite"></span>
+        <span style="width: 3px; height: 14px; border-radius: 2px; background: #8B7CFF; animation: ssBar 0.9s ease-in-out 0.3s infinite"></span>
+        <span style="width: 3px; height: 14px; border-radius: 2px; background: #8B7CFF; animation: ssBar 0.9s ease-in-out 0.45s infinite"></span>
+      </div>
+      <span style="font-weight: 600; font-size: 12px">Running the unit tests</span>
+      <span style="font-size: 12px; color: #9A9AA6">step 4 of 6</span>
+    </div>
+    <div style="width: 1px; height: 18px; background: #3A3A42"></div>
+
+    <div style="display: flex; align-items: center; gap: 6px; padding: 3px 10px 3px 8px; border-radius: 6px; animation: ssFlash 2.4s ease-out infinite; min-width: 0">
+      <span aria-hidden="true" style="width: 11px; height: 11px; border-radius: 50%; border: 2px solid rgba(183, 170, 255, 0.3); border-top-color: #B7AAFF; animation: ssSpin 0.8s linear infinite"></span>
+      <span style="font-weight: 600; font-size: 12px; color: #B7AAFF">Keyboard.Tap</span>
+      <span style="padding: 0 6px; border-radius: 4px; border: 1px solid #55555F; border-bottom-width: 2px; background: #2A2A31; font-family: 'Cascadia Mono', Consolas, monospace; font-size: 11px; line-height: 17px">Enter</span>
+    </div>
+
+    <div style="flex: 1 1 auto"></div>
+
+    <div style="display: flex; align-items: center; gap: 8px; font-size: 12px; color: #B4B4BE">
+      <span aria-hidden="true" style="width: 7px; height: 7px; border-radius: 50%; background: #4CC38A"></span>
+      <span>Session 37</span>
+      <span style="color: #6E6E78">·</span>
+      <span>30 fps</span>
+    </div>
+    <button type="button" aria-expanded="false" style="height: 26px; display: flex; align-items: center; gap: 7px; padding: 0 10px; border-radius: 6px; border: 1px solid #3A3A44; background: transparent; color: #F3F3F5; font: inherit; font-size: 12px">
+      Log
+      <span style="padding: 0 6px; border-radius: 9px; background: #34343C; color: #C8C8D0; font-size: 11px; line-height: 16px">42</span>
+      <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M1.5 6.5L5 3l3.5 3.5"></path></svg>
+    </button>
+  </footer>
+</div>
+</body>
+</html>

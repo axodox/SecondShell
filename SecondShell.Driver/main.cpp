@@ -1,6 +1,8 @@
 #include "pch.h"
 #include "ActionExecutor.h"
 #include "AppEnvironment.h"
+#include "FramePublisher.h"
+#include "UserInputHandler.h"
 #include "KeyboardInjector.h"
 #include "MouseInjector.h"
 #include "ProductInfo.h"
@@ -37,6 +39,8 @@ int WINAPI wWinMain(HINSTANCE /*instance*/, HINSTANCE /*previousInstance*/, PWST
     container.add<IMouseInjector, MouseInjector>();
     container.add<IKeyboardInjector, KeyboardInjector>();
     container.resolve<ActionExecutor>();
+    container.resolve<FramePublisher>();
+    container.resolve<UserInputHandler>();
 
     if (!connection->Hello(10s)) return 1;
 

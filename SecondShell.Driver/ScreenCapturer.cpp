@@ -11,7 +11,8 @@ using namespace winrt::Windows::Graphics::DirectX::Direct3D11;
 
 namespace SecondShell::Capture
 {
-  ScreenCapturer::ScreenCapturer()
+  ScreenCapturer::ScreenCapturer() :
+    FrameArrived(_events)
   {
     winrt::check_hresult(D3D11CreateDevice(nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr, D3D11_CREATE_DEVICE_BGRA_SUPPORT, nullptr, 0, D3D11_SDK_VERSION, _device.put(), nullptr, _context.put()));
 
@@ -38,9 +39,10 @@ namespace SecondShell::Capture
     _session = _framePool.CreateCaptureSession(_item);
     _session.IsBorderRequired(false);
     _session.IsCursorCaptureEnabled(true);
+    _session.MinUpdateInterval(milliseconds(1));
     _session.StartCapture();
 
-    _logger.log(log_severity::information, "Capturing {}x{}.", _poolSize.Width, _poolSize.Height);
+    _logger.log(log_severity::information, "Capturing {}x{}, at most every {} ms.", _poolSize.Width, _poolSize.Height, duration_cast<milliseconds>(_session.MinUpdateInterval()).count());
   }
 
   Pixels ScreenCapturer::Read(const Rect& region, milliseconds timeout)
@@ -98,10 +100,26 @@ namespace SecondShell::Capture
     return { 0, 0, uint32_t(GetSystemMetrics(SM_CXSCREEN)), uint32_t(GetSystemMetrics(SM_CYSCREEN)) };
   }
 
+  ID3D11Device* ScreenCapturer::Device() const
+  {
+    return _device.get();
+  }
+
+  uint64_t ScreenCapturer::AdapterLuid() const
+  {
+    winrt::com_ptr<IDXGIAdapter> adapter;
+    winrt::check_hresult(_device.as<IDXGIDevice>()->GetAdapter(adapter.put()));
+
+    DXGI_ADAPTER_DESC description;
+    winrt::check_hresult(adapter->GetDesc(&description));
+    return (uint64_t(uint32_t(description.AdapterLuid.HighPart)) << 32) | description.AdapterLuid.LowPart;
+  }
+
   void ScreenCapturer::OnFrameArrived(const Direct3D11CaptureFramePool& sender, const winrt::Windows::Foundation::IInspectable& /*args*/)
   {
     auto frame = sender.TryGetNextFrame();
     if (!frame) return;
+    if (auto rate = _frameRate.Tick()) _logger.log(log_severity::information, "Capturing at {:.1f} fps.", *rate);
 
     //A resolution change: frames of the new size arrive after the pool is recreated
     auto size = frame.ContentSize();
@@ -140,6 +158,8 @@ namespace SecondShell::Capture
 
       D3D11_BOX content{ 0, 0, 0, description.Width, description.Height, 1 };
       _context->CopySubresourceRegion(_frame.get(), 0, 0, 0, 0, texture.get(), 0, &content);
+
+      _events.raise(FrameArrived, this, CapturedFrame{ _context.get(), _frame.get(), description.Width, description.Height });
     }
     _frameArrived.notify_all();
   }

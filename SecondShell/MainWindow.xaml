@@ -8,14 +8,140 @@
     <MicaBackdrop />
   </Window.SystemBackdrop>
 
-  <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="8">
-    <TextBlock
-      x:Name="VersionText"
-      HorizontalAlignment="Center"
-      Style="{StaticResource SubtitleTextBlockStyle}" />
-    <TextBlock
-      x:Name="StatusText"
-      HorizontalAlignment="Center"
-      Text="Session: Stopped" />
-  </StackPanel>
+  <Grid>
+    <Grid.RowDefinitions>
+      <RowDefinition Height="40" />
+      <RowDefinition Height="*" />
+      <RowDefinition Height="Auto" />
+    </Grid.RowDefinitions>
+
+    <!-- The window's own title bar: the drag area, the toolbar, then room for the system's caption buttons -->
+    <Grid Grid.Row="0">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="*" />
+        <ColumnDefinition Width="Auto" />
+        <ColumnDefinition Width="138" />
+      </Grid.ColumnDefinitions>
+
+      <StackPanel x:Name="AppTitleBar" Grid.Column="0" Orientation="Horizontal" Spacing="8" Padding="14,0,0,0" Background="Transparent">
+        <!-- The app mark, as in the icon -->
+        <Canvas Width="18" Height="18" VerticalAlignment="Center">
+          <Rectangle Canvas.Left="1" Canvas.Top="1" Width="11" Height="11" RadiusX="3" RadiusY="3" Fill="#3B3550" />
+          <Rectangle Canvas.Left="6" Canvas.Top="6" Width="11" Height="11" RadiusX="3" RadiusY="3" Fill="{StaticResource AgentBrush}" Stroke="#1B1B1F" StrokeThickness="1" />
+        </Canvas>
+        <TextBlock x:Name="TitleText" VerticalAlignment="Center" FontSize="13" FontWeight="SemiBold" />
+        <TextBlock x:Name="VersionText" VerticalAlignment="Center" FontSize="12" Foreground="{StaticResource SecondaryTextBrush}" />
+
+        <!-- While the agent runs a sequence, then dimmed while it may send the next one -->
+        <Border x:Name="AgentIndicator" Visibility="Collapsed" VerticalAlignment="Center" Margin="8,0,0,0" Padding="8,2" CornerRadius="4" Background="{ThemeResource AccentFillColorDefaultBrush}">
+          <StackPanel Orientation="Horizontal" Spacing="6">
+            <ProgressRing x:Name="AgentProgress" IsActive="True" Width="12" Height="12" MinWidth="12" MinHeight="12" Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}" />
+            <TextBlock Text="Agent in control" FontSize="12" Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}" />
+          </StackPanel>
+        </Border>
+      </StackPanel>
+
+      <!-- Toolbar: take or give back control, stop, settings -->
+      <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+        <Button x:Name="TakeControlButton" Style="{StaticResource ToolbarButtonStyle}" Click="OnTakeControlClick" ToolTipService.ToolTip="Use the session with your own mouse and keyboard; the agent waits">
+          <StackPanel Orientation="Horizontal" Spacing="7">
+            <PathIcon Data="M2.5,1.5 L2.5,10.5 L5.1,8.1 L7,12.5 L8.7,11.8 L6.8,7.5 L10.4,7.5 Z" Foreground="{StaticResource UserBrush}" VerticalAlignment="Center" />
+            <TextBlock Text="Take control" VerticalAlignment="Center" />
+          </StackPanel>
+        </Button>
+
+        <Button x:Name="GiveBackButton" Visibility="Collapsed" Style="{StaticResource ToolbarButtonStyle}" Click="OnGiveBackClick" FontWeight="SemiBold" ToolTipService.ToolTip="Let the agent use the session again">
+          <Button.Resources>
+            <SolidColorBrush x:Key="ButtonBackground" Color="{StaticResource UserColor}" />
+            <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="#FFC566" />
+            <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="#E89E35" />
+            <SolidColorBrush x:Key="ButtonForeground" Color="#1B1B1F" />
+            <SolidColorBrush x:Key="ButtonForegroundPointerOver" Color="#1B1B1F" />
+            <SolidColorBrush x:Key="ButtonForegroundPressed" Color="#1B1B1F" />
+            <SolidColorBrush x:Key="ButtonBorderBrush" Color="Transparent" />
+            <SolidColorBrush x:Key="ButtonBorderBrushPointerOver" Color="Transparent" />
+            <SolidColorBrush x:Key="ButtonBorderBrushPressed" Color="Transparent" />
+          </Button.Resources>
+          <TextBlock Text="Give back control" />
+        </Button>
+
+        <Button x:Name="StopButton" Style="{StaticResource ToolbarButtonStyle}" Click="OnStopClick" FontWeight="SemiBold" ToolTipService.ToolTip="Stop the agent: its sequence ends, held input is released, and it waits until you give control back">
+          <Button.Resources>
+            <SolidColorBrush x:Key="ButtonBackground" Color="{StaticResource StopColor}" />
+            <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="#D63B2B" />
+            <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="#A82415" />
+            <SolidColorBrush x:Key="ButtonBackgroundDisabled" Color="#3A2624" />
+            <SolidColorBrush x:Key="ButtonForeground" Color="White" />
+            <SolidColorBrush x:Key="ButtonForegroundPointerOver" Color="White" />
+            <SolidColorBrush x:Key="ButtonForegroundPressed" Color="White" />
+            <SolidColorBrush x:Key="ButtonForegroundDisabled" Color="#9E7B77" />
+            <SolidColorBrush x:Key="ButtonBorderBrush" Color="Transparent" />
+            <SolidColorBrush x:Key="ButtonBorderBrushPointerOver" Color="Transparent" />
+            <SolidColorBrush x:Key="ButtonBorderBrushPressed" Color="Transparent" />
+            <SolidColorBrush x:Key="ButtonBorderBrushDisabled" Color="Transparent" />
+          </Button.Resources>
+          <StackPanel Orientation="Horizontal" Spacing="7">
+            <FontIcon Glyph="&#xE71A;" FontSize="11" VerticalAlignment="Center" />
+            <TextBlock Text="Stop" VerticalAlignment="Center" />
+          </StackPanel>
+        </Button>
+
+        <Rectangle Width="1" Height="18" Margin="2,0" Fill="{StaticResource SeparatorBrush}" VerticalAlignment="Center" />
+
+        <Button x:Name="SettingsButton" Style="{StaticResource ToolbarIconButtonStyle}" IsEnabled="False" AutomationProperties.Name="Settings">
+          <FontIcon Glyph="&#xE713;" FontSize="16" />
+        </Button>
+      </StackPanel>
+    </Grid>
+
+    <!-- The session, drawn by SessionRenderer; a swap chain panel takes no background of its own, so the grid around it
+         takes the input -->
+    <Grid x:Name="SessionArea" Grid.Row="1" Background="{StaticResource SessionAreaBrush}" IsTabStop="True"
+          PointerMoved="OnSessionPointerMoved" PointerPressed="OnSessionPointerPressed" PointerReleased="OnSessionPointerReleased"
+          PointerWheelChanged="OnSessionPointerWheelChanged" KeyDown="OnSessionKeyDown" KeyUp="OnSessionKeyUp"
+          LostFocus="OnSessionLostFocus">
+      <SwapChainPanel x:Name="SessionView" />
+
+      <!-- While the user has control: what goes where -->
+      <Border x:Name="UserControlNotice" Visibility="Collapsed" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,14,0,0" Padding="14,7,8,7"
+              CornerRadius="10" Background="{StaticResource UserNoticeBrush}" BorderBrush="{StaticResource UserNoticeBorderBrush}" BorderThickness="1">
+        <StackPanel Orientation="Horizontal" Spacing="10">
+          <Ellipse Width="8" Height="8" Fill="{StaticResource UserBrush}" VerticalAlignment="Center" />
+          <TextBlock Text="You're in control" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource UserTextBrush}" VerticalAlignment="Center" />
+          <TextBlock Text="Your mouse and keyboard go to the session." FontSize="12" Foreground="{StaticResource UserNoticeTextBrush}" VerticalAlignment="Center" />
+          <Button Content="Give back" Style="{StaticResource UserSubtleButtonStyle}" Click="OnGiveBackClick">
+            <Button.Resources>
+              <StaticResource x:Key="ButtonBackgroundPointerOver" ResourceKey="UserSubtleFillPointerOverBrush" />
+              <StaticResource x:Key="ButtonBackgroundPressed" ResourceKey="UserSubtleFillPressedBrush" />
+              <StaticResource x:Key="ButtonForegroundPointerOver" ResourceKey="UserTextBrush" />
+              <StaticResource x:Key="ButtonForegroundPressed" ResourceKey="UserTextBrush" />
+            </Button.Resources>
+          </Button>
+        </StackPanel>
+      </Border>
+    </Grid>
+
+    <!-- Status bar: the session, and the agent's current or last action, with the recent ones on hover -->
+    <Grid Grid.Row="2" ColumnSpacing="16" Padding="12,0" Height="36" Background="{StaticResource BarBrush}" BorderBrush="{StaticResource BarBorderBrush}" BorderThickness="0,1,0,0">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="Auto" />
+        <ColumnDefinition Width="Auto" />
+        <ColumnDefinition Width="*" />
+      </Grid.ColumnDefinitions>
+      <TextBlock x:Name="StatusText" Grid.Column="0" VerticalAlignment="Center" FontSize="12" Text="Session: Stopped" />
+      <Grid Grid.Column="1" VerticalAlignment="Center">
+        <TextBlock x:Name="UserControlText" Visibility="Collapsed" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource UserBrush}" Text="You're in control" />
+        <TextBlock x:Name="StoppedText" Visibility="Collapsed" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource FailureBrush}" Text="Agent stopped until you give control back" />
+      </Grid>
+      <!-- With a background, so all of its column shows the log on hover -->
+      <Border Grid.Column="2" Background="Transparent">
+        <ToolTipService.ToolTip>
+          <ToolTip MaxWidth="900">
+            <TextBlock x:Name="ActionLogText" Text="No agent actions yet." TextWrapping="Wrap" />
+          </ToolTip>
+        </ToolTipService.ToolTip>
+        <TextBlock x:Name="ActionText" VerticalAlignment="Center" FontSize="12" TextTrimming="CharacterEllipsis" />
+      </Border>
+    </Grid>
+  </Grid>
 </Window>

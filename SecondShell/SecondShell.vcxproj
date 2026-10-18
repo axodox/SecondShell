@@ -63,11 +63,12 @@
   <ItemDefinitionGroup>
     <ClCompile>
       <PrecompiledHeaderOutputFile>$(IntDir)pch.pch</PrecompiledHeaderOutputFile>
+      <PreprocessorDefinitions>USE_DIRECTX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(SecondShellRoot)SecondShell.Common;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
-      <AdditionalDependencies>wtsapi32.lib;crypt32.lib;credui.lib;secur32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>dxgi.lib;wtsapi32.lib;crypt32.lib;credui.lib;secur32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -75,23 +76,35 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ActionLog.h" />
+    <ClInclude Include="ActivityOverlay.h" />
     <ClInclude Include="AgentControl.h" />
+    <ClInclude Include="CaptureFlashOverlay.h" />
     <ClInclude Include="CaptureStore.h" />
     <ClInclude Include="ChildSessionApi.h" />
     <ClInclude Include="CredentialPrompt.h" />
     <ClInclude Include="CredentialProvider.h" />
     <ClInclude Include="Credentials.h" />
     <ClInclude Include="CredentialStore.h" />
+    <ClInclude Include="CursorOverlay.h" />
     <ClInclude Include="DriverLauncher.h" />
     <ClInclude Include="DriverLink.h" />
+    <ClInclude Include="DisplayClock.h" />
+    <ClInclude Include="FrameReceiver.h" />
+    <ClInclude Include="InteractiveInputForwarder.h" />
     <ClInclude Include="IDriverLink.h" />
     <ClInclude Include="McpConnection.h" />
     <ClInclude Include="McpRequestHandler.h" />
+    <ClInclude Include="OverlayElement.h" />
+    <ClInclude Include="OverlayRenderer.h" />
     <ClInclude Include="RdpClient.h" />
     <ClInclude Include="RdpHostWindow.h" />
     <ClInclude Include="SequenceRunner.h" />
+    <ClInclude Include="SessionRenderer.h" />
     <ClInclude Include="SessionManager.h" />
     <ClInclude Include="StaThread.h" />
+    <ClInclude Include="ViewTransform.h" />
+    <ClInclude Include="VisualizationFeed.h" />
+    <ClInclude Include="WinUiSwapChain.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="App.xaml.h">
       <DependentUpon>App.xaml</DependentUpon>
@@ -103,6 +116,7 @@
   <ItemGroup>
     <ApplicationDefinition Include="App.xaml" />
     <Page Include="MainWindow.xaml" />
+    <Page Include="Theme.xaml" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">
@@ -115,26 +129,38 @@
       <DependentUpon>MainWindow.xaml</DependentUpon>
     </ClCompile>
     <ClCompile Include="ActionLog.cpp" />
+    <ClCompile Include="ActivityOverlay.cpp" />
     <ClCompile Include="AgentControl.cpp" />
+    <ClCompile Include="CaptureFlashOverlay.cpp" />
     <ClCompile Include="CaptureStore.cpp" />
     <ClCompile Include="ChildSessionApi.cpp" />
     <ClCompile Include="CredentialPrompt.cpp" />
     <ClCompile Include="CredentialProvider.cpp" />
     <ClCompile Include="Credentials.cpp" />
     <ClCompile Include="CredentialStore.cpp" />
+    <ClCompile Include="CursorOverlay.cpp" />
     <ClCompile Include="DriverLauncher.cpp" />
     <ClCompile Include="DriverLink.cpp" />
+    <ClCompile Include="DisplayClock.cpp" />
+    <ClCompile Include="FrameReceiver.cpp" />
+    <ClCompile Include="InteractiveInputForwarder.cpp" />
     <ClCompile Include="IDriverLink.cpp" />
     <ClCompile Include="McpConnection.cpp" />
     <ClCompile Include="McpRequestHandler.cpp" />
+    <ClCompile Include="OverlayElement.cpp" />
+    <ClCompile Include="OverlayRenderer.cpp" />
     <ClCompile Include="RdpClient.cpp" />
     <ClCompile Include="RdpHostWindow.cpp">
       <!-- #import does not work with /MP -->
       <MultiProcessorCompilation>false</MultiProcessorCompilation>
     </ClCompile>
     <ClCompile Include="SequenceRunner.cpp" />
+    <ClCompile Include="SessionRenderer.cpp" />
     <ClCompile Include="SessionManager.cpp" />
     <ClCompile Include="StaThread.cpp" />
+    <ClCompile Include="ViewTransform.cpp" />
+    <ClCompile Include="VisualizationFeed.cpp" />
+    <ClCompile Include="WinUiSwapChain.cpp" />
     <ClCompile Include="$(GeneratedFilesDir)module.g.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -147,6 +173,9 @@
     <ProjectReference Include="..\SecondShell.Common\SecondShell.Common.vcxproj">
       <Project>{98849BA5-9DF3-45CE-8AC1-2FC0616C9659}</Project>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="..\Assets\SecondShell.rc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

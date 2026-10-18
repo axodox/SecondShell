@@ -1,0 +1,2 @@
+//The icon of every SecondShell executable: the first icon resource is the one Explorer and the taskbar show
+1 ICON "SecondShell.ico"

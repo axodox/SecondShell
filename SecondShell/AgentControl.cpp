@@ -4,22 +4,38 @@
 namespace SecondShell::Agent
 {
   AgentControl::AgentControl() :
-    Stopped(_events)
+    ModeChanged(_events)
   { }
+
+  ControlMode AgentControl::Mode() const
+  {
+    return _mode;
+  }
 
   bool AgentControl::IsAgentAllowed() const
   {
-    return _isAgentAllowed;
+    return _mode == ControlMode::Agent;
   }
 
   void AgentControl::Stop()
   {
-    _isAgentAllowed = false;
-    _events.raise(Stopped, this);
+    SetMode(ControlMode::Stopped);
+  }
+
+  void AgentControl::TakeControl()
+  {
+    SetMode(ControlMode::User);
   }
 
   void AgentControl::GiveBackControl()
   {
-    _isAgentAllowed = true;
+    SetMode(ControlMode::Agent);
+  }
+
+  void AgentControl::SetMode(ControlMode mode)
+  {
+    if (_mode.exchange(mode) == mode) return;
+    _logger.log(Axodox::Infrastructure::log_severity::information, "Control: {}.", Axodox::Infrastructure::to_string(mode));
+    _events.raise(ModeChanged, this, mode);
   }
 }

@@ -27,12 +27,14 @@
 #include <winrt/Windows.ApplicationModel.Activation.h>
 #include <winrt/Microsoft.UI.Composition.h>
 #include <winrt/Microsoft.UI.Dispatching.h>
+#include <winrt/Microsoft.UI.Input.h>
 #include <winrt/Microsoft.UI.Interop.h>
 #include <winrt/Microsoft.UI.Windowing.h>
 #include <winrt/Microsoft.UI.Xaml.h>
 #include <winrt/Microsoft.UI.Xaml.Controls.h>
 #include <winrt/Microsoft.UI.Xaml.Controls.Primitives.h>
 #include <winrt/Microsoft.UI.Xaml.Data.h>
+#include <winrt/Microsoft.UI.Xaml.Input.h>
 #include <winrt/Microsoft.UI.Xaml.Interop.h>
 #include <winrt/Microsoft.UI.Xaml.Markup.h>
 #include <winrt/Microsoft.UI.Xaml.Media.h>
@@ -40,7 +42,11 @@
 #include <winrt/Microsoft.UI.Xaml.Shapes.h>
 #include <wil/cppwinrt_helpers.h>
 
+#include "Include/Axodox.Graphics.h"
 #include "Include/Axodox.Infrastructure.h"
 #include "Include/Axodox.Json.h"
 #include "Include/Axodox.Networking.h"
 #include "Include/Axodox.Threading.h"
+
+//ISwapChainPanelNative, after the DXGI headers Axodox.Graphics brings
+#include <microsoft.ui.xaml.media.dxinterop.h>

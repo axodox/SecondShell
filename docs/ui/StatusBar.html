@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SecondShell — status bar states</title>
+<style>
+body{margin:0;background:#1B1B1F}
+a{color:#B7AAFF}a:hover{color:#D6CEFF}
+@keyframes ssBar{0%,100%{transform:scaleY(.3)}50%{transform:scaleY(1)}}
+@keyframes ssBarSlow{0%,100%{transform:scaleY(.3);opacity:.5}50%{transform:scaleY(.6);opacity:.8}}
+@keyframes ssFlash{0%{background-color:rgba(139,124,255,.42)}35%{background-color:rgba(139,124,255,.18)}100%{background-color:rgba(255,255,255,.04)}}
+@keyframes ssSpin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<div style="width: 100%; height: 900px; box-sizing: border-box; padding: 48px 64px; display: flex; flex-direction: column; gap: 26px; background: #1B1B1F; color: #F3F3F5; font-family: 'Segoe UI Variable Text', 'Segoe UI Variable', 'Segoe UI', system-ui, sans-serif; font-size: 13px; overflow: hidden">
+  <div style="display: flex; flex-direction: column; gap: 6px">
+    <h1 style="margin: 0; font-size: 28px; font-weight: 600">Status bar</h1>
+    <p style="margin: 0; color: #A8A8B3; font-size: 14px">Activity and the agent's description of the sequence on the left, its current action in the middle, the session and the log on the right.</p>
+  </div>
+
+  <!-- Just updated -->
+  <section style="display: flex; flex-direction: column; gap: 8px">
+    <h2 style="margin: 0; font-size: 12px; font-weight: 600; color: #A8A8B3">Working, a new step just started: the action brightens, then settles</h2>
+    <div style="height: 38px; display: flex; align-items: center; gap: 14px; padding: 0 12px; border-radius: 8px; background: #202024; border: 1px solid rgba(255, 255, 255, 0.06); overflow: hidden">
+      <div style="display: flex; align-items: center; gap: 9px">
+        <div aria-hidden="true" style="display: flex; align-items: center; gap: 2px; height: 14px">
+          <span style="width: 3px; height: 14px; border-radius: 2px; background: #8B7CFF; animation: ssBar 0.9s ease-in-out infinite"></span>
+          <span style="width: 3px; height: 14px; border-radius: 2px; background: #8B7CFF; animation: ssBar 0.9s ease-in-out 0.15s infinite"></span>
+          <span style="width: 3px; height: 14px; border-radius: 2px; background: #8B7CFF; animation: ssBar 0.9s ease-in-out 0.3s infinite"></span>
+          <span style="width: 3px; height: 14px; border-radius: 2px; background: #8B7CFF; animation: ssBar 0.9s ease-in-out 0.45s infinite"></span>
+        </div>
+        <span style="font-weight: 600; font-size: 12px">Opening the context menu of the cart</span>
+        <span style="font-size: 12px; color: #9A9AA6">step 2 of 9</span>
+      </div>
+      <div style="width: 1px; height: 18px; background: #3A3A42"></div>
+      <div style="display: flex; align-items: center; gap: 6px; padding: 3px 10px 3px 8px; border-radius: 6px; animation: ssFlash 2.4s ease-out infinite">
+        <span aria-hidden="true" style="width: 11px; height: 11px; border-radius: 50%; border: 2px solid rgba(183, 170, 255, 0.3); border-top-color: #B7AAFF; animation: ssSpin 0.8s linear infinite"></span>
+        <span style="font-weight: 600; font-size: 12px; color: #B7AAFF">Mouse.Click</span>
+        <span style="display: flex; gap: 5px; padding: 0 6px; border-radius: 4px; background: #2A2A31; border: 1px solid #3A3A44; font-family: 'Cascadia Mono', Consolas, monospace; font-size: 11px; line-height: 17px"><span style="color: #9A9AA6">button</span>Right</span>
+        <span style="display: flex; gap: 5px; padding: 0 6px; border-radius: 4px; background: #2A2A31; border: 1px solid #3A3A44; font-family: 'Cascadia Mono', Consolas, monospace; font-size: 11px; line-height: 17px"><span style="color: #9A9AA6">x</span>455</span>
+        <span style="display: flex; gap: 5px; padding: 0 6px; border-radius: 4px; background: #2A2A31; border: 1px solid #3A3A44; font-family: 'Cascadia Mono', Consolas, monospace; font-size: 11px; line-height: 17px"><span style="color: #9A9AA6">y</span>686</span>
+      </div>
+      <div style="flex: 1 1 auto"></div>
+      <span style="font-size: 12px; color: #B4B4BE">Session 37 · 1920 × 1080 at 100 %</span>
+      <span style="height: 24px; display: flex; align-items: center; padding: 0 10px; border-radius: 6px; border: 1px solid #3A3A44; font-size: 12px">Log 42</span>
+    </div>
+  </section>
+
+  <!-- A command -->
+  <section style="display: flex; flex-direction: column; gap: 8px">
+    <h2 style="margin: 0; font-size: 12px; font-weight: 600; color: #A8A8B3">Working on a long step: a command runs; text arguments in quotes</h2>
+    <div style="height: 38px; display: flex; align-items: center; gap: 14px; padding: 0 12px; border-radius: 8px; background: #202024; border: 1px solid rgba(255, 255, 255, 0.06); overflow: hidden">
+      <div style="display: flex; align-items: center; gap: 9px">
+        <div aria-hidden="true" style="display: flex; align-items: center; gap: 2px; height: 14px">
+          <span style="width: 3px; height: 14px; border-radius: 2px; background: #8B7CFF; animation: ssBar 0.9s ease-in-out infinite"></span>
+          <span style="width: 3px; height: 14px; border-radius: 2px; background: #8B7CFF; animation: ssBar 0.9s ease-in-out 0.15s infinite"></span>
+          <span style="width: 3px; height: 14px; border-radius: 2px; background: #8B7CFF; animation: ssBar 0.9s ease-in-out 0.3s infinite"></span>
+          <span style="width: 3px; height: 14px; border-radius: 2px; background: #8B7CFF; animation: ssBar 0.9s ease-in-out 0.45s infinite"></span>
+        </div>
+        <span style="font-weight: 600; font-size: 12px">Running the tests with coverage</span>
+        <span style="font-size: 12px; color: #9A9AA6">step 5 of 9 · 12 s</span>
+      </div>
+      <div style="width: 1px; height: 18px; background: #3A3A42"></div>
+      <div style="display: flex; align-items: center; gap: 6px; padding: 3px 10px 3px 8px; border-radius: 6px; background: rgba(255, 255, 255, 0.04)">
+        <span aria-hidden="true" style="width: 11px; height: 11px; border-radius: 50%; border: 2px solid rgba(183, 170, 255, 0.3); border-top-color: #B7AAFF; animation: ssSpin 0.8s linear infinite"></span>
+        <span style="font-weight: 600; font-size: 12px; color: #B7AAFF">Process.Run</span>
+        <span style="display: flex; gap: 5px; padding: 0 6px; border-radius: 4px; background: #2A2A31; border: 1px solid #3A3A44; font-family: 'Cascadia Mono', Consolas, monospace; font-size: 11px; line-height: 17px"><span style="color: #9A9AA6">command</span><span style="color: #E6C589">"npm test -- --coverage"</span></span>
+        <span style="display: flex; gap: 5px; padding: 0 6px; border-radius: 4px; background: #2A2A31; border: 1px solid #3A3A44; font-family: 'Cascadia Mono', Consolas, monospace; font-size: 11px; line-height: 17px"><span style="color: #9A9AA6">shell</span>Cmd</span>
+        <span style="display: flex; gap: 5px; padding: 0 6px; border-radius: 4px; background: #2A2A31; border: 1px solid #3A3A44; font-family: 'Cascadia Mono', Consolas, monospace; font-size: 11px; line-height: 17px"><span style="color: #9A9AA6">timeout</span>60 s</span>
+      </div>
+      <div style="flex: 1 1 auto"></div>
+      <span style="font-size: 12px; color: #B4B4BE">Session 37 · 1920 × 1080 at 100 %</span>
+      <span style="height: 24px; display: flex; align-items: center; padding: 0 10px; border-radius: 6px; border: 1px solid #3A3A44; font-size: 12px">Log 45</span>
+    </div>
+  </section>
+
+  <!-- Keys -->
+  <section style="display: flex; flex-direction: column; gap: 8px">
+    <h2 style="margin: 0; font-size: 12px; font-weight: 600; color: #A8A8B3">Done: keys show as keycaps, typed text as a quoted string; a sequence without a description says "Agent working"</h2>
+    <div style="height: 38px; display: flex; align-items: center; gap: 14px; padding: 0 12px; border-radius: 8px; background: #202024; border: 1px solid rgba(255, 255, 255, 0.06); overflow: hidden">
+      <div style="display: flex; align-items: center; gap: 9px">
+        <div aria-hidden="true" style="display: flex; align-items: center; gap: 2px; height: 14px">
+          <span style="width: 3px; height: 14px; border-radius: 2px; background: #8B7CFF; animation: ssBar 0.9s ease-in-out infinite"></span>
+          <span style="width: 3px; height: 14px; border-radius: 2px; background: #8B7CFF; animation: ssBar 0.9s ease-in-out 0.15s infinite"></span>
+          <span style="width: 3px; height: 14px; border-radius: 2px; background: #8B7CFF; animation: ssBar 0.9s ease-in-out 0.3s infinite"></span>
+          <span style="width: 3px; height: 14px; border-radius: 2px; background: #8B7CFF; animation: ssBar 0.9s ease-in-out 0.45s infinite"></span>
+        </div>
+        <span style="font-weight: 600; font-size: 12px">Agent working</span>
+        <span style="font-size: 12px; color: #9A9AA6">step 7 of 9</span>
+      </div>
+      <div style="width: 1px; height: 18px; background: #3A3A42"></div>
+      <div style="display: flex; align-items: center; gap: 6px; padding: 3px 10px 3px 8px; border-radius: 6px; background: rgba(255, 255, 255, 0.04)">
+        <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="#4CC38A" stroke-width="1.8" aria-hidden="true"><path d="M2 6.5l2.6 2.5L10 3"></path></svg>
+        <span style="font-weight: 600; font-size: 12px; color: #B7AAFF">Keyboard.Tap</span>
+        <span style="padding: 0 6px; border-radius: 4px; border: 1px solid #55555F; border-bottom-width: 2px; background: #2A2A31; font-family: 'Cascadia Mono', Consolas, monospace; font-size: 11px; line-height: 17px">Ctrl</span>
+        <span style="color: #6E6E78; font-size: 11px">+</span>
+        <span style="padding: 0 6px; border-radius: 4px; border: 1px solid #55555F; border-bottom-width: 2px; background: #2A2A31; font-family: 'Cascadia Mono', Consolas, monospace; font-size: 11px; line-height: 17px">Shift</span>
+        <span style="color: #6E6E78; font-size: 11px">+</span>
+        <span style="padding: 0 6px; border-radius: 4px; border: 1px solid #55555F; border-bottom-width: 2px; background: #2A2A31; font-family: 'Cascadia Mono', Consolas, monospace; font-size: 11px; line-height: 17px">Esc</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 6px; padding: 3px 10px 3px 8px; border-radius: 6px; opacity: 0.55">
+        <span style="font-weight: 600; font-size: 12px; color: #B7AAFF">Keyboard.Type</span>
+        <span style="display: flex; gap: 5px; padding: 0 6px; border-radius: 4px; background: #2A2A31; border: 1px solid #3A3A44; font-family: 'Cascadia Mono', Consolas, monospace; font-size: 11px; line-height: 17px"><span style="color: #9A9AA6">text</span><span style="color: #E6C589">"••••••••"</span></span>
+        <span style="font-size: 11px; color: #9A9AA6">previous</span>
+      </div>
+      <div style="flex: 1 1 auto"></div>
+      <span style="font-size: 12px; color: #B4B4BE">Session 37 · 1920 × 1080 at 100 %</span>
+      <span style="height: 24px; display: flex; align-items: center; padding: 0 10px; border-radius: 6px; border: 1px solid #3A3A44; font-size: 12px">Log 48</span>
+    </div>
+  </section>
+
+  <!-- Waiting -->
+  <section style="display: flex; flex-direction: column; gap: 8px">
+    <h2 style="margin: 0; font-size: 12px; font-weight: 600; color: #A8A8B3">Between sequences: the indicator slows and dims for a few seconds, then goes quiet</h2>
+    <div style="height: 38px; display: flex; align-items: center; gap: 14px; padding: 0 12px; border-radius: 8px; background: #202024; border: 1px solid rgba(255, 255, 255, 0.06); overflow: hidden">
+      <div style="display: flex; align-items: center; gap: 9px">
+        <div aria-hidden="true" style="display: flex; align-items: center; gap: 2px; height: 14px">
+          <span style="width: 3px; height: 14px; border-radius: 2px; background: #8B7CFF; animation: ssBarSlow 2.4s ease-in-out infinite"></span>
+          <span style="width: 3px; height: 14px; border-radius: 2px; background: #8B7CFF; animation: ssBarSlow 2.4s ease-in-out 0.4s infinite"></span>
+          <span style="width: 3px; height: 14px; border-radius: 2px; background: #8B7CFF; animation: ssBarSlow 2.4s ease-in-out 0.8s infinite"></span>
+          <span style="width: 3px; height: 14px; border-radius: 2px; background: #8B7CFF; animation: ssBarSlow 2.4s ease-in-out 1.2s infinite"></span>
+        </div>
+        <span style="font-weight: 600; font-size: 12px; color: #C8C8D0">Agent thinking</span>
+        <span style="font-size: 12px; color: #9A9AA6">last step 3 s ago</span>
+      </div>
+      <div style="width: 1px; height: 18px; background: #3A3A42"></div>
+      <div style="display: flex; align-items: center; gap: 6px; padding: 3px 10px 3px 8px; border-radius: 6px; opacity: 0.7">
+        <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="#4CC38A" stroke-width="1.8" aria-hidden="true"><path d="M2 6.5l2.6 2.5L10 3"></path></svg>
+        <span style="font-weight: 600; font-size: 12px; color: #B7AAFF">Capture.Screen</span>
+        <span style="display: flex; gap: 5px; padding: 0 6px; border-radius: 4px; background: #2A2A31; border: 1px solid #3A3A44; font-family: 'Cascadia Mono', Consolas, monospace; font-size: 11px; line-height: 17px"><span style="color: #9A9AA6">resolution</span>1280 × 720</span>
+      </div>
+      <div style="flex: 1 1 auto"></div>
+      <span style="font-size: 12px; color: #B4B4BE">Session 37 · 1920 × 1080 at 100 %</span>
+      <span style="height: 24px; display: flex; align-items: center; padding: 0 10px; border-radius: 6px; border: 1px solid #3A3A44; font-size: 12px">Log 51</span>
+    </div>
+  </section>
+
+  <!-- Failed -->
+  <section style="display: flex; flex-direction: column; gap: 8px">
+    <h2 style="margin: 0; font-size: 12px; font-weight: 600; color: #A8A8B3">A step failed: the sequence stopped there, the reason follows the action</h2>
+    <div style="height: 38px; display: flex; align-items: center; gap: 14px; padding: 0 12px; border-radius: 8px; background: #202024; border: 1px solid rgba(255, 255, 255, 0.06); overflow: hidden">
+      <div style="display: flex; align-items: center; gap: 9px">
+        <div aria-hidden="true" style="display: flex; align-items: center; gap: 2px; height: 14px">
+          <span style="width: 3px; height: 5px; border-radius: 2px; background: #6E6E78"></span>
+          <span style="width: 3px; height: 5px; border-radius: 2px; background: #6E6E78"></span>
+          <span style="width: 3px; height: 5px; border-radius: 2px; background: #6E6E78"></span>
+          <span style="width: 3px; height: 5px; border-radius: 2px; background: #6E6E78"></span>
+        </div>
+        <span style="font-weight: 600; font-size: 12px; color: #C8C8D0">Agent idle</span>
+      </div>
+      <div style="width: 1px; height: 18px; background: #3A3A42"></div>
+      <div style="display: flex; align-items: center; gap: 6px; padding: 3px 10px 3px 8px; border-radius: 6px; background: rgba(255, 99, 99, 0.10); min-width: 0">
+        <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="#FF8A80" stroke-width="1.8" aria-hidden="true"><path d="M2.5 2.5l7 7M9.5 2.5l-7 7"></path></svg>
+        <span style="font-weight: 600; font-size: 12px; color: #B7AAFF">Window.Focus</span>
+        <span style="display: flex; gap: 5px; padding: 0 6px; border-radius: 4px; background: #2A2A31; border: 1px solid #3A3A44; font-family: 'Cascadia Mono', Consolas, monospace; font-size: 11px; line-height: 17px"><span style="color: #9A9AA6">window</span>0x000205A0</span>
+        <span style="font-size: 12px; color: #FF8A80; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">failed: the window no longer exists</span>
+      </div>
+      <div style="flex: 1 1 auto"></div>
+      <span style="font-size: 12px; color: #B4B4BE">Session 37 · 1920 × 1080 at 100 %</span>
+      <span style="height: 24px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border-radius: 6px; border: 1px solid #3A3A44; font-size: 12px">Log 52 <span aria-label="1 failed" style="width: 6px; height: 6px; border-radius: 50%; background: #FF8A80"></span></span>
+    </div>
+  </section>
+
+  <!-- User in control -->
+  <section style="display: flex; flex-direction: column; gap: 8px">
+    <h2 style="margin: 0; font-size: 12px; font-weight: 600; color: #A8A8B3">You are in control: the agent's sequences are refused until you give it back</h2>
+    <div style="height: 38px; display: flex; align-items: center; gap: 14px; padding: 0 12px; border-radius: 8px; background: #202024; border: 1px solid rgba(255, 255, 255, 0.06); overflow: hidden">
+      <div style="display: flex; align-items: center; gap: 9px">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#FFB547" stroke-width="1.4" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 1.5v9l2.6-2.4 1.9 4.4 1.7-.7-1.9-4.3h3.6z"></path></svg>
+        <span style="font-weight: 600; font-size: 12px; color: #FFB547">You're in control</span>
+        <span style="font-size: 12px; color: #9A9AA6">clipboard synced</span>
+      </div>
+      <div style="width: 1px; height: 18px; background: #3A3A42"></div>
+      <div style="display: flex; align-items: center; gap: 6px; padding: 3px 10px 3px 8px; border-radius: 6px; opacity: 0.7">
+        <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="#9A9AA6" stroke-width="1.8" aria-hidden="true"><path d="M3 3h6v6H3z"></path></svg>
+        <span style="font-weight: 600; font-size: 12px; color: #B7AAFF">Mouse.Move</span>
+        <span style="font-size: 12px; color: #9A9AA6">refused: the user has taken control</span>
+      </div>
+      <div style="flex: 1 1 auto"></div>
+      <span style="font-size: 12px; color: #B4B4BE">Session 37 · 1920 × 1080 at 100 %</span>
+      <span style="height: 24px; display: flex; align-items: center; padding: 0 10px; border-radius: 6px; border: 1px solid #3A3A44; font-size: 12px">Log 53</span>
+    </div>
+  </section>
+</div>
+</body>
+</html>

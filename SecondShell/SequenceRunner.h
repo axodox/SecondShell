@@ -3,6 +3,7 @@
 #include "AgentControl.h"
 #include "CaptureStore.h"
 #include "IDriverLink.h"
+#include "VisualizationFeed.h"
 
 namespace SecondShell::Agent
 {
@@ -14,6 +15,7 @@ namespace SecondShell::Agent
   class SequenceRunner
   {
     inline static const Axodox::Infrastructure::logger _logger{ "SequenceRunner" };
+    Axodox::Infrastructure::event_owner _events;
 
     struct RunState;
 
@@ -22,13 +24,17 @@ namespace SecondShell::Agent
 
     Protocol::RunSequenceResponse Run(const Protocol::RunSequenceRequest& request, const ProgressCallback& progress, const Rpc::CancellationToken& cancellation);
 
+    //A sequence started (true) or ended (false): the agent is using the session meanwhile.
+    Axodox::Infrastructure::event_publisher<SequenceRunner*, bool> RunningChanged;
+
   private:
     std::shared_ptr<Session::IDriverLink> _driver;
     Axodox::Infrastructure::event_subscription _actionCompletedSubscription;
     std::shared_ptr<AgentControl> _agentControl;
-    Axodox::Infrastructure::event_subscription _agentStoppedSubscription;
+    Axodox::Infrastructure::event_subscription _modeChangedSubscription;
     std::shared_ptr<CaptureStore> _captureStore;
     std::shared_ptr<ActionLog> _actionLog;
+    std::shared_ptr<VisualizationFeed> _visualization;
 
     std::mutex _runMutex;  //held while a sequence runs
     std::atomic_uint64_t _nextActionId = 1;
@@ -49,9 +55,10 @@ namespace SecondShell::Agent
     Axodox::Infrastructure::value_ptr<Actions::ActionResult> Execute(RunState& state, const Axodox::Infrastructure::value_ptr<Actions::Action>& action);
 
     Protocol::RunSequenceResponse Failure(Actions::ErrorCode error, std::string message) const;
+    std::string RefusalMessage() const;
     void ReportFailure(Protocol::RunSequenceResponse& response, const RunState& state, uint32_t index, const Actions::ActionResult& result) const;
 
     void OnActionCompleted(Session::IDriverLink* sender, const Protocol::ActionCompletedNotification& notification);
-    void OnAgentStopped(AgentControl* sender);
+    void OnModeChanged(AgentControl* sender, ControlMode mode);
   };
 }

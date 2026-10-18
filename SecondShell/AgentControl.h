@@ -2,23 +2,34 @@
 
 namespace SecondShell::Agent
 {
-  //Whether the agent may use the session. The user stops it (the Stop button, interactive mode) and gives control back.
+  named_enum(ControlMode,
+    Agent,    //the agent may use the session
+    Stopped,  //the user stopped the agent
+    User      //the user has taken control: their input goes to the session
+  );
+
+  //Who controls the session (Design.md, Visualization). The user stops the agent or takes control, which interrupts
+  //the running sequence and makes further ones fail until they give control back.
   class AgentControl
   {
+    inline static const Axodox::Infrastructure::logger _logger{ "AgentControl" };
     Axodox::Infrastructure::event_owner _events;
 
   public:
     AgentControl();
 
+    ControlMode Mode() const;
     bool IsAgentAllowed() const;
 
-    //Interrupts the running sequence; further sequences fail until control is given back.
     void Stop();
+    void TakeControl();
     void GiveBackControl();
 
-    Axodox::Infrastructure::event_publisher<AgentControl*> Stopped;
+    Axodox::Infrastructure::event_publisher<AgentControl*, ControlMode> ModeChanged;
 
   private:
-    std::atomic_bool _isAgentAllowed = true;
+    std::atomic<ControlMode> _mode = ControlMode::Agent;
+
+    void SetMode(ControlMode mode);
   };
 }

@@ -43,18 +43,20 @@ namespace SecondShell::Agent
   }
 
   SequenceRunner::SequenceRunner(dependency_container* container) :
+    RunningChanged(_events),
     _driver(container->resolve<IDriverLink>()),
     _actionCompletedSubscription(_driver->ActionCompleted({ this, &SequenceRunner::OnActionCompleted })),
     _agentControl(container->resolve<AgentControl>()),
-    _agentStoppedSubscription(_agentControl->Stopped({ this, &SequenceRunner::OnAgentStopped })),
+    _modeChangedSubscription(_agentControl->ModeChanged({ this, &SequenceRunner::OnModeChanged })),
     _captureStore(container->resolve<CaptureStore>()),
-    _actionLog(container->resolve<ActionLog>())
+    _actionLog(container->resolve<ActionLog>()),
+    _visualization(container->resolve<VisualizationFeed>())
   { }
 
   RunSequenceResponse SequenceRunner::Run(const RunSequenceRequest& request, const ProgressCallback& progress, const CancellationToken& cancellation)
   {
     if (!_driver->IsConnected()) return Failure(ErrorCode::SessionNotActive, "No session is running; start one with Initialize-Session.");
-    if (!_agentControl->IsAgentAllowed()) return Failure(ErrorCode::AgentInputDisabled, "The user has taken control of the session; sequences fail until they give it back.");
+    if (!_agentControl->IsAgentAllowed()) return Failure(ErrorCode::AgentInputDisabled, RefusalMessage());
 
     unique_lock runLock{ _runMutex, try_to_lock };
     if (!runLock) return Failure(ErrorCode::ActionFailed, "Another sequence is running; sequences run one at a time.");
@@ -68,13 +70,24 @@ namespace SecondShell::Agent
     {
       lock_guard lock{ _mutex };
       _run = &state;
+
+      //The user may have stopped the agent since the check above, before OnModeChanged could see this run
+      if (!_agentControl->IsAgentAllowed())
+      {
+        state.IsInterrupted = true;
+        state.Stop.Cancel();
+      }
     }
+    _events.raise(RunningChanged, this, true);
 
     RunSequenceResponse response;
     for (uint32_t index = 0; index < request.Steps.size(); index++)
     {
       auto& step = request.Steps[index];
+      _actionLog->Start(step);
+      auto visualId = _visualization->OnActionStarted(*step);
       auto result = RunStep(state, step, index);
+      _visualization->OnActionFinished(visualId, *step, *result);
       _actionLog->Add(step, *result);
 
       if (result->Status != ActionStatus::Succeeded)
@@ -91,12 +104,14 @@ namespace SecondShell::Agent
       lock_guard lock{ _mutex };
       _run = nullptr;
     }
+    _events.raise(RunningChanged, this, false);
 
     //After a failure nothing stays held, and the AI learns what was
     if (response.FailedStep)
     {
       auto reset = _driver->ResetInput();
       if (auto released = get_if<ResetInputResponse>(&reset); released && IsHeld(released->Released)) response.ReleasedInput = released->Released;
+      _visualization->OnInputReleased();
     }
 
     return response;
@@ -243,6 +258,12 @@ namespace SecondShell::Agent
     return response;
   }
 
+  string SequenceRunner::RefusalMessage() const
+  {
+    if (_agentControl->Mode() == ControlMode::User) return "The user has taken control of the session; sequences fail until they give it back.";
+    return "The user stopped the agent; sequences fail until they give control back.";
+  }
+
   void SequenceRunner::ReportFailure(RunSequenceResponse& response, const RunState& state, uint32_t index, const ActionResult& result) const
   {
     response.FailedStep = index;
@@ -254,7 +275,7 @@ namespace SecondShell::Agent
     else if (state.IsInterrupted)
     {
       response.Error = ErrorCode::UserInterrupted;
-      response.Message = "The user stopped the agent.";
+      response.Message = RefusalMessage();
     }
     else if (Remaining(state.Deadline) == 0ms)
     {
@@ -277,12 +298,24 @@ namespace SecondShell::Agent
     _asyncChanged.notify_all();
   }
 
-  void SequenceRunner::OnAgentStopped(AgentControl* /*sender*/)
+  void SequenceRunner::OnModeChanged(AgentControl* /*sender*/, ControlMode mode)
   {
-    lock_guard lock{ _mutex };
-    if (!_run) return;
+    if (mode == ControlMode::Agent) return;
 
-    _run->IsInterrupted = true;
-    _run->Stop.Cancel();
+    //A running sequence fails, and releases what is held when it does
+    {
+      lock_guard lock{ _mutex };
+      if (_run)
+      {
+        _run->IsInterrupted = true;
+        _run->Stop.Cancel();
+        return;
+      }
+    }
+
+    //Else the agent may still hold what an earlier sequence pressed
+    if (!_driver->IsConnected()) return;
+    _driver->ResetInput();
+    _visualization->OnInputReleased();
   }
 }

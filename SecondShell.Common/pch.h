@@ -5,6 +5,8 @@
 #include <appmodel.h>
 #include <sddl.h>
 #include <shlobj.h>
+#include <d3d11_4.h>
+#include <dxgi1_6.h>
 
 #include <winrt/base.h>
 

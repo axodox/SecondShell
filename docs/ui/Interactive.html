@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SecondShell — you are in control</title>
+<style>
+body{margin:0;background:#1B1B1F}
+a{color:#FFC978}a:hover{color:#FFDCA6}
+</style>
+</head>
+<body>
+<div style="width: 100%; height: 900px; display: flex; flex-direction: column; background: #1B1B1F; color: #F3F3F5; font-family: 'Segoe UI Variable Text', 'Segoe UI Variable', 'Segoe UI', system-ui, sans-serif; font-size: 13px; overflow: hidden">
+
+  <!-- Title bar: give back control replaces take control; nothing to stop -->
+  <header style="height: 40px; flex: none; display: flex; align-items: center; gap: 10px; padding-left: 14px; flex-wrap: wrap">
+    <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><rect x="1.5" y="1.5" width="11" height="11" rx="3" fill="none" stroke="#8E8E99" stroke-width="1.5"></rect><rect x="5.5" y="5.5" width="11" height="11" rx="3" fill="#8B7CFF"></rect></svg>
+    <span style="font-weight: 600">SecondShell</span>
+    <span style="font-size: 12px; color: #9A9AA6">0.1.0</span>
+    <div style="flex: 1 1 auto"></div>
+    <div role="toolbar" aria-label="Session" style="display: flex; align-items: center; gap: 6px">
+      <button type="button" style="height: 30px; display: flex; align-items: center; gap: 7px; padding: 0 12px; border: 0; border-radius: 6px; background: #FFB547; color: #1B1B1F; font: inherit; font-size: 12px; font-weight: 600">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#1B1B1F" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 3.5L2 6.5l3 3"></path><path d="M2.5 6.5h6a3 3 0 0 1 0 6H7"></path></svg>
+        Give back control
+      </button>
+      <button type="button" disabled style="height: 30px; display: flex; align-items: center; gap: 7px; padding: 0 12px; border: 0; border-radius: 6px; background: #3A2624; color: #9E7B77; font: inherit; font-size: 12px; font-weight: 600">
+        <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><rect width="10" height="10" rx="2" fill="#9E7B77"></rect></svg>
+        Stop
+      </button>
+      <div style="width: 1px; height: 18px; background: #3A3A42; margin: 0 2px"></div>
+      <button type="button" aria-label="Display: 1920 by 1080 at 100 percent" style="height: 30px; display: flex; align-items: center; gap: 7px; padding: 0 10px; border: 0; border-radius: 6px; background: transparent; color: #C8C8D0; font: inherit; font-size: 12px">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><rect x="1.5" y="2.5" width="13" height="8.5" rx="1.5"></rect><path d="M5.5 14h5M8 11v3"></path></svg>
+        1920 × 1080 · 100 %
+        <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M1.5 3.5L5 7l3.5-3.5"></path></svg>
+      </button>
+      <button type="button" aria-label="Reset session" style="width: 32px; height: 30px; display: flex; align-items: center; justify-content: center; border: 0; border-radius: 6px; background: transparent; color: #C8C8D0">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" aria-hidden="true"><path d="M13 8a5 5 0 1 1-1.6-3.7"></path><path d="M11.8 1.8v2.8H9"></path></svg>
+      </button>
+      <button type="button" aria-label="Settings" style="width: 32px; height: 30px; display: flex; align-items: center; justify-content: center; border: 0; border-radius: 6px; background: transparent; color: #C8C8D0">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><circle cx="8" cy="8" r="2.2"></circle><path d="M8 1.5v1.8M8 12.7v1.8M1.5 8h1.8M12.7 8h1.8M3.4 3.4l1.3 1.3M11.3 11.3l1.3 1.3M3.4 12.6l1.3-1.3M11.3 4.7l1.3-1.3"></path></svg>
+      </button>
+    </div>
+    <div style="display: flex; margin-left: 6px">
+      <button type="button" aria-label="Minimize" style="width: 46px; height: 40px; border: 0; background: transparent; color: #C8C8D0; display: flex; align-items: center; justify-content: center"><svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><path d="M0 5h10" stroke="currentColor"></path></svg></button>
+      <button type="button" aria-label="Maximize" style="width: 46px; height: 40px; border: 0; background: transparent; color: #C8C8D0; display: flex; align-items: center; justify-content: center"><svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><rect x=".5" y=".5" width="9" height="9" rx="1.5" fill="none" stroke="currentColor"></rect></svg></button>
+      <button type="button" aria-label="Close" style="width: 46px; height: 40px; border: 0; background: transparent; color: #C8C8D0; display: flex; align-items: center; justify-content: center"><svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><path d="M0 0l10 10M10 0L0 10" stroke="currentColor"></path></svg></button>
+    </div>
+  </header>
+
+  <!-- The session: amber frame, your input goes to it -->
+  <main style="flex: 1 1 auto; min-height: 0; background: #121215; padding: 14px; display: flex; align-items: center; justify-content: center">
+    <div style="position: relative; height: 100%; aspect-ratio: 16 / 9; max-width: 100%; border-radius: 8px; overflow: hidden; background: #17313D; box-shadow: 0 0 0 2px #FFB547, 0 8px 32px rgba(0, 0, 0, 0.45)">
+      <div style="position: absolute; width: 70%; aspect-ratio: 1; right: -18%; top: -30%; border-radius: 50%; background: #1C3A48"></div>
+      <div style="position: absolute; width: 46%; aspect-ratio: 1; left: -12%; bottom: -26%; border-radius: 50%; background: #142B36"></div>
+
+      <div style="position: absolute; left: 16%; top: 12%; width: 54%; height: 58%; border-radius: 8px; overflow: hidden; background: #0C0C0C; box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5); display: flex; flex-direction: column">
+        <div style="height: 30px; flex: none; background: #1F1F1F; display: flex; align-items: center; padding: 0 12px; font-size: 12px; color: #D0D0D0">Command Prompt</div>
+        <div style="padding: 12px 14px; font-family: 'Cascadia Mono', Consolas, monospace; font-size: 13px; line-height: 1.55; color: #CCCCCC; display: flex; flex-direction: column">
+          <span>C:\work\app&gt;npm test</span>
+          <span><span style="color: #16C60C">PASS</span> src/cart.test.js</span>
+          <span><span style="color: #16C60C">PASS</span> src/checkout.test.js</span>
+          <span style="margin-top: 10px">C:\work\app&gt;git status_</span>
+        </div>
+      </div>
+
+      <div style="position: absolute; left: 0; right: 0; bottom: 0; height: 5.5%; background: rgba(28, 28, 32, 0.94); display: flex; align-items: center; justify-content: center; gap: 10px">
+        <div style="width: 20px; height: 20px; border-radius: 5px; background: #3B78D8"></div>
+        <div style="width: 20px; height: 20px; border-radius: 5px; background: #4A4A55"></div>
+        <div style="width: 20px; height: 20px; border-radius: 5px; background: #2D2D2D; box-shadow: inset 0 -2px 0 #8B8B96"></div>
+        <div style="width: 20px; height: 20px; border-radius: 5px; background: #4A4A55"></div>
+      </div>
+
+      <!-- Your own pointer, as in any remote session -->
+      <svg style="position: absolute; left: 49%; top: 44%" width="14" height="20" viewBox="0 0 14 20" aria-hidden="true"><path d="M1 1v15l4-4 3 7 2.5-1-3-7h5.5z" fill="#FFFFFF" stroke="#000000" stroke-width="1"></path></svg>
+
+      <!-- Notice, top center: what goes where -->
+      <div style="position: absolute; top: 14px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 10px; padding: 7px 8px 7px 14px; border-radius: 10px; background: rgba(24, 22, 18, 0.9); border: 1px solid rgba(255, 181, 71, 0.45); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4); font-size: 12px; white-space: nowrap">
+        <span aria-hidden="true" style="width: 8px; height: 8px; border-radius: 50%; background: #FFB547"></span>
+        <span style="font-weight: 600; color: #FFC978">You're in control</span>
+        <span style="color: #D8D2C6">Your mouse and keyboard go to the session; the clipboard is shared with yours.</span>
+        <button type="button" style="height: 26px; padding: 0 10px; border: 0; border-radius: 6px; background: rgba(255, 181, 71, 0.18); color: #FFC978; font: inherit; font-size: 12px; font-weight: 600">Give back</button>
+      </div>
+    </div>
+  </main>
+
+  <!-- Status bar -->
+  <footer style="height: 38px; flex: none; display: flex; align-items: center; gap: 14px; padding: 0 12px; background: #202024; border-top: 1px solid rgba(255, 255, 255, 0.06); flex-wrap: wrap; overflow: hidden">
+    <div style="display: flex; align-items: center; gap: 9px">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#FFB547" stroke-width="1.4" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 1.5v9l2.6-2.4 1.9 4.4 1.7-.7-1.9-4.3h3.6z"></path></svg>
+      <span style="font-weight: 600; font-size: 12px; color: #FFB547">You're in control</span>
+      <span style="font-size: 12px; color: #9A9AA6">for 2 min</span>
+    </div>
+    <div style="width: 1px; height: 18px; background: #3A3A42"></div>
+    <div style="display: flex; align-items: center; gap: 6px; padding: 3px 10px 3px 8px; border-radius: 6px; opacity: 0.75">
+      <span style="font-weight: 600; font-size: 12px; color: #B7AAFF">Run-Sequence</span>
+      <span style="font-size: 12px; color: #9A9AA6">refused 1 request from the agent while you're in control</span>
+    </div>
+    <div style="flex: 1 1 auto"></div>
+    <div style="display: flex; align-items: center; gap: 8px; font-size: 12px; color: #B4B4BE">
+      <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="#C8C8D0" stroke-width="1.3" aria-hidden="true"><rect x="3" y="2.5" width="8" height="10" rx="1.5"></rect><path d="M5.5 1.5h3v2h-3z"></path></svg>
+      <span>Clipboard synced</span>
+      <span style="color: #6E6E78">·</span>
+      <span aria-hidden="true" style="width: 7px; height: 7px; border-radius: 50%; background: #4CC38A"></span>
+      <span>Session 37 · 30 fps</span>
+    </div>
+    <button type="button" aria-expanded="false" style="height: 26px; display: flex; align-items: center; gap: 7px; padding: 0 10px; border-radius: 6px; border: 1px solid #3A3A44; background: transparent; color: #F3F3F5; font: inherit; font-size: 12px">
+      Log
+      <span style="padding: 0 6px; border-radius: 9px; background: #34343C; color: #C8C8D0; font-size: 11px; line-height: 16px">53</span>
+      <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M1.5 6.5L5 3l3.5 3.5"></path></svg>
+    </button>
+  </footer>
+</div>
+</body>
+</html>

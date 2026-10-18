@@ -72,6 +72,8 @@
     <ClInclude Include="MouseActions.h" />
     <ClInclude Include="ProcessActions.h" />
     <ClInclude Include="ProtocolErrors.h" />
+    <ClInclude Include="FrameRateMeter.h" />
+    <ClInclude Include="SharedFrames.h" />
     <ClInclude Include="StrictJson.h" />
     <ClInclude Include="TouchActions.h" />
     <ClInclude Include="WindowActions.h" />
@@ -98,6 +100,8 @@
     <ClCompile Include="HostProtocol.cpp" />
     <ClCompile Include="KeyNames.cpp" />
     <ClCompile Include="ProtocolErrors.cpp" />
+    <ClCompile Include="FrameRateMeter.cpp" />
+    <ClCompile Include="SharedFrames.cpp" />
     <ClCompile Include="WindowId.cpp" />
     <ClCompile Include="AppEnvironment.cpp" />
     <ClCompile Include="CancellationToken.cpp" />

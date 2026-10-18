@@ -127,6 +127,20 @@ namespace SecondShell::Tests
       Assert::IsTrue(_container.resolve<InputStateTracker>()->ReleaseAll().Keys.empty(), L"nothing is held any more");
     }
 
+    TEST_METHOD(ReleasingAWindowsOrAltKeyOpensNoMenu)
+    {
+      Keyboard(R"({"action": "Keyboard.Press", "key": "LWin"})");
+      _record.Events.clear();
+
+      _container.resolve<InputStateTracker>()->ReleaseAll();
+      Assert::IsTrue(_record.Events == vector<string>{ "key down 232", "key up 232", "key up 91" }, L"the mask key comes before the release");
+
+      Keyboard(R"({"action": "Keyboard.Press", "key": "A"})");
+      _record.Events.clear();
+      _container.resolve<InputStateTracker>()->ReleaseAll();
+      Assert::IsTrue(_record.Events == vector<string>{ "key up 65" }, L"other keys need no mask");
+    }
+
     TEST_METHOD(TapPressesModifiersAroundTheKey)
     {
       Keyboard(R"({"action": "Keyboard.Tap", "key": "S", "modifiers": ["Ctrl", "Shift"]})");

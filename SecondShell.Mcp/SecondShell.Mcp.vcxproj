@@ -84,6 +84,9 @@
       <Project>{98849BA5-9DF3-45CE-8AC1-2FC0616C9659}</Project>
     </ProjectReference>
   </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="..\Assets\SecondShell.rc" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
     <Import Project="..\Build\Packages.Native.targets" />
