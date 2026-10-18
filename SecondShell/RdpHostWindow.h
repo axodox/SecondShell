@@ -17,10 +17,9 @@ namespace SecondShell::Session
     RdpHostWindow(const RdpHostWindow&) = delete;
     RdpHostWindow& operator=(const RdpHostWindow&) = delete;
 
-    IUnknown* Control() const;
-
     //Everything but the credentials: the child session on this machine, its size and scaling.
     void Configure(uint32_t width, uint32_t height, uint32_t scale);
+    void SetCredentials(std::wstring_view userName, std::wstring_view domain, std::wstring_view password);
     void Connect();
     void Disconnect();
 

@@ -67,7 +67,7 @@
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
-      <AdditionalDependencies>wtsapi32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>wtsapi32.lib;crypt32.lib;credui.lib;secur32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -78,7 +78,10 @@
     <ClInclude Include="AgentControl.h" />
     <ClInclude Include="CaptureStore.h" />
     <ClInclude Include="ChildSessionApi.h" />
+    <ClInclude Include="CredentialPrompt.h" />
     <ClInclude Include="CredentialProvider.h" />
+    <ClInclude Include="Credentials.h" />
+    <ClInclude Include="CredentialStore.h" />
     <ClInclude Include="DriverLauncher.h" />
     <ClInclude Include="DriverLink.h" />
     <ClInclude Include="IDriverLink.h" />
@@ -115,7 +118,10 @@
     <ClCompile Include="AgentControl.cpp" />
     <ClCompile Include="CaptureStore.cpp" />
     <ClCompile Include="ChildSessionApi.cpp" />
+    <ClCompile Include="CredentialPrompt.cpp" />
     <ClCompile Include="CredentialProvider.cpp" />
+    <ClCompile Include="Credentials.cpp" />
+    <ClCompile Include="CredentialStore.cpp" />
     <ClCompile Include="DriverLauncher.cpp" />
     <ClCompile Include="DriverLink.cpp" />
     <ClCompile Include="IDriverLink.cpp" />

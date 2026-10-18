@@ -41,11 +41,12 @@ namespace SecondShell::Mcp
       winrt::com_ptr<IShellView> view;
       winrt::check_hresult(browser->QueryActiveShellView(view.put()));
 
-      winrt::com_ptr<IShellFolderViewDual> background;
+      //The view's background object is handed out only as IDispatch
+      winrt::com_ptr<IDispatch> background;
       winrt::check_hresult(view->GetItemObject(SVGIO_BACKGROUND, IID_PPV_ARGS(background.put())));
 
       winrt::com_ptr<IDispatch> application;
-      winrt::check_hresult(background->get_Application(application.put()));
+      winrt::check_hresult(background.as<IShellFolderViewDual>()->get_Application(application.put()));
       return application.as<IShellDispatch2>();
     }
   }

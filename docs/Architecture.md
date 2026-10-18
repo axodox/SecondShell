@@ -842,7 +842,19 @@ public:
 class CredentialPrompt
 {
 public:
-  std::optional<Credentials> Show(HWND owner, std::string_view message) const;
+  std::optional<Credentials> Show(HWND owner, std::wstring_view message) const;
+};
+
+//The policy: saved credentials, else the prompt; saves entered ones after a successful sign-in, deletes rejected ones.
+class CredentialProvider
+{
+public:
+  explicit CredentialProvider(Axodox::Infrastructure::dependency_container* container);
+
+  void SetPromptOwner(HWND owner);
+  void ApplyTo(RdpHostWindow& window);  //on the RDP thread, before connecting
+  void OnSignInSucceeded();
+  void OnSignInFailed(long disconnectReason);  //0: cancelled or timed out
 };
 
 //Persistent user settings (display and capture defaults, shell, inline capture limit), a described type stored in the data folder.
@@ -875,7 +887,7 @@ public:
   RdpHostWindow();
 
   HWND Handle() const;
-  IUnknown* Control() const;
+  void SetCredentials(std::wstring_view userName, std::wstring_view domain, std::wstring_view password);
 };
 
 //The RDP client: configures and connects to the child session, reports its state. Knows nothing about drivers or agents.
@@ -1179,7 +1191,7 @@ Runtime classes in `winrt::SecondShell::implementation`, declared in IDL. Views 
 ### 6.8 Stage 5 implementation notes
 
 - **Driver** (`SecondShell.Driver`): `main.cpp` is the composition root. `HostConnection::Open` connects to the driver pipe and refuses a host in the driver's own session (the driver's half of the guard); `ActionExecutor` adds its handlers; `HostConnection::Hello` starts the peer and asks the host to accept the driver; only then does `ScreenCapturer` start. The handlers also refuse to run before acceptance. Mouse, keyboard and capture actions are implemented (`MouseActionHandler`, `KeyboardActionHandler`, `CaptureActionHandler`); other kinds fail with "not available yet". Presses and releases go through `InputStateTracker`, which releases and reports what is held. `ScreenCapturer` keeps the newest frame; `CaptureEncoder` scales and encodes on the CPU (WIC). The driver logs to `driver.log` (Axodox `logger::file`).
-- **Host session**: `RdpClient` runs `RdpHostWindow` (the hidden ATL-hosted control, `#import`ed in one file) on a `StaThread`. `CredentialProvider` is the only class handling credentials and is a stub (docs/CredentialStub.md). `SessionManager` sequences start and shutdown: setup check, a left-over child session only with `existingSession: Reset` (it may belong to another tool), `DriverLauncher::Arm`, sign-in, `DriverLink::Expect(childSessionId)`, wait for the driver. Cleanup logs off only a child session this host connected to.
+- **Host session**: `RdpClient` runs `RdpHostWindow` (the hidden ATL-hosted control, `#import`ed in one file) on a `StaThread`. Credentials: `CredentialProvider` loads them from `CredentialStore` or asks with `CredentialPrompt` (owned by the main window, pre-filled with the current user), hands them to `RdpHostWindow::SetCredentials` (the only place that touches the control), saves entered ones after `OnLoginComplete` and deletes saved ones on a rejecting disconnect reason (2055, 3847, 4615). Passwords live in `Secret`, which is move-only and wiped on destruction; `SessionManager` reports every sign-in outcome, so an entered password is dropped on timeout and cancellation too. `SessionManager` sequences start and shutdown: setup check, a left-over child session only with `existingSession: Reset` (it may belong to another tool), `DriverLauncher::Arm`, sign-in, `DriverLink::Expect(childSessionId)`, wait for the driver. Cleanup logs off only a child session this host connected to.
 - **Session guard (host)**: `DriverLink` accepts one driver whose pipe session ID equals the expected child session ID; with no expected session, every driver is refused.
 - **Sequencing**: `SequenceRunner` runs Control.* itself and the rest on the driver, one sequence at a time; async actions are tracked by action ID until `Control.Join`, whose failure is the first failed async action. A failed step stops the sequence, input is released, and held input is reported. `CaptureStore` decides inline or file (inline beyond the limit goes to file, with a message), forces PNG inline, and saves files. `AgentControl` and `ActionLog` are minimal until the UI (stage 7).
 - **Not yet**: `display/set` (stage 6), resuming a session, restarting a crashed driver, the setup checker beyond "child sessions enabled", settings storage.
@@ -1191,7 +1203,7 @@ Runtime classes in `winrt::SecondShell::implementation`, declared in IDL. Views 
 1. `McpServer::CallTool` → `SessionToolSource::InitializeSession` → `HostClient` (starts the host if needed via `HostLauncher`) → `session/initialize` → `McpRequestHandler`.
 2. `SessionManager::Start`: `SetupChecker` must report child sessions enabled; otherwise a `SetupRequired` error.
 3. If `ChildSessionApi` reports an existing child session, the policy decides between resume and reset (`ExistingSessionDialog` when the user starts it from the window).
-4. New session: `DriverLauncher::Arm`, `CredentialStore::Load` (or `CredentialPrompt`), `RdpClient::Connect`.
+4. New session: `DriverLauncher::Arm`, `RdpClient::Connect`, which has `CredentialProvider::ApplyTo` use `CredentialStore::Load` (or `CredentialPrompt`).
 5. `RdpClient::LoginCompleted` → state `StartingDriver` → `IDriverLink::WaitForConnection` (the driver started by RunOnce passes the session guard) → state `Ready`.
 6. `FrameReceiver` subscribes to the driver's frames; `SessionPage` shows them.
 

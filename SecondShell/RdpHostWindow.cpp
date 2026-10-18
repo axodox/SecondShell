@@ -132,11 +132,6 @@ namespace SecondShell::Session
     if (_window) DestroyWindow(_window);
   }
 
-  IUnknown* RdpHostWindow::Control() const
-  {
-    return _control;
-  }
-
   void RdpHostWindow::Configure(uint32_t width, uint32_t height, uint32_t scale)
   {
     CComQIPtr<Rdp::IMsRdpClient9> client(_control);
@@ -161,6 +156,22 @@ namespace SecondShell::Session
     CComQIPtr<Rdp::IMsRdpClientNonScriptable5> nonScriptable(_control);
     winrt::check_hresult(nonScriptable->put_AllowPromptingForCredentials(VARIANT_FALSE));
     winrt::check_hresult(nonScriptable->put_PromptForCredentials(VARIANT_FALSE));
+  }
+
+  void RdpHostWindow::SetCredentials(wstring_view userName, wstring_view domain, wstring_view password)
+  {
+    CComQIPtr<Rdp::IMsRdpClient9> client(_control);
+    winrt::check_hresult(client->put_UserName(CComBSTR(int(userName.size()), userName.data())));
+    winrt::check_hresult(client->put_Domain(CComBSTR(int(domain.size()), domain.data())));
+
+    CComPtr<Rdp::IMsTscAdvancedSettings> settings;
+    winrt::check_hresult(client->get_AdvancedSettings(&settings));
+    CComQIPtr<Rdp::IMsRdpClientAdvancedSettings8> advanced(settings);
+
+    CComBSTR secret(int(password.size()), password.data());
+    auto result = advanced->put_ClearTextPassword(secret);
+    SecureZeroMemory(secret.m_str, secret.ByteLength());
+    winrt::check_hresult(result);
   }
 
   void RdpHostWindow::Connect()

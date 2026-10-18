@@ -220,6 +220,12 @@ namespace SecondShell::Rpc
       _logger.log(log_severity::error, "Request {} failed: {}", request.Method, exception.what());
       result = JsonRpcError{ JsonRpcErrorCode::InternalError, exception.what() };
     }
+    catch (const winrt::hresult_error& error)
+    {
+      auto message = winrt::to_string(error.message());
+      _logger.log(log_severity::error, "Request {} failed: {}", request.Method, message);
+      result = JsonRpcError{ JsonRpcErrorCode::InternalError, message };
+    }
 
     {
       lock_guard lock{ _mutex };

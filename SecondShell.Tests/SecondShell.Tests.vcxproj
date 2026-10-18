@@ -53,7 +53,7 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <AdditionalLibraryDirectories>$(VCInstallDir)UnitTest\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>shlwapi.lib;windowscodecs.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>crypt32.lib;shlwapi.lib;windowscodecs.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -68,6 +68,7 @@
     </ClCompile>
     <ClCompile Include="ActionTests.cpp" />
     <ClCompile Include="CancellationTokenTests.cpp" />
+    <ClCompile Include="CredentialStoreTests.cpp" />
     <ClCompile Include="CaptureEncoderTests.cpp" />
     <ClCompile Include="DriverInputTests.cpp" />
     <ClCompile Include="DriverLinkTests.cpp" />
@@ -96,6 +97,8 @@
     <ClCompile Include="..\SecondShell\ActionLog.cpp" />
     <ClCompile Include="..\SecondShell\AgentControl.cpp" />
     <ClCompile Include="..\SecondShell\CaptureStore.cpp" />
+    <ClCompile Include="..\SecondShell\Credentials.cpp" />
+    <ClCompile Include="..\SecondShell\CredentialStore.cpp" />
     <ClCompile Include="..\SecondShell\DriverLink.cpp" />
     <ClCompile Include="..\SecondShell\IDriverLink.cpp" />
     <ClCompile Include="..\SecondShell\SequenceRunner.cpp" />

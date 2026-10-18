@@ -1,23 +1,40 @@
 #pragma once
+#include "CredentialPrompt.h"
+#include "CredentialStore.h"
+#include "RdpHostWindow.h"
 
 namespace SecondShell::Session
 {
-  //The user's Windows credentials for signing in to the child session: the only class that handles them.
-  //
-  //STUB: not implemented yet. The design (Design.md, Credentials): the password is asked for with the Windows
-  //credential prompt (CredUIPromptForWindowsCredentials, owned by the SecondShell window), stored in Credential Manager
-  //as a generic credential "SecondShell:ChildSession" with a DPAPI-encrypted blob, saved only after a successful
-  //sign-in, deleted when the session rejects it, never logged, and cleared from memory after use.
+  //The user's Windows credentials for signing in to the child session (Design.md, Credentials): the saved ones, or else
+  //the ones the user enters in the credential prompt. Entered credentials are saved only after they worked, saved ones
+  //are deleted when the session rejects them, and a password is kept in memory only until its sign-in ends.
   class CredentialProvider
   {
+    inline static const Axodox::Infrastructure::logger _logger{ "CredentialProvider" };
+
   public:
-    //Sets the user name, domain and password on the RDP control (MsRdpClient9NotSafeForScripting) before it connects.
-    //Throws if there are no credentials.
-    void ApplyTo(IUnknown* rdpControl);
+    explicit CredentialProvider(Axodox::Infrastructure::dependency_container* container);
+
+    //The window that owns the credential prompt: SecondShell's main window.
+    void SetPromptOwner(HWND owner);
+
+    //On the RDP thread, before connecting. Asks for the credentials if none are saved; throws if the user cancels.
+    void ApplyTo(RdpHostWindow& window);
 
     void OnSignInSucceeded();
 
-    //The connection ended before sign-in completed, with the RDP control's disconnect reason; e.g. a wrong password.
+    //The sign-in did not complete: the connection ended with the RDP control's disconnect reason, or 0 when the sign-in
+    //was cancelled or timed out.
     void OnSignInFailed(long disconnectReason);
+
+  private:
+    std::shared_ptr<CredentialStore> _store;
+    CredentialPrompt _prompt;
+    std::atomic<HWND> _promptOwner = nullptr;
+
+    std::optional<Credentials> _entered;  //from the prompt, while signing in with them
+    bool _wasRejected = false;
+
+    Credentials Ask();
   };
 }

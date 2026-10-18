@@ -51,6 +51,7 @@ namespace SecondShell::Session
 
     std::optional<Rpc::JsonRpcError> ResetExistingSession(const std::optional<Protocol::ExistingSessionPolicy>& policy);
     std::optional<Rpc::JsonRpcError> SignIn(const Protocol::DisplaySettings& display, std::chrono::steady_clock::time_point deadline, const Rpc::CancellationToken& cancellation);
+    std::optional<Rpc::JsonRpcError> ConnectAndWaitForSignIn(const Protocol::DisplaySettings& display, std::chrono::steady_clock::time_point deadline, const Rpc::CancellationToken& cancellation);
     std::optional<Rpc::JsonRpcError> StartDriver(std::chrono::steady_clock::time_point deadline, const Rpc::CancellationToken& cancellation);
     void CleanUp();
     void SetState(Protocol::SessionState state);

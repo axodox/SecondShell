@@ -101,6 +101,7 @@ namespace SecondShell::Session
   {
     _loginCompleted.reset();
     _disconnected.reset();
+    _disconnectReason = 0;
     _driverLauncher->Arm();
 
     SetState(SessionState::Connecting);
@@ -109,26 +110,10 @@ namespace SecondShell::Session
       _hasConnected = true;
     }
 
-    try
+    if (auto error = ConnectAndWaitForSignIn(display, deadline, cancellation))
     {
-      _rdpClient->Connect(display);
-    }
-    catch (const exception& exception)
-    {
-      return ProtocolErrors::Make(ErrorCode::ActionFailed, exception.what());
-    }
-
-    SetState(SessionState::SigningIn);
-    while (!_loginCompleted.wait(_pollInterval))
-    {
-      if (_disconnected.wait(0ms))
-      {
-        _credentials->OnSignInFailed(_disconnectReason);
-        return ProtocolErrors::Make(ErrorCode::SessionNotActive, format("Signing in to the child session failed (disconnect reason {}).", _disconnectReason.load()));
-      }
-
-      if (cancellation.IsCancelled()) return JsonRpcError{ JsonRpcErrorCode::RequestCancelled, "Starting the session was cancelled." };
-      if (steady_clock::now() > deadline) return ProtocolErrors::Make(ErrorCode::Timeout, "Signing in to the child session did not complete in time.");
+      _credentials->OnSignInFailed(_disconnectReason);
+      return error;
     }
 
     _credentials->OnSignInSucceeded();
@@ -139,6 +124,32 @@ namespace SecondShell::Session
     lock_guard lock{ _mutex };
     _sessionId = sessionId;
     _display = display;
+    return nullopt;
+  }
+
+  optional<JsonRpcError> SessionManager::ConnectAndWaitForSignIn(const DisplaySettings& display, steady_clock::time_point deadline, const CancellationToken& cancellation)
+  {
+    try
+    {
+      _rdpClient->Connect(display);
+    }
+    catch (const exception& exception)
+    {
+      return ProtocolErrors::Make(ErrorCode::ActionFailed, exception.what());
+    }
+    catch (const winrt::hresult_error& error)
+    {
+      return ProtocolErrors::Make(ErrorCode::ActionFailed, format("Connecting to the child session failed: {}", winrt::to_string(error.message())));
+    }
+
+    SetState(SessionState::SigningIn);
+    while (!_loginCompleted.wait(_pollInterval))
+    {
+      if (_disconnected) return ProtocolErrors::Make(ErrorCode::SessionNotActive, format("Signing in to the child session failed (disconnect reason {}).", _disconnectReason.load()));
+      if (cancellation.IsCancelled()) return JsonRpcError{ JsonRpcErrorCode::RequestCancelled, "Starting the session was cancelled." };
+      if (steady_clock::now() > deadline) return ProtocolErrors::Make(ErrorCode::Timeout, "Signing in to the child session did not complete in time.");
+    }
+
     return nullopt;
   }
 

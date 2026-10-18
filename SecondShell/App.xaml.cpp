@@ -68,6 +68,7 @@ namespace winrt::SecondShell::implementation
   void App::ShowWindow()
   {
     _window = make_self<MainWindow>();
+    _container->resolve<CredentialProvider>()->SetPromptOwner(Microsoft::UI::GetWindowFromWindowId(_window->AppWindow().Id()));
 
     auto queue = DispatcherQueue::GetForCurrentThread();
     auto sessions = _container->resolve<SessionManager>();

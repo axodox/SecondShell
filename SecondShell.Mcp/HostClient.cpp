@@ -55,6 +55,12 @@ namespace SecondShell::Mcp
       _logger.log(log_severity::error, "Could not start the host: {}", exception.what());
       return ProtocolErrors::Make(ErrorCode::SessionNotActive, format("Could not start SecondShell: {}", exception.what()));
     }
+    catch (const winrt::hresult_error& error)
+    {
+      auto message = winrt::to_string(error.message());
+      _logger.log(log_severity::error, "Could not start the host: {}", message);
+      return ProtocolErrors::Make(ErrorCode::SessionNotActive, format("Could not start SecondShell: {}", message));
+    }
 
     //Wait for its pipe
     auto deadline = steady_clock::now() + _startTimeout;

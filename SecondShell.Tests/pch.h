@@ -3,6 +3,8 @@
 #include <windows.h>
 #include <unknwn.h>
 #include <comdef.h>
+#include <wincred.h>
+#include <dpapi.h>
 #include <d3d11_4.h>
 #include <dxgi1_6.h>
 #include <exdisp.h>
