@@ -2,7 +2,7 @@
 #include "MainWindow.g.h"
 #include "ActionLog.h"
 #include "AgentControl.h"
-#include "HostProtocol.h"
+#include "ExistingSessionPrompt.h"
 #include "InteractiveInputForwarder.h"
 #include "SessionRenderer.h"
 
@@ -15,13 +15,13 @@ namespace winrt::SecondShell::implementation
     //The services behind the toolbar and the session view; before the window shows (Connect is taken by the XAML compiler).
     void UseServices(Axodox::Infrastructure::dependency_container* container);
 
-    void ShowSessionState(::SecondShell::Protocol::SessionState state);
     void ShowControlMode(::SecondShell::Agent::ControlMode mode);
 
-    //That the agent is in control in the title bar; its current action in the status bar, and the recent ones on hover.
+    //Until the session is ready: what is happening, in the view, and the toolbar disabled.
+    void ShowSessionState(::SecondShell::Protocol::SessionState state);
+
+    //That the agent is in control, in the title bar.
     void ShowAgentRunning(bool isRunning);
-    void ShowActionStarted(std::string_view summary);
-    void ShowActionLogged(const ::SecondShell::Agent::ActionLogEntry& entry);
 
     void OnTakeControlClick(const Windows::Foundation::IInspectable& sender, const Microsoft::UI::Xaml::RoutedEventArgs& eventArgs);
     void OnGiveBackClick(const Windows::Foundation::IInspectable& sender, const Microsoft::UI::Xaml::RoutedEventArgs& eventArgs);
@@ -37,11 +37,24 @@ namespace winrt::SecondShell::implementation
     void OnSessionLostFocus(const Windows::Foundation::IInspectable& sender, const Microsoft::UI::Xaml::RoutedEventArgs& eventArgs);
 
   private:
+    std::shared_ptr<::SecondShell::Agent::ActionLog> _actionLog;
     std::shared_ptr<::SecondShell::Agent::AgentControl> _agentControl;
     std::shared_ptr<::SecondShell::Agent::InteractiveInputForwarder> _inputForwarder;
     std::shared_ptr<::SecondShell::Rendering::SessionRenderer> _renderer;
+    Axodox::Infrastructure::event_subscription _modeChangedSubscription;
+    Axodox::Infrastructure::event_subscription _stateChangedSubscription;
+    bool _isSessionReady = false;
+    Axodox::Infrastructure::event_subscription _runningChangedSubscription;
     Microsoft::UI::Dispatching::DispatcherQueueTimer _agentIdleTimer{ nullptr };
-    std::deque<std::wstring> _logLines;
+
+    bool _isCloseConfirmed = false;
+
+    //Closing while the agent works asks first (docs/UIDesign.md, Dialogs).
+    void OnClosing(const Microsoft::UI::Windowing::AppWindow& sender, const Microsoft::UI::Windowing::AppWindowClosingEventArgs& eventArgs);
+    fire_and_forget ConfirmClose(::SecondShell::Agent::SequenceLogEntry sequence);
+
+    //What to do with a child session from before, asked in a dialog; on the caller's thread.
+    std::optional<::SecondShell::Protocol::ExistingSessionPolicy> AskAboutExistingSession(const ::SecondShell::Session::ExistingSession& session);
 
     bool ForwardPointer(const Microsoft::UI::Xaml::Input::PointerRoutedEventArgs& eventArgs);
     void ForwardKey(const Microsoft::UI::Xaml::Input::KeyRoutedEventArgs& eventArgs, bool isPressed);

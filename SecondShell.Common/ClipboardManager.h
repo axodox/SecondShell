@@ -4,15 +4,15 @@
 namespace SecondShell::Desktop
 {
   //The data of one clipboard format.
-  struct ClipboardData
+  struct SECONDSHELL_COMMON_API ClipboardData
   {
     uint32_t Format = 0;
     std::vector<uint8_t> Bytes;
   };
 
-  //The session's clipboard, in Windows clipboard formats; works on the message window's thread, which owns what it
-  //writes. Every session has a clipboard of its own, so this never touches the user's.
-  class ClipboardManager
+  //The clipboard of this process's session, in Windows clipboard formats; works on the message window's thread, which
+  //owns what it writes. Every session has a clipboard of its own.
+  class SECONDSHELL_COMMON_API ClipboardManager
   {
   public:
     explicit ClipboardManager(Axodox::Infrastructure::dependency_container* container);

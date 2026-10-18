@@ -13,6 +13,7 @@
 #include <shldisp.h>
 #include <shlobj.h>
 #include <shlwapi.h>
+#include <uiautomation.h>
 #include <wincodec.h>
 #include <windows.graphics.capture.interop.h>
 #include <windows.graphics.directx.direct3d11.interop.h>

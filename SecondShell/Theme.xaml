@@ -39,7 +39,106 @@
   <SolidColorBrush x:Key="SuccessBrush" Color="#4CC38A" />
   <SolidColorBrush x:Key="FailureBrush" Color="#FF8A80" />
 
+  <!-- Actions, as the status bar and the log show them -->
+  <SolidColorBrush x:Key="MutedTextBrush" Color="#9A9AA6" />
+  <SolidColorBrush x:Key="FaintTextBrush" Color="#8A8A95" />
+  <SolidColorBrush x:Key="SessionTextBrush" Color="#B4B4BE" />
+  <SolidColorBrush x:Key="StringTextBrush" Color="#E6C589" />
+  <SolidColorBrush x:Key="ChipBrush" Color="#2A2A31" />
+  <SolidColorBrush x:Key="ChipBorderBrush" Color="#3A3A44" />
+  <SolidColorBrush x:Key="KeycapBorderBrush" Color="#55555F" />
+  <SolidColorBrush x:Key="IdleBarBrush" Color="#6E6E78" />
+  <SolidColorBrush x:Key="FailedActionBrush" Color="#1AFF6363" />
+  <SolidColorBrush x:Key="RunningStepBrush" Color="#148B7CFF" />
+  <SolidColorBrush x:Key="BadgeBrush" Color="#34343C" />
+  <SolidColorBrush x:Key="RunningBadgeBrush" Color="#2E8B7CFF" />
+  <SolidColorBrush x:Key="RunningBadgeTextBrush" Color="#C9C0FF" />
+  <SolidColorBrush x:Key="FailedBadgeBrush" Color="#26FF6363" />
+  <SolidColorBrush x:Key="PanelBrush" Color="#F828282E" />
+  <SolidColorBrush x:Key="PanelBorderBrush" Color="#17FFFFFF" />
+  <SolidColorBrush x:Key="GroupBrush" Color="#08FFFFFF" />
+  <SolidColorBrush x:Key="GroupBorderBrush" Color="#0DFFFFFF" />
+  <SolidColorBrush x:Key="FieldBrush" Color="#1F1F24" />
+  <SolidColorBrush x:Key="FieldBorderBrush" Color="#34343C" />
+  <SolidColorBrush x:Key="OutputBrush" Color="#0F0F12" />
+  <SolidColorBrush x:Key="LogOpenBrush" Color="#298B7CFF" />
+  <SolidColorBrush x:Key="LogOpenBorderBrush" Color="#6E5BFF" />
+  <Color x:Key="ActionFlashColor">#6B8B7CFF</Color>
+  <Color x:Key="ActionRestColor">#0AFFFFFF</Color>
+
   <FontFamily x:Key="MonoFontFamily">Cascadia Mono, Consolas</FontFamily>
+
+  <!-- An argument: its name dim, its value bright -->
+  <Style x:Key="ChipStyle" TargetType="Border">
+    <Setter Property="Background" Value="{StaticResource ChipBrush}" />
+    <Setter Property="BorderBrush" Value="{StaticResource ChipBorderBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="4" />
+    <Setter Property="Padding" Value="6,0" />
+    <Setter Property="MinHeight" Value="19" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+
+  <Style x:Key="KeycapStyle" TargetType="Border" BasedOn="{StaticResource ChipStyle}">
+    <Setter Property="BorderBrush" Value="{StaticResource KeycapBorderBrush}" />
+    <Setter Property="BorderThickness" Value="1,1,1,2" />
+  </Style>
+
+  <!-- Centred on the glyphs: the mono font's line box sits high -->
+  <Style x:Key="ChipTextStyle" TargetType="TextBlock">
+    <Setter Property="FontFamily" Value="{StaticResource MonoFontFamily}" />
+    <Setter Property="FontSize" Value="11" />
+    <Setter Property="TextLineBounds" Value="Tight" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+
+  <!-- The log button of the status bar, and the filters of the log -->
+  <Style x:Key="BarButtonStyle" TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
+    <Setter Property="Height" Value="26" />
+    <Setter Property="Padding" Value="10,0" />
+    <Setter Property="CornerRadius" Value="6" />
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderBrush" Value="{StaticResource ChipBorderBrush}" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+
+  <Style x:Key="FilterButtonStyle" TargetType="ToggleButton" BasedOn="{StaticResource DefaultToggleButtonStyle}">
+    <Setter Property="Height" Value="24" />
+    <Setter Property="MinWidth" Value="0" />
+    <Setter Property="Padding" Value="10,0" />
+    <Setter Property="CornerRadius" Value="5" />
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Background" Value="Transparent" />
+  </Style>
+
+  <Style x:Key="SmallButtonStyle" TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
+    <Setter Property="Height" Value="26" />
+    <Setter Property="Padding" Value="10,0" />
+    <Setter Property="CornerRadius" Value="6" />
+    <Setter Property="FontSize" Value="12" />
+  </Style>
+
+  <Style x:Key="PanelIconButtonStyle" TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
+    <Setter Property="Width" Value="28" />
+    <Setter Property="Height" Value="28" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="CornerRadius" Value="6" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+  </Style>
+
+  <!-- The log flyout's frame: rounded, over the window -->
+  <Style x:Key="LogFlyoutPresenterStyle" TargetType="FlyoutPresenter">
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="MaxWidth" Value="900" />
+    <Setter Property="MaxHeight" Value="2000" />
+    <Setter Property="CornerRadius" Value="10" />
+    <Setter Property="Background" Value="{StaticResource PanelBrush}" />
+    <Setter Property="BorderBrush" Value="{StaticResource PanelBorderBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+  </Style>
 
   <!-- Toolbar buttons, as in the title bar of the mockups -->
   <Style x:Key="ToolbarButtonStyle" TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">

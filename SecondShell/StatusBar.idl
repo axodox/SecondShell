@@ -1,0 +1,8 @@
+namespace SecondShell
+{
+  [default_interface]
+  runtimeclass StatusBar : Microsoft.UI.Xaml.Controls.UserControl
+  {
+    StatusBar();
+  }
+}

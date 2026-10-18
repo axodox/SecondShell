@@ -26,6 +26,9 @@ namespace SecondShell::Rendering
     //Where the session was last drawn; empty before the first frame.
     std::optional<ViewTransform> Transform() const;
 
+    //New frames per second lately; empty while the session's screen does not change.
+    std::optional<float> FrameRate() const;
+
   private:
     std::shared_ptr<FrameReceiver> _frames;
     std::shared_ptr<OverlayRenderer> _overlay;
@@ -47,7 +50,9 @@ namespace SecondShell::Rendering
     uint64_t _generation = 0;
     bool _isRebuildPending = false;
     bool _isRedrawPending = false;
-    Graphics::FrameRateMeter _frameRate{ std::chrono::seconds(10) };
+    Graphics::FrameRateMeter _frameRateMeter{ std::chrono::seconds(2) };
+    std::atomic<float> _frameRate = 0;
+    std::atomic<std::chrono::steady_clock::time_point> _frameRateTime{};
 
     mutable std::mutex _transformMutex;
     std::optional<ViewTransform> _transform;

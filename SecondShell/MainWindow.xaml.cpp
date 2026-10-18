@@ -4,26 +4,35 @@
 #include "MainWindow.g.cpp"
 #endif
 #include "ProductInfo.h"
+#include "SequenceRunner.h"
+#include "SessionDialogs.h"
+#include "SessionManager.h"
+#include "StatusBar.xaml.h"
 
 using namespace ::SecondShell::Actions;
 using namespace ::SecondShell::Agent;
 using namespace ::SecondShell::Environment;
+using namespace ::SecondShell::Protocol;
 using namespace ::SecondShell::Rendering;
+using namespace ::SecondShell::Session;
+using namespace ::SecondShell::Ui;
 using namespace Axodox::Infrastructure;
 using namespace std;
 using namespace std::chrono;
 using namespace winrt::Microsoft::UI::Input;
+using namespace winrt::Microsoft::UI::Windowing;
 using namespace winrt::Microsoft::UI::Xaml;
 using namespace winrt::Microsoft::UI::Xaml::Input;
 using namespace winrt::Windows::Foundation;
 
 namespace winrt::SecondShell::implementation
 {
-  const size_t _maxLogLines = 30;
-
   //Agents send their sequences one after the other; so long after one the agent still counts as active
   const milliseconds _agentIdleShown{ 8000 };
   const double _agentIdleOpacity = 0.6;
+
+  //Initialize-Session waits at most this long for the user to answer
+  const minutes _existingSessionAnswerTimeout{ 5 };
 
   namespace
   {
@@ -54,19 +63,6 @@ namespace winrt::SecondShell::implementation
         return std::nullopt;
       }
     }
-
-    wstring Outcome(const ActionLogEntry& entry)
-    {
-      switch (entry.Status)
-      {
-      case ActionStatus::Failed:
-        return L" \u2014 failed: " + to_wstring(entry.Message);
-      case ActionStatus::Cancelled:
-        return L" \u2014 cancelled";
-      default:
-        return {};
-      }
-    }
   }
 
   MainWindow::MainWindow()
@@ -85,6 +81,8 @@ namespace winrt::SecondShell::implementation
     _agentIdleTimer.IsRepeating(false);
     _agentIdleTimer.Tick([this](auto&&, auto&&) { AgentIndicator().Visibility(Visibility::Collapsed); });
 
+    AppWindow().Closing({ this, &MainWindow::OnClosing });
+
     //E.g. Alt+Tab: the releases go to the next window, so the session would keep the keys held
     Activated([this](auto&&, const WindowActivatedEventArgs& eventArgs) {
       if (eventArgs.WindowActivationState() == WindowActivationState::Deactivated && _inputForwarder) _inputForwarder->ReleaseAll();
@@ -93,15 +91,114 @@ namespace winrt::SecondShell::implementation
 
   void MainWindow::UseServices(dependency_container* container)
   {
+    _actionLog = container->resolve<ActionLog>();
     _agentControl = container->resolve<AgentControl>();
     _inputForwarder = container->resolve<InteractiveInputForwarder>();
     _renderer = container->resolve<SessionRenderer>();
+    get_self<implementation::StatusBar>(StatusBar())->UseServices(container);
+
+    auto queue = DispatcherQueue();
+    _modeChangedSubscription = _agentControl->ModeChanged([this, queue](AgentControl*, ControlMode mode) {
+      queue.TryEnqueue([weak = get_weak(), mode] { if (auto self = weak.get()) self->ShowControlMode(mode); });
+      });
+    _runningChangedSubscription = container->resolve<SequenceRunner>()->RunningChanged([this, queue](SequenceRunner*, bool isRunning) {
+      queue.TryEnqueue([weak = get_weak(), isRunning] { if (auto self = weak.get()) self->ShowAgentRunning(isRunning); });
+      });
+
+    auto sessions = container->resolve<SessionManager>();
+    _stateChangedSubscription = sessions->StateChanged([this, queue](SessionManager*, SessionState state) {
+      queue.TryEnqueue([weak = get_weak(), state] { if (auto self = weak.get()) self->ShowSessionState(state); });
+      });
+    ShowSessionState(sessions->Info().State);
+
+    container->resolve<ExistingSessionPrompt>()->SetHandler([weak = get_weak()](const ExistingSession& session) -> std::optional<ExistingSessionPolicy> {
+      auto self = weak.get();
+      return self ? self->AskAboutExistingSession(session) : std::nullopt;
+      });
+
     ShowControlMode(_agentControl->Mode());
   }
 
-  void MainWindow::ShowSessionState(::SecondShell::Protocol::SessionState state)
+  void MainWindow::ShowSessionState(SessionState state)
   {
-    StatusText().Text(to_hstring(std::format("Session: {}", Axodox::Infrastructure::to_string(state))));
+    struct Status
+    {
+      const wchar_t* Title;
+      const wchar_t* Detail;
+      bool IsWorking;
+    };
+
+    Status status;
+    switch (state)
+    {
+    case SessionState::Connecting:
+      status = { L"Starting the session", L"Connecting to the agent's desktop", true };
+      break;
+    case SessionState::SigningIn:
+      status = { L"Starting the session", L"Signing in", true };
+      break;
+    case SessionState::StartingDriver:
+      status = { L"Starting the session", L"Waiting for the desktop to finish starting; this can take a minute", true };
+      break;
+    case SessionState::Stopping:
+      status = { L"Signing the session out", L"", true };
+      break;
+    case SessionState::Failed:
+      status = { L"The session could not start", L"The agent can try again; the log has the details.", false };
+      break;
+    default:
+      status = { L"No session yet", L"An AI agent starts one when it needs it.", false };
+      break;
+    }
+
+    _isSessionReady = state == SessionState::Ready;
+    SessionStatusPanel().Visibility(_isSessionReady ? Visibility::Collapsed : Visibility::Visible);
+    SessionProgress().IsActive(status.IsWorking);
+    SessionProgress().Visibility(status.IsWorking ? Visibility::Visible : Visibility::Collapsed);
+    SessionStatusTitle().Text(status.Title);
+    SessionStatusDetail().Text(status.Detail);
+
+    ShowControlMode(_agentControl->Mode());
+  }
+
+  void MainWindow::OnClosing(const Microsoft::UI::Windowing::AppWindow& /*sender*/, const AppWindowClosingEventArgs& eventArgs)
+  {
+    if (_isCloseConfirmed || !_actionLog) return;
+
+    auto sequences = _actionLog->Sequences();
+    if (sequences.empty() || sequences.back().Duration) return;
+
+    eventArgs.Cancel(true);
+    ConfirmClose(sequences.back());
+  }
+
+  fire_and_forget MainWindow::ConfirmClose(SequenceLogEntry sequence)
+  {
+    auto self = get_strong();
+    if (!co_await SessionDialogs::AskToCloseWhileWorking(Content().XamlRoot(), sequence)) co_return;
+
+    _isCloseConfirmed = true;
+    _agentControl->Stop();
+    Close();
+  }
+
+  std::optional<ExistingSessionPolicy> MainWindow::AskAboutExistingSession(const ExistingSession& session)
+  {
+    //The request waits on another thread while the user answers here
+    auto answer = make_shared<promise<bool>>();
+    auto isQueued = DispatcherQueue().TryEnqueue([weak = get_weak(), session, answer]() -> fire_and_forget {
+      auto self = weak.get();
+      if (!self)
+      {
+        answer->set_value(false);
+        co_return;
+      }
+      answer->set_value(co_await SessionDialogs::AskToReset(self->Content().XamlRoot(), session));
+      });
+
+    auto future = answer->get_future();
+    if (!isQueued || future.wait_for(_existingSessionAnswerTimeout) != future_status::ready || !future.get()) return std::nullopt;
+    return ExistingSessionPolicy::Reset;
   }
 
   void MainWindow::ShowControlMode(ControlMode mode)
@@ -109,12 +206,11 @@ namespace winrt::SecondShell::implementation
     auto isAgent = mode == ControlMode::Agent;
     auto isUser = mode == ControlMode::User;
     TakeControlButton().Visibility(isUser ? Visibility::Collapsed : Visibility::Visible);
+    TakeControlButton().IsEnabled(_isSessionReady);
     GiveBackButton().Visibility(isAgent ? Visibility::Collapsed : Visibility::Visible);
-    StopButton().IsEnabled(isAgent);
+    StopButton().IsEnabled(_isSessionReady && isAgent);
 
-    UserControlText().Visibility(isUser ? Visibility::Visible : Visibility::Collapsed);
     UserControlNotice().Visibility(isUser ? Visibility::Visible : Visibility::Collapsed);
-    StoppedText().Visibility(mode == ControlMode::Stopped ? Visibility::Visible : Visibility::Collapsed);
 
     if (!isAgent)
     {
@@ -136,26 +232,6 @@ namespace winrt::SecondShell::implementation
 
     if (isRunning) _agentIdleTimer.Stop();
     else _agentIdleTimer.Start();
-  }
-
-  void MainWindow::ShowActionStarted(string_view summary)
-  {
-    ActionText().Text(L"\u25B6 " + to_wstring(summary));
-  }
-
-  void MainWindow::ShowActionLogged(const ActionLogEntry& entry)
-  {
-    auto text = to_wstring(entry.Summary) + Outcome(entry);
-    ActionText().Text(text);
-
-    //Oldest first, as a log reads
-    auto time = zoned_time{ current_zone(), floor<seconds>(entry.Time) };
-    _logLines.push_back(std::format(L"{:%H:%M:%S}  {}", time, text));
-    if (_logLines.size() > _maxLogLines) _logLines.pop_front();
-
-    wstring log;
-    for (auto& line : _logLines) log += (log.empty() ? L"" : L"\n") + line;
-    ActionLogText().Text(log);
   }
 
   void MainWindow::OnTakeControlClick(const IInspectable& /*sender*/, const RoutedEventArgs& /*eventArgs*/)

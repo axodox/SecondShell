@@ -72,7 +72,11 @@
     <ClInclude Include="MouseActions.h" />
     <ClInclude Include="ProcessActions.h" />
     <ClInclude Include="ProtocolErrors.h" />
+    <ClInclude Include="ClipboardFormats.h" />
+    <ClInclude Include="ClipboardManager.h" />
+    <ClInclude Include="ClipboardMirror.h" />
     <ClInclude Include="FrameRateMeter.h" />
+    <ClInclude Include="MessageWindow.h" />
     <ClInclude Include="SharedFrames.h" />
     <ClInclude Include="StrictJson.h" />
     <ClInclude Include="TouchActions.h" />
@@ -100,7 +104,11 @@
     <ClCompile Include="HostProtocol.cpp" />
     <ClCompile Include="KeyNames.cpp" />
     <ClCompile Include="ProtocolErrors.cpp" />
+    <ClCompile Include="ClipboardFormats.cpp" />
+    <ClCompile Include="ClipboardManager.cpp" />
+    <ClCompile Include="ClipboardMirror.cpp" />
     <ClCompile Include="FrameRateMeter.cpp" />
+    <ClCompile Include="MessageWindow.cpp" />
     <ClCompile Include="SharedFrames.cpp" />
     <ClCompile Include="WindowId.cpp" />
     <ClCompile Include="AppEnvironment.cpp" />

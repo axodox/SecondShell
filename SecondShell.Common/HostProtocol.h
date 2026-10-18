@@ -121,6 +121,7 @@ namespace SecondShell::Protocol
 
     std::vector<Axodox::Infrastructure::value_ptr<Actions::Action>> Steps;
     std::optional<uint32_t> Timeout;
+    std::optional<std::string> Description;
   };
 
   //The tool's arguments, and a progress token, which the AI does not set.

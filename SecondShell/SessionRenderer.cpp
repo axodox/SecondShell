@@ -72,6 +72,13 @@ namespace SecondShell::Rendering
     return _transform;
   }
 
+  optional<float> SessionRenderer::FrameRate() const
+  {
+    //The meter reports once per period while frames keep coming
+    if (steady_clock::now() - _frameRateTime.load() > 3s) return nullopt;
+    return _frameRate.load();
+  }
+
   void SessionRenderer::Run()
   {
     while (_isRunning)
@@ -119,7 +126,11 @@ namespace SecondShell::Rendering
     auto frame = _reader->TryLockNewer();
     if (frame)
     {
-      if (auto rate = _frameRate.Tick()) _logger.log(log_severity::information, "Showing new frames at {:.1f} fps.", *rate);
+      if (auto rate = _frameRateMeter.Tick())
+      {
+        _frameRate = *rate;
+        _frameRateTime = steady_clock::now();
+      }
     }
     else if (_isRedrawPending) frame = _reader->LockNewest();
 

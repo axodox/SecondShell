@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "CaptureEncoder.h"
 #include "ClipboardFormatConverter.h"
+#include "ClipboardFormats.h"
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 using namespace SecondShell::Capture;
@@ -62,20 +63,20 @@ namespace SecondShell::Tests
 
     TEST_METHOD(FormatsAreFoundByName)
     {
-      Assert::AreEqual(uint32_t(CF_UNICODETEXT), *_converter.FormatFromName("CF_UNICODETEXT"));
-      Assert::AreEqual(uint32_t(CF_UNICODETEXT), *_converter.FormatFromName("cf_unicodetext"));
-      Assert::AreEqual(uint32_t(13), *_converter.FormatFromName("13"));
-      Assert::AreEqual(string("CF_HDROP"), _converter.FormatName(CF_HDROP));
+      Assert::AreEqual(uint32_t(CF_UNICODETEXT), *ClipboardFormats::FromName("CF_UNICODETEXT"));
+      Assert::AreEqual(uint32_t(CF_UNICODETEXT), *ClipboardFormats::FromName("cf_unicodetext"));
+      Assert::AreEqual(uint32_t(13), *ClipboardFormats::FromName("13"));
+      Assert::AreEqual(string("CF_HDROP"), ClipboardFormats::Name(CF_HDROP));
 
-      auto html = _converter.FormatFromName("HTML Format");
+      auto html = ClipboardFormats::FromName("HTML Format");
       Assert::IsTrue(html.has_value());
-      Assert::AreEqual(string("HTML Format"), _converter.FormatName(*html));
+      Assert::AreEqual(string("HTML Format"), ClipboardFormats::Name(*html));
     }
 
     TEST_METHOD(HandleFormatsAreKnown)
     {
-      Assert::IsTrue(_converter.IsHandleFormat(CF_BITMAP));
-      Assert::IsFalse(_converter.IsHandleFormat(CF_DIBV5));
+      Assert::IsTrue(ClipboardFormats::IsHandle(CF_BITMAP));
+      Assert::IsFalse(ClipboardFormats::IsHandle(CF_DIBV5));
     }
   };
 }

@@ -264,6 +264,8 @@ Parent session (user's desktop)            Child session (agent's desktop)
 - **Starting the agent in the session:** which of the three options to use. Check whether the `Session:N!clsid:` moniker works unelevated with a per-user (HKCU) COM registration.
 - **Packaged app behaviour** in the child session, for the apps that will actually be tested.
 
+- **Text recognition of console text** (2026-10-18): `Capture.WaitForText` failed on a console showing "All rights reserved". Over a busy photo wallpaper Windows OCR read almost nothing of the console ("windoids tversion"); with the console maximized it read the words, but out of order across lines ("...Corporation. All rights C: \Users .9711] reserved"), so a phrase is not found as one run. The capture itself was sharp, and the capture's `MinUpdateInterval` is not the cause (the same without it). Next: rebuild lines from the words' positions, and upscale small text before recognition; if that is not enough, a PP-OCR model on ONNX Runtime behind the same `TextRecognizer`.
+
 ## Test scripts
 
 The scripts that produced these results are kept in [Spikes/Findings](../Spikes/Findings/README.md), with a table mapping each script to its section. The stage 1 spike programs (sections 2.11 to 2.15) are in [Spikes](../Spikes/README.md).

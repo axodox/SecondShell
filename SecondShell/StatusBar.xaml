@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The status bar (docs/UIDesign.md, Status bar): activity, the current action, the session, and the log -->
+<UserControl
+  x:Class="SecondShell.StatusBar"
+  xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:local="using:SecondShell">
+  <Grid Height="38" Padding="12,0" ColumnSpacing="14" Background="{StaticResource BarBrush}" BorderBrush="{StaticResource BarBorderBrush}" BorderThickness="0,1,0,0">
+    <Grid.ColumnDefinitions>
+      <ColumnDefinition Width="Auto" />
+      <ColumnDefinition Width="Auto" />
+      <ColumnDefinition Width="*" />
+      <ColumnDefinition Width="Auto" />
+      <ColumnDefinition Width="Auto" />
+    </Grid.ColumnDefinitions>
+
+    <!-- Who is at work: the agent's activity, or the user in control, or the agent stopped -->
+    <Grid Grid.Column="0" VerticalAlignment="Center">
+      <StackPanel x:Name="AgentActivity" Orientation="Horizontal" Spacing="9">
+        <StackPanel x:Name="Bars" Orientation="Horizontal" Spacing="2" Height="14" VerticalAlignment="Center">
+          <Rectangle Width="3" Height="14" RadiusX="1.5" RadiusY="1.5" RenderTransformOrigin="0.5,0.5"><Rectangle.RenderTransform><ScaleTransform /></Rectangle.RenderTransform></Rectangle>
+          <Rectangle Width="3" Height="14" RadiusX="1.5" RadiusY="1.5" RenderTransformOrigin="0.5,0.5"><Rectangle.RenderTransform><ScaleTransform /></Rectangle.RenderTransform></Rectangle>
+          <Rectangle Width="3" Height="14" RadiusX="1.5" RadiusY="1.5" RenderTransformOrigin="0.5,0.5"><Rectangle.RenderTransform><ScaleTransform /></Rectangle.RenderTransform></Rectangle>
+          <Rectangle Width="3" Height="14" RadiusX="1.5" RadiusY="1.5" RenderTransformOrigin="0.5,0.5"><Rectangle.RenderTransform><ScaleTransform /></Rectangle.RenderTransform></Rectangle>
+        </StackPanel>
+        <TextBlock x:Name="ActivityText" Text="Agent idle" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" />
+        <TextBlock x:Name="ActivityDetailText" FontSize="12" Foreground="{StaticResource MutedTextBrush}" VerticalAlignment="Center" />
+      </StackPanel>
+
+      <StackPanel x:Name="UserActivity" Orientation="Horizontal" Spacing="9" Visibility="Collapsed">
+        <PathIcon Data="M2.5,1.5 L2.5,10.5 L5.1,8.1 L7,12.5 L8.7,11.8 L6.8,7.5 L10.4,7.5 Z" Foreground="{StaticResource UserBrush}" VerticalAlignment="Center" />
+        <TextBlock Text="You're in control" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource UserBrush}" VerticalAlignment="Center" />
+        <TextBlock Text="clipboard shared" FontSize="12" Foreground="{StaticResource MutedTextBrush}" VerticalAlignment="Center" />
+      </StackPanel>
+
+      <StackPanel x:Name="StoppedActivity" Orientation="Horizontal" Spacing="9" Visibility="Collapsed">
+        <FontIcon Glyph="&#xE71A;" FontSize="12" Foreground="{StaticResource FailureBrush}" VerticalAlignment="Center" />
+        <TextBlock Text="Agent stopped" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource FailureBrush}" VerticalAlignment="Center" />
+        <TextBlock Text="until you give control back" FontSize="12" Foreground="{StaticResource MutedTextBrush}" VerticalAlignment="Center" />
+      </StackPanel>
+    </Grid>
+
+    <Rectangle x:Name="ActionSeparator" Grid.Column="1" Width="1" Height="18" Fill="{StaticResource SeparatorBrush}" VerticalAlignment="Center" Visibility="Collapsed" />
+
+    <!-- The current or last action: it brightens when it changes, then settles -->
+    <Border x:Name="ActionPill" Grid.Column="2" HorizontalAlignment="Left" VerticalAlignment="Center" Padding="8,3,10,3" CornerRadius="6" Visibility="Collapsed">
+      <Border.Background>
+        <SolidColorBrush x:Name="ActionPillBrush" Color="{StaticResource ActionRestColor}" />
+      </Border.Background>
+      <StackPanel Orientation="Horizontal" Spacing="8">
+        <Border x:Name="ActionHost" VerticalAlignment="Center" />
+        <TextBlock x:Name="ActionOutcomeText" FontSize="12" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" MaxWidth="420" />
+      </StackPanel>
+    </Border>
+
+    <TextBlock x:Name="SessionText" Grid.Column="3" FontSize="12" Foreground="{StaticResource SessionTextBrush}" VerticalAlignment="Center" Text="Session stopped" />
+
+    <Button x:Name="LogButton" Grid.Column="4" Style="{StaticResource BarButtonStyle}" AutomationProperties.Name="Action log">
+      <StackPanel Orientation="Horizontal" Spacing="7">
+        <TextBlock Text="Log" VerticalAlignment="Center" />
+        <Border Background="{StaticResource BadgeBrush}" CornerRadius="9" Padding="6,0" VerticalAlignment="Center">
+          <TextBlock x:Name="LogCountText" Text="0" FontSize="11" LineHeight="16" Foreground="{StaticResource SessionTextBrush}" />
+        </Border>
+        <Ellipse x:Name="LogFailureDot" Width="6" Height="6" Fill="{StaticResource FailureBrush}" VerticalAlignment="Center" Visibility="Collapsed" />
+      </StackPanel>
+      <Button.Flyout>
+        <Flyout x:Name="LogFlyout" Placement="TopEdgeAlignedRight" FlyoutPresenterStyle="{StaticResource LogFlyoutPresenterStyle}" Opening="OnLogOpening" Closed="OnLogClosed">
+          <local:ActionLogPanel x:Name="LogPanel" />
+        </Flyout>
+      </Button.Flyout>
+    </Button>
+  </Grid>
+</UserControl>

@@ -67,22 +67,20 @@ namespace SecondShell::Agent
     if (!action.Resolution) action.Resolution = Settings().Resolution;
   }
 
-  void CaptureStore::Store(CapturedImage& image, ActionResult& result, const optional<string>& filePath, const CaptureDestination& destination, string_view fileStem) const
+  path CaptureStore::Store(CapturedImage& image, ActionResult& result, const optional<string>& filePath, const CaptureDestination& destination, string_view fileStem) const
   {
-    if (destination.IsFile)
-    {
-      auto extension = image.Format == ImageFormat::Jpeg ? ".jpg" : ".png";
-      auto file = filePath ? path(winrt::to_hstring(*filePath).c_str()) : _environment->CaptureFolder(_sessionName) / (SafeFileName(fileStem) + extension);
-      create_directories(file.parent_path());
+    auto name = SafeFileName(fileStem) + (image.Format == ImageFormat::Jpeg ? ".jpg" : ".png");
+    auto folder = _environment->CaptureFolder(_sessionName);
+    auto file = !destination.IsFile ? folder / "inline" / name : filePath ? path(winrt::to_hstring(*filePath).c_str()) : folder / name;
+    create_directories(file.parent_path());
 
-      ofstream stream(file, ios::binary);
-      stream.write(reinterpret_cast<const char*>(image.Data.data()), streamsize(image.Data.size()));
-      if (!stream) throw runtime_error(format("The capture could not be saved to {}.", winrt::to_string(file.wstring())));
+    ofstream stream(file, ios::binary);
+    stream.write(reinterpret_cast<const char*>(image.Data.data()), streamsize(image.Data.size()));
+    if (!stream) throw runtime_error(format("The capture could not be saved to {}.", winrt::to_string(file.wstring())));
 
-      image.Path = winrt::to_string(file.wstring());
-    }
-
+    if (destination.IsFile) image.Path = winrt::to_string(file.wstring());
     if (!destination.IsInline) image.Data.clear();
     if (destination.IsOverInlineLimit) result.Message = format("Saved to file instead of inline: the sequence has returned its most inline captures ({}).", Settings().InlineLimit);
+    return file;
   }
 }

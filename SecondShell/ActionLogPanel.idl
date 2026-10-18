@@ -1,0 +1,8 @@
+namespace SecondShell
+{
+  [default_interface]
+  runtimeclass ActionLogPanel : Microsoft.UI.Xaml.Controls.UserControl
+  {
+    ActionLogPanel();
+  }
+}

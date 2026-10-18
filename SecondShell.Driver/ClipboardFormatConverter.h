@@ -4,7 +4,7 @@
 namespace SecondShell::Desktop
 {
   //Converts between the data of Windows clipboard formats and what the clipboard actions use: UTF-16 text, the
-  //"HTML Format" header, CF_HDROP file lists, DIB images, and format names.
+  //"HTML Format" header, CF_HDROP file lists and DIB images.
   class ClipboardFormatConverter
   {
   public:
@@ -23,12 +23,5 @@ namespace SecondShell::Desktop
 
     //A DIB as a .bmp file, which image decoders read.
     std::vector<uint8_t> DibToBitmapFile(std::span<const uint8_t> dib) const;
-
-    //Standard formats by their CF_ names, registered ones by name, any by number; nullopt for an unknown name.
-    std::optional<uint32_t> FormatFromName(std::string_view name) const;
-    std::string FormatName(uint32_t format) const;
-
-    //Formats whose data is not memory but a GDI handle, which cannot be read or written as bytes.
-    bool IsHandleFormat(uint32_t format) const;
   };
 }

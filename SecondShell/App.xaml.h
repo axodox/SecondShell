@@ -16,11 +16,6 @@ namespace winrt::SecondShell::implementation
   private:
     std::unique_ptr<Axodox::Infrastructure::dependency_container> _container;
     winrt::com_ptr<MainWindow> _window;
-    Axodox::Infrastructure::event_subscription _stateChangedSubscription;
-    Axodox::Infrastructure::event_subscription _modeChangedSubscription;
-    Axodox::Infrastructure::event_subscription _runningChangedSubscription;
-    Axodox::Infrastructure::event_subscription _actionStartedSubscription;
-    Axodox::Infrastructure::event_subscription _entryAddedSubscription;
 
     void RegisterServices();
     bool StartServices();

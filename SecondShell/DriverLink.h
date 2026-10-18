@@ -35,11 +35,19 @@ namespace SecondShell::Session
     //The user's input in interactive mode, played at once; dropped if no driver is connected.
     void ForwardUserInput(const Protocol::ForwardUserInputNotification& input);
 
+    //Clipboard sharing in interactive mode: the driver watches the session's clipboard while enabled, and takes the
+    //user's; both fail with SessionNotActive if no driver is connected.
+    Rpc::RpcResult<Protocol::EmptyResponse> SetClipboardSync(bool isEnabled);
+    Rpc::RpcResult<Protocol::EmptyResponse> SetClipboard(const std::vector<Actions::ClipboardContent>& contents);
+
     //Shares the driver's frames with this process; fails with SessionNotActive if no driver is connected.
     Rpc::RpcResult<Protocol::SubscribeFramesResponse> SubscribeFrames();
 
     //The driver's frames are in a new ring; raised on the connection's thread.
     Axodox::Infrastructure::event_publisher<DriverLink*, const Protocol::SharedFrames&> FramesChanged;
+
+    //The session's clipboard changed while syncing; raised on the connection's thread.
+    Axodox::Infrastructure::event_publisher<DriverLink*, const std::vector<Actions::ClipboardContent>&> ClipboardChanged;
 
   private:
     Axodox::Networking::named_pipe_messaging_server _server;

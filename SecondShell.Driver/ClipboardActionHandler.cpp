@@ -92,7 +92,7 @@ namespace SecondShell::Driver
   value_ptr<ActionResult> ClipboardActionHandler::Read(const ClipboardReadAction& action)
   {
     auto result = make_value<ClipboardResult>();
-    for (auto format : _clipboard->Formats()) result->Formats.push_back(_converter->FormatName(format));
+    for (auto format : _clipboard->Formats()) result->Formats.push_back(ClipboardFormats::Name(format));
 
     if (!ReadContent(action, *result))
     {
@@ -139,7 +139,7 @@ namespace SecondShell::Driver
       auto rawFormat = RawFormat(action.Name);
       auto data = _clipboard->Read(rawFormat, _rawLimit);
       if (!data) return false;
-      result.Content = ClipboardContent{ .Format = format, .Data = ToJson(encode_base64(*data)), .Name = _converter->FormatName(rawFormat) };
+      result.Content = ClipboardContent{ .Format = format, .Data = ToJson(encode_base64(*data)), .Name = ClipboardFormats::Name(rawFormat) };
       return true;
     }
     default:
@@ -219,9 +219,9 @@ namespace SecondShell::Driver
   {
     if (!name) throw invalid_argument("Raw clipboard content needs the name of its format.");
 
-    auto number = _converter->FormatFromName(*name);
+    auto number = ClipboardFormats::FromName(*name);
     if (!number) throw invalid_argument(format("{} is not a clipboard format.", *name));
-    if (_converter->IsHandleFormat(*number)) throw invalid_argument(format("{} is a handle, not data; read it as Image or Text instead.", *name));
+    if (ClipboardFormats::IsHandle(*number)) throw invalid_argument(format("{} is a handle, not data; read it as Image or Text instead.", *name));
     return *number;
   }
 }

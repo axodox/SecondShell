@@ -27,6 +27,7 @@ namespace SecondShell::Session
     StateChanged(_events),
     _childSessions(container->resolve<ChildSessionApi>()),
     _credentials(container->resolve<CredentialProvider>()),
+    _existingSessionPrompt(container->resolve<ExistingSessionPrompt>()),
     _driverLauncher(container->resolve<DriverLauncher>()),
     _driverLink(container->resolve<DriverLink>()),
     _rdpClient(container->resolve<RdpClient>()),
@@ -126,14 +127,15 @@ namespace SecondShell::Session
     return nullopt;
   }
 
-  optional<JsonRpcError> SessionManager::ResetExistingSession(const optional<ExistingSessionPolicy>& policy)
+  optional<JsonRpcError> SessionManager::ResetExistingSession(optional<ExistingSessionPolicy> policy)
   {
     auto existing = _childSessions->ChildSessionId();
     if (!existing) return nullopt;
 
-    //It may belong to another tool, so it is logged off only when asked to. The driver of a session from before exited
-    //with its host, so resuming one needs a way to restart the driver first.
-    if (!policy) return ProtocolErrors::Make(ErrorCode::ActionFailed, format("A child session ({}) already exists, e.g. from before a restart; start with existingSession Reset to log it off, closing its applications.", *existing));
+    //It may belong to another tool, so it is logged off only when asked to: by the request, or by the user. The driver of
+    //a session from before exited with its host, so resuming one needs a way to restart the driver first.
+    if (!policy) policy = _existingSessionPrompt->Ask({ *existing, _childSessions->LogonTime(*existing) });
+    if (!policy) return ProtocolErrors::Make(ErrorCode::ActionFailed, format("A child session ({}) already exists, e.g. from before a restart, and the user kept it; start with existingSession Reset to log it off, closing its applications.", *existing));
     if (policy == ExistingSessionPolicy::Resume) return ProtocolErrors::Make(ErrorCode::ActionFailed, "Resuming a session from before is not supported yet; use existingSession Reset to log it off.");
 
     _logger.log(log_severity::information, "Logging off the session from before ({}).", *existing);

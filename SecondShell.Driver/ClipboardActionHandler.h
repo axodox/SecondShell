@@ -4,6 +4,7 @@
 #include "CaptureEncoder.h"
 #include "ClipboardActions.h"
 #include "ClipboardFormatConverter.h"
+#include "ClipboardFormats.h"
 #include "ClipboardManager.h"
 
 namespace SecondShell::Driver

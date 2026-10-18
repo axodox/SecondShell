@@ -76,6 +76,11 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ActionLog.h" />
+    <ClInclude Include="ActionView.h" />
+    <ClInclude Include="ActivityBars.h" />
+    <ClInclude Include="ActionLogPanel.xaml.h">
+      <DependentUpon>ActionLogPanel.xaml</DependentUpon>
+    </ClInclude>
     <ClInclude Include="ActivityOverlay.h" />
     <ClInclude Include="AgentControl.h" />
     <ClInclude Include="CaptureFlashOverlay.h" />
@@ -88,6 +93,7 @@
     <ClInclude Include="CursorOverlay.h" />
     <ClInclude Include="DriverLauncher.h" />
     <ClInclude Include="DriverLink.h" />
+    <ClInclude Include="ClipboardSync.h" />
     <ClInclude Include="DisplayClock.h" />
     <ClInclude Include="FrameReceiver.h" />
     <ClInclude Include="InteractiveInputForwarder.h" />
@@ -112,10 +118,18 @@
     <ClInclude Include="MainWindow.xaml.h">
       <DependentUpon>MainWindow.xaml</DependentUpon>
     </ClInclude>
+    <ClInclude Include="SequenceView.h" />
+    <ClInclude Include="SessionDialogs.h" />
+    <ClInclude Include="ExistingSessionPrompt.h" />
+    <ClInclude Include="StatusBar.xaml.h">
+      <DependentUpon>StatusBar.xaml</DependentUpon>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ApplicationDefinition Include="App.xaml" />
     <Page Include="MainWindow.xaml" />
+    <Page Include="ActionLogPanel.xaml" />
+    <Page Include="StatusBar.xaml" />
     <Page Include="Theme.xaml" />
   </ItemGroup>
   <ItemGroup>
@@ -128,7 +142,18 @@
     <ClCompile Include="MainWindow.xaml.cpp">
       <DependentUpon>MainWindow.xaml</DependentUpon>
     </ClCompile>
+    <ClCompile Include="SequenceView.cpp" />
+    <ClCompile Include="SessionDialogs.cpp" />
+    <ClCompile Include="ExistingSessionPrompt.cpp" />
+    <ClCompile Include="StatusBar.xaml.cpp">
+      <DependentUpon>StatusBar.xaml</DependentUpon>
+    </ClCompile>
     <ClCompile Include="ActionLog.cpp" />
+    <ClCompile Include="ActionView.cpp" />
+    <ClCompile Include="ActivityBars.cpp" />
+    <ClCompile Include="ActionLogPanel.xaml.cpp">
+      <DependentUpon>ActionLogPanel.xaml</DependentUpon>
+    </ClCompile>
     <ClCompile Include="ActivityOverlay.cpp" />
     <ClCompile Include="AgentControl.cpp" />
     <ClCompile Include="CaptureFlashOverlay.cpp" />
@@ -141,6 +166,7 @@
     <ClCompile Include="CursorOverlay.cpp" />
     <ClCompile Include="DriverLauncher.cpp" />
     <ClCompile Include="DriverLink.cpp" />
+    <ClCompile Include="ClipboardSync.cpp" />
     <ClCompile Include="DisplayClock.cpp" />
     <ClCompile Include="FrameReceiver.cpp" />
     <ClCompile Include="InteractiveInputForwarder.cpp" />
@@ -167,6 +193,14 @@
     <Midl Include="MainWindow.idl">
       <SubType>Code</SubType>
       <DependentUpon>MainWindow.xaml</DependentUpon>
+    </Midl>
+    <Midl Include="ActionLogPanel.idl">
+      <SubType>Code</SubType>
+      <DependentUpon>ActionLogPanel.xaml</DependentUpon>
+    </Midl>
+    <Midl Include="StatusBar.idl">
+      <SubType>Code</SubType>
+      <DependentUpon>StatusBar.xaml</DependentUpon>
     </Midl>
   </ItemGroup>
   <ItemGroup>

@@ -57,6 +57,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="HostWindow.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="JsonSnapshot.h" />
     <ClInclude Include="McpProbe.h" />
@@ -90,6 +91,7 @@
     <ClCompile Include="ProductInfoTests.cpp" />
     <ClCompile Include="ProtocolTests.cpp" />
     <ClCompile Include="SequenceRunnerTests.cpp" />
+    <ClCompile Include="HostWindow.cpp" />
     <ClCompile Include="SessionProbeTests.cpp" />
     <ClCompile Include="SessionToolSourceTests.cpp" />
     <ClCompile Include="ShellCommandBuilderTests.cpp" />

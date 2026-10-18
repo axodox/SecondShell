@@ -18,6 +18,7 @@ namespace SecondShell::Session
 {
   const milliseconds _resetTimeout{ 5000 };
   const milliseconds _queryTimeout{ 5000 };
+  const milliseconds _clipboardTimeout{ 15000 };  //an image on the clipboard can be tens of megabytes
   const milliseconds _cancellationPollInterval{ 100 };
 
   //One client of the driver pipe, accepted or not.
@@ -32,6 +33,7 @@ namespace SecondShell::Session
       Peer.AddHandler(this, &Connection::Hello);
       Peer.AddNotificationHandler(this, &Connection::OnActionCompleted);
       Peer.AddNotificationHandler(this, &Connection::OnFramesChanged);
+      Peer.AddNotificationHandler(this, &Connection::OnClipboardChanged);
       Peer.Start();
     }
 
@@ -55,6 +57,11 @@ namespace SecondShell::Session
     {
       if (_owner->Driver().get() == this) _owner->_events.raise(_owner->FramesChanged, _owner, notification.Frames);
     }
+
+    void OnClipboardChanged(const ClipboardChangedNotification& notification)
+    {
+      if (_owner->Driver().get() == this) _owner->_events.raise(_owner->ClipboardChanged, _owner, notification.Contents);
+    }
   };
 
   DriverLink::DriverLink(dependency_container* container) :
@@ -63,6 +70,7 @@ namespace SecondShell::Session
 
   DriverLink::DriverLink(dependency_container* /*container*/, string_view pipeName) :
     FramesChanged(_events),
+    ClipboardChanged(_events),
     _server(pipeName),
     _clientConnectedSubscription(_server.client_connected({ this, &DriverLink::OnClientConnected })),
     _clientDisconnectedSubscription(_server.client_disconnected({ this, &DriverLink::OnClientDisconnected }))
@@ -136,6 +144,24 @@ namespace SecondShell::Session
   void DriverLink::ForwardUserInput(const ForwardUserInputNotification& input)
   {
     if (auto driver = Driver()) driver->Peer.Notify(input);
+  }
+
+  RpcResult<EmptyResponse> DriverLink::SetClipboardSync(bool isEnabled)
+  {
+    auto driver = Driver();
+    if (!driver) return ProtocolErrors::Make(ErrorCode::SessionNotActive, "The driver is not connected.");
+
+    CancellationToken noCancellation;
+    return driver->Peer.Request(SetClipboardSyncRequest{ isEnabled }, _queryTimeout, noCancellation);
+  }
+
+  RpcResult<EmptyResponse> DriverLink::SetClipboard(const vector<ClipboardContent>& contents)
+  {
+    auto driver = Driver();
+    if (!driver) return ProtocolErrors::Make(ErrorCode::SessionNotActive, "The driver is not connected.");
+
+    CancellationToken noCancellation;
+    return driver->Peer.Request(SetClipboardRequest{ contents }, _clipboardTimeout, noCancellation);
   }
 
   RpcResult<SubscribeFramesResponse> DriverLink::SubscribeFrames()

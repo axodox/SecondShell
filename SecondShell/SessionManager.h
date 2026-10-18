@@ -1,6 +1,7 @@
 #pragma once
 #include "ChildSessionApi.h"
 #include "CredentialProvider.h"
+#include "ExistingSessionPrompt.h"
 #include "DriverLauncher.h"
 #include "DriverLink.h"
 #include "HostProtocol.h"
@@ -36,6 +37,7 @@ namespace SecondShell::Session
   private:
     std::shared_ptr<ChildSessionApi> _childSessions;
     std::shared_ptr<CredentialProvider> _credentials;
+    std::shared_ptr<ExistingSessionPrompt> _existingSessionPrompt;
     std::shared_ptr<DriverLauncher> _driverLauncher;
     std::shared_ptr<DriverLink> _driverLink;
     std::shared_ptr<RdpClient> _rdpClient;
@@ -53,7 +55,7 @@ namespace SecondShell::Session
     Axodox::Threading::manual_reset_event _disconnected;
     std::atomic<long> _disconnectReason = 0;
 
-    std::optional<Rpc::JsonRpcError> ResetExistingSession(const std::optional<Protocol::ExistingSessionPolicy>& policy);
+    std::optional<Rpc::JsonRpcError> ResetExistingSession(std::optional<Protocol::ExistingSessionPolicy> policy);
     std::optional<Rpc::JsonRpcError> SignIn(const Protocol::DisplaySettings& display, std::chrono::steady_clock::time_point deadline, const Rpc::CancellationToken& cancellation);
     std::optional<Rpc::JsonRpcError> ConnectAndWaitForSignIn(const Protocol::DisplaySettings& display, std::chrono::steady_clock::time_point deadline, const Rpc::CancellationToken& cancellation);
     std::optional<Rpc::JsonRpcError> StartDriver(std::chrono::steady_clock::time_point deadline, const Rpc::CancellationToken& cancellation);

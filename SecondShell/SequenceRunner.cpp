@@ -23,6 +23,7 @@ namespace SecondShell::Agent
     CancellationToken Stop;
     uint32_t InlineCaptures = 0;
     atomic_bool IsInterrupted = false;
+    optional<filesystem::path> CaptureFile;  //of the step which just ran, for the log
 
     //Guarded by SequenceRunner::_mutex
     unordered_set<uint64_t> PendingAsync;
@@ -79,16 +80,17 @@ namespace SecondShell::Agent
       }
     }
     _events.raise(RunningChanged, this, true);
+    _actionLog->BeginSequence(state.Sequence, request.Description, uint32_t(request.Steps.size()));
 
     RunSequenceResponse response;
     for (uint32_t index = 0; index < request.Steps.size(); index++)
     {
       auto& step = request.Steps[index];
-      _actionLog->Start(step);
+      _actionLog->Start(step, index);
       auto visualId = _visualization->OnActionStarted(*step);
       auto result = RunStep(state, step, index);
       _visualization->OnActionFinished(visualId, *step, *result);
-      _actionLog->Add(step, *result);
+      _actionLog->Add(step, *result, exchange(state.CaptureFile, nullopt));
 
       if (result->Status != ActionStatus::Succeeded)
       {
@@ -104,6 +106,7 @@ namespace SecondShell::Agent
       lock_guard lock{ _mutex };
       _run = nullptr;
     }
+    _actionLog->EndSequence(response);
     _events.raise(RunningChanged, this, false);
 
     //After a failure nothing stays held, and the AI learns what was
@@ -213,7 +216,7 @@ namespace SecondShell::Agent
   {
     try
     {
-      _captureStore->Store(image, *result, path, destination, fileStem);
+      state.CaptureFile = _captureStore->Store(image, *result, path, destination, fileStem);
     }
     catch (const exception& exception)
     {

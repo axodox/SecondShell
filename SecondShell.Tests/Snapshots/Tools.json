@@ -252,6 +252,10 @@
       "inputSchema": {
         "additionalProperties": false,
         "properties": {
+          "description": {
+            "description": "What the sequence does, in a few words, for the user watching SecondShell, e.g. \"Opening the settings\".",
+            "type": "string"
+          },
           "steps": {
             "description": "The actions, run in order. Coordinates are session pixels.",
             "items": {

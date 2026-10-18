@@ -60,7 +60,7 @@
     <ClInclude Include="CaptureEncoder.h" />
     <ClInclude Include="ClipboardActionHandler.h" />
     <ClInclude Include="ClipboardFormatConverter.h" />
-    <ClInclude Include="ClipboardManager.h" />
+    <ClInclude Include="ClipboardSyncHandler.h" />
     <ClInclude Include="FramePublisher.h" />
     <ClInclude Include="HostConnection.h" />
     <ClInclude Include="IKeyboardInjector.h" />
@@ -69,7 +69,6 @@
     <ClInclude Include="InputStateTracker.h" />
     <ClInclude Include="KeyboardActionHandler.h" />
     <ClInclude Include="KeyboardInjector.h" />
-    <ClInclude Include="MessageWindow.h" />
     <ClInclude Include="MotionAnimator.h" />
     <ClInclude Include="MouseActionHandler.h" />
     <ClInclude Include="MouseInjector.h" />
@@ -93,7 +92,7 @@
     <ClCompile Include="CaptureEncoder.cpp" />
     <ClCompile Include="ClipboardActionHandler.cpp" />
     <ClCompile Include="ClipboardFormatConverter.cpp" />
-    <ClCompile Include="ClipboardManager.cpp" />
+    <ClCompile Include="ClipboardSyncHandler.cpp" />
     <ClCompile Include="FramePublisher.cpp" />
     <ClCompile Include="HostConnection.cpp" />
     <ClCompile Include="InputInjectorProvider.cpp" />
@@ -101,7 +100,6 @@
     <ClCompile Include="KeyboardActionHandler.cpp" />
     <ClCompile Include="KeyboardInjector.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="MessageWindow.cpp" />
     <ClCompile Include="MotionAnimator.cpp" />
     <ClCompile Include="MouseActionHandler.cpp" />
     <ClCompile Include="MouseInjector.cpp" />

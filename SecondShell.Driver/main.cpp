@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "ActionExecutor.h"
 #include "AppEnvironment.h"
+#include "ClipboardSyncHandler.h"
 #include "FramePublisher.h"
 #include "UserInputHandler.h"
 #include "KeyboardInjector.h"
@@ -9,6 +10,7 @@
 
 using namespace Axodox::Infrastructure;
 using namespace SecondShell::Capture;
+using namespace SecondShell::Desktop;
 using namespace SecondShell::Driver;
 using namespace SecondShell::Environment;
 using namespace SecondShell::Input;
@@ -41,6 +43,7 @@ int WINAPI wWinMain(HINSTANCE /*instance*/, HINSTANCE /*previousInstance*/, PWST
     container.resolve<ActionExecutor>();
     container.resolve<FramePublisher>();
     container.resolve<UserInputHandler>();
+    container.resolve<ClipboardSyncHandler>();
 
     if (!connection->Hello(10s)) return 1;
 

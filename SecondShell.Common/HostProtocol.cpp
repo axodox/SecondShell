@@ -60,7 +60,8 @@ namespace SecondShell::Protocol
     "Runs actions in order in the session, until one fails: input, captures, windows, processes, clipboard. Captures are returned as images.",
     {
       { &RunSequenceArguments::Steps, "steps", { .is_required = true, .schema = { .description = "The actions, run in order. Coordinates are session pixels.", .min_items = 1 } } },
-      { &RunSequenceArguments::Timeout, "timeout", { .is_required = false, .schema = { .description = "Milliseconds for the whole sequence, default 60000.", .minimum = 0 } } }
+      { &RunSequenceArguments::Timeout, "timeout", { .is_required = false, .schema = { .description = "Milliseconds for the whole sequence, default 60000.", .minimum = 0 } } },
+      { &RunSequenceArguments::Description, "description", { .is_required = false, .schema = { .description = "What the sequence does, in a few words, for the user watching SecondShell, e.g. \"Opening the settings\"." } } }
     });
 
   json_object_descriptor<RunSequenceRequest> RunSequenceRequest::json_description = describe_json_object<RunSequenceRequest, RunSequenceArguments>(

@@ -61,7 +61,7 @@ To verify: frame transport between sessions with `Windows.Graphics.Capture` and 
 
 ### Session lifecycle
 
-- **Start**: the host connects to the child session. If a disconnected child session already exists (e.g. after a host crash), the connection resumes it with its apps still running. The host reports this, and the user or `Initialize-Session` chooses whether to keep it or reset it.
+- **Start**: the host connects to the child session. If a disconnected child session already exists (e.g. after a host crash), the connection resumes it with its apps still running. The host reports this, and the user or `Initialize-Session` chooses whether to keep it or reset it: without an `existingSession` policy, the window asks the user. Resuming is not supported yet (the driver of that session exited with its host), so the choice is Reset or Cancel.
 - **End**: disconnecting does not reliably end a child session; it can stay alive, disconnected, indefinitely (Findings.md 2.3). The host therefore always logs the session off explicitly (`WTSLogoffSession`, no elevation needed) when the window is closed, on `Shutdown-Session`, and when resetting.
 - **Startup apps**: the child session is a full logon of the same user, so the user's startup apps run in it a second time (e.g. sync clients, media servers, torrent clients). This is accepted and documented. Apps that conflict with themselves (fixed ports, exclusive data files) are the user's to configure.
 - **Shared app state**: apps started in the child session see the user's own app state, and may write to it. For example, Notepad restores the user's open tabs (including unsaved ones) in the child session and saves window state back to the shared profile (Findings.md 2.10). The agent must treat such apps as working on the user's real data.
@@ -153,6 +153,7 @@ All coordinates, sizes and regions in actions and results are in **session pixel
 
 ### Errors and timeouts
 
+- **Description**: `Run-Sequence` takes an optional `"description"`, what the sequence does in a few words ("Opening the settings"), which the status bar and the log show to the user.
 - **Run until failure**: `Run-Sequence` executes actions in order until one fails, then stops. The result contains the results of all completed actions (including captures already taken), the index of the failed action, an error code and a message.
 
 - **Input state after failure**: when a sequence stops early, all inputs are released as by `Control.Reset` (held mouse buttons, keys, touch points and gamepad buttons; gamepad sticks and triggers return to rest), and the result reports what was held, so the agent knows the state it left the session in.

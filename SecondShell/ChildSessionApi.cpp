@@ -21,6 +21,20 @@ namespace SecondShell::Session
     return uint32_t(sessionId);
   }
 
+  optional<system_clock::time_point> ChildSessionApi::LogonTime(uint32_t sessionId) const
+  {
+    WTSINFOW* info = nullptr;
+    DWORD size = 0;
+    if (!WTSQuerySessionInformationW(WTS_CURRENT_SERVER_HANDLE, sessionId, WTSSessionInfo, reinterpret_cast<LPWSTR*>(&info), &size) || !info) return nullopt;
+
+    auto logonTime = info->LogonTime.QuadPart;
+    WTSFreeMemory(info);
+    if (!logonTime) return nullopt;
+
+    //FILETIME counts 100 ns from 1601
+    return clock_cast<system_clock>(file_clock::time_point{ file_clock::duration{ logonTime } });
+  }
+
   bool ChildSessionApi::LogOff(uint32_t sessionId, milliseconds timeout) const
   {
     WTSLogoffSession(WTS_CURRENT_SERVER_HANDLE, sessionId, FALSE);

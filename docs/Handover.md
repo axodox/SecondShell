@@ -21,24 +21,21 @@ Built and seen working: the child session's desktop drawn live in the SecondShel
 | Overlay | `VisualizationFeed`, `OverlayRenderer`, `OverlayElement`, `CursorOverlay`, `ActivityOverlay`, `CaptureFlashOverlay`, `ViewTransform` | Done and seen working (Architecture.md 6.10). `SequenceRunner` reports each step's start and finish; `SessionRenderer` draws the overlay after the frame and redraws while it animates. |
 | UI | `MainWindow.xaml`, `App.xaml.cpp` | `SwapChainPanel x:Name="SessionView"` inside a Grid with the background (a `SwapChainPanel` must not get a `Background`: WinUI fails at startup with E_FAIL / 0x802B000A). A status line below. App attaches the renderer, and detaches it on close before the session shuts down. Host project defines `USE_DIRECTX`; pch includes `Axodox.Graphics.h` and `microsoft.ui.xaml.media.dxinterop.h`. |
 
-### Agent control and the UI look, so far (built, 120 unit tests pass, live check pending)
+### Since part 1 (`809c93d`), not committed
 
-- **`AgentControl`**: modes Agent, Stopped, User; logs each change ("Control: User."). `SequenceRunner` reacts to every change: a running sequence ends with `UserInterrupted`, else held input is released.
-- **Interactive mode**: `MainWindow` forwards pointer, buttons (chorded presses come as pointer moves), wheel and keys from `SessionArea` to `InteractiveInputForwarder` → `DriverLink::ForwardUserInput` → `input/forward` → driver's `UserInputHandler` (through `InputStateTracker`, so a reset releases the user's input too). Giving control back resets input.
-- **Window** (`MainWindow.xaml`, `Theme.xaml`): own title bar with mark, name, version, agent pill; toolbar Take control / Give back control (amber) / Stop / Settings (disabled). Stop is enabled only in Agent mode; Give back shows in Stopped and User. Status bar: session state, "You're in control" / "Agent stopped…", the live action with the log on hover. Interactive notice at the top of the session.
-- **`SessionRenderer`**: a 2 DIP frame around the session, violet (agent) or amber (user), none when stopped; background `#121215`. Overlay cursor and held keys use the agent violet.
-- **Frame rate** (Findings.md 3): `FrameRateMeter` (Common) logs the driver's capture rate and the host's new-frame rate every 10 s while frames come ("Capturing at 31.5 fps.", "Showing new frames at …"); the design wants the rate in the status bar instead. `SessionRenderer` is paced by `DisplayClock` (the window's monitor's vblank). The ~30 fps cap was the child session's compose rate; with `DWMFRAMEINTERVAL` = 15 (set on this machine by the user) it is 65 fps. It becomes an optional setup step in stage 9 (Design.md, Smooth session view).
-- Test window for frame rates: `Spikes/exchange/animate.py` (tkinter, repaints as fast as it can; run in the session with `pythonw.exe`).
-- `MainWindow::UseServices(container)`: not `Connect`, which the XAML compiler's `IComponentConnector` takes.
+Clipboard sharing, the status bar, the log flyout, the dialogs, the startup view with the toolbar disabled until the session is ready, `Run-Sequence`'s `description`, the outlined icon. What each piece does: Architecture.md 6.10. Seen working live with scripted scenarios and window snapshots; 124 unit tests pass.
 
-### Next for stage 7 (ImplementationPlan.md, Stage 7)
+- `MainWindow::UseServices(container)`: not `Connect`, which the XAML compiler's `IComponentConnector` takes. The window, `StatusBar` and `ActionLogPanel` subscribe to their services themselves; `App` only builds the window and ties the session's end to it.
+- UI Automation reaches the toolbar and dialog buttons by name ("Take control", "Stop", "Give back control", "Action log", "Reset", "Keep open"); the probe tests use it (`HostWindow`), and so can manual scripts.
+- Test window for frame rates: `Spikes/exchange/animate.py` (tkinter, repaints as fast as it can; run in the session with `pythonw.exe`). `DWMFRAMEINTERVAL` = 15 is set on this machine.
+- The icon is drawn by `Assets/make_icon.py`.
 
-1. **Agent control**, rest: `ClipboardSync` (`clipboard/sync`, `clipboard/set`, `clipboard/changed` exist in the protocol, unimplemented); the notice then says the clipboard is shared. The view transform for mapping pointer input is `ViewTransform` (it needs the inverse mapping). Interactive mode should run at the host screen's refresh rate (the session composes at ~30 fps today; see the open item in Findings.md 3); the agent's view can follow, but that matters less.
-2. **UI** (to the look in UIDesign.md, mockups in `docs/ui/`):
-   - `MainWindow` navigation, `SessionPage` toolbar, `ActionLogPage`, `StatusBar`;
-   - `ExistingSessionDialog`, `CloseSessionDialog`; view models.
-3. **Tests**: the probe checks that the session keeps working while the window is minimized, resized or moved, and that Stop gives `UserInterrupted`. The user tests the visuals by hand.
-4. **Docs**: Architecture.md stage 7 notes, ImplementationPlan.md status, then the user commits.
+### Next for stage 7
+
+1. **The user checks the visuals** by hand.
+2. **Text recognition** misreads console text on busy screens (Findings.md 5); a separate task is proposed (rebuild lines from word positions, upscale), and probe tests waiting for text fail until then.
+3. **From the mockups, not built yet**: the previous action dimmed beside the current one; a "refused" note when the agent sends sequences while the user has control; a running command's output live (needs streaming from the driver); Settings (stage 9).
+4. **ImplementationPlan.md** status row 7, then the user commits.
 
 ## Open items, not blocking
 

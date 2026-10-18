@@ -2,6 +2,7 @@
 #include "AppEnvironment.h"
 #include "CaptureEncoder.h"
 #include "ChildSessionApi.h"
+#include "HostWindow.h"
 #include "McpProbe.h"
 
 using namespace Axodox::Infrastructure;
@@ -214,6 +215,22 @@ namespace SecondShell::Tests
       Assert::Fail(L"the console should have a window");
     }
 
+    //That the session's screen keeps changing: a console opened by the agent shows in the next capture. Without OCR,
+    //which depends on the wallpaper.
+    static void AssertTheScreenFollows(const wchar_t* when)
+    {
+      auto before = FirstImageOf(RunSucceeding(R"([{ "action": "Capture.Screen" }])"));
+      auto opened = RunSucceeding(R"([
+        { "action": "Process.Run", "command": "conhost.exe", "shell": "None", "args": ["cmd.exe", "/d"], "async": true },
+        { "action": "Control.Wait", "duration": 1500 },
+        { "action": "Capture.Screen" }
+      ])");
+      Assert::IsTrue(FirstImageOf(opened) != before, format(L"the capture should show the new console {}", when).c_str());
+
+      auto pid = to_string(uint32_t(NumberOf(ResultAt(opened, 0), "pid")));
+      RunSucceeding(With(R"([{ "action": "Process.Kill", "pid": %pid%, "tree": true }])", { { "pid", pid } }));
+    }
+
   public:
     TEST_CLASS_INITIALIZE(StartSession)
     {
@@ -241,6 +258,43 @@ namespace SecondShell::Tests
       }
 
       CloseHost();
+    }
+
+    TEST_METHOD(TheSessionKeepsWorkingWhateverTheWindowDoes)
+    {
+      HostWindow host;
+      WINDOWPLACEMENT placement{ .length = sizeof(WINDOWPLACEMENT) };
+      GetWindowPlacement(host.Handle(), &placement);
+
+      ShowWindow(host.Handle(), SW_MINIMIZE);
+      AssertTheScreenFollows(L"while the window is minimized");
+
+      ShowWindow(host.Handle(), SW_RESTORE);
+      SetWindowPos(host.Handle(), nullptr, 0, 0, 900, 600, SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE);
+      AssertTheScreenFollows(L"after the window was resized");
+
+      SetWindowPos(host.Handle(), nullptr, 60, 60, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
+      AssertTheScreenFollows(L"after the window was moved");
+
+      SetWindowPlacement(host.Handle(), &placement);
+    }
+
+    TEST_METHOD(StopInterruptsTheAgentUntilControlIsGivenBack)
+    {
+      auto running = async(launch::async, [] { return Run(R"([{ "action": "Control.Wait", "duration": 20000 }])"); });
+      this_thread::sleep_for(1s);
+
+      HostWindow host;
+      host.Click(L"Stop");
+      auto result = running.get();
+      auto& interrupted = Structured(result);
+      Assert::AreEqual(string("UserInterrupted"), StringOf(interrupted, "error"));
+
+      string message;
+      Assert::AreEqual(string("AgentInputDisabled"), RunFailing(R"([{ "action": "Mouse.Move", "x": 10, "y": 10 }])", message), L"stopped, the agent is refused");
+
+      host.Click(L"Give back control");
+      RunSucceeding(R"([{ "action": "Mouse.Move", "x": 10, "y": 10 }])");
     }
 
     TEST_METHOD(TypedTextAppearsInTheCapture)
