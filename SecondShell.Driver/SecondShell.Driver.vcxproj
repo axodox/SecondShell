@@ -51,36 +51,61 @@
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
-      <AdditionalDependencies>d3d11.lib;dxgi.lib;dwmapi.lib;shlwapi.lib;windowscodecs.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>d3d11.lib;dxgi.lib;dwmapi.lib;normaliz.lib;shlwapi.lib;windowscodecs.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="ActionExecutor.h" />
+    <ClInclude Include="AreaTextReader.h" />
+    <ClInclude Include="AtlasLayout.h" />
+    <ClInclude Include="AutomationTextSource.h" />
     <ClInclude Include="CaptureActionHandler.h" />
     <ClInclude Include="CaptureEncoder.h" />
+    <ClInclude Include="ChangedLines.h" />
     <ClInclude Include="ClipboardActionHandler.h" />
     <ClInclude Include="ClipboardFormatConverter.h" />
     <ClInclude Include="ClipboardSyncHandler.h" />
+    <ClInclude Include="DirtyRegion.h" />
+    <ClInclude Include="FrameChangeLog.h" />
     <ClInclude Include="FramePublisher.h" />
     <ClInclude Include="HostConnection.h" />
     <ClInclude Include="IKeyboardInjector.h" />
     <ClInclude Include="IMouseInjector.h" />
     <ClInclude Include="InputInjectorProvider.h" />
     <ClInclude Include="InputStateTracker.h" />
+    <ClInclude Include="ITextRecognizer.h" />
+    <ClInclude Include="IWindowTextSource.h" />
     <ClInclude Include="KeyboardActionHandler.h" />
     <ClInclude Include="KeyboardInjector.h" />
+    <ClInclude Include="LowPriorityTask.h" />
     <ClInclude Include="MotionAnimator.h" />
     <ClInclude Include="MouseActionHandler.h" />
     <ClInclude Include="MouseInjector.h" />
+    <ClInclude Include="PhraseMatcher.h" />
+    <ClInclude Include="Pixels.h" />
     <ClInclude Include="ProcessActionHandler.h" />
     <ClInclude Include="ProcessManager.h" />
+    <ClInclude Include="QuickTextReader.h" />
+    <ClInclude Include="Rect.h" />
+    <ClInclude Include="ScreenBands.h" />
     <ClInclude Include="ScreenCapturer.h" />
+    <ClInclude Include="ScreenChanges.h" />
+    <ClInclude Include="ScreenChangeTracker.h" />
     <ClInclude Include="ScreenConditionWaiter.h" />
+    <ClInclude Include="ScreenFrame.h" />
+    <ClInclude Include="ScreenTextCache.h" />
+    <ClInclude Include="ScreenWord.h" />
+    <ClInclude Include="ShelfPacker.h" />
     <ClInclude Include="ShellCommandBuilder.h" />
-    <ClInclude Include="TextRecognizer.h" />
+    <ClInclude Include="TextAtlas.h" />
+    <ClInclude Include="TextLines.h" />
+    <ClInclude Include="TextSearch.h" />
+    <ClInclude Include="ThoroughTextReader.h" />
+    <ClInclude Include="TileChangeDetector.h" />
     <ClInclude Include="UserInputHandler.h" />
     <ClInclude Include="WindowActionHandler.h" />
     <ClInclude Include="WindowManager.h" />
+    <ClInclude Include="WindowsTextRecognizer.h" />
     <ClInclude Include="pch.h" />
   </ItemGroup>
   <ItemGroup>
@@ -88,11 +113,17 @@
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="ActionExecutor.cpp" />
+    <ClCompile Include="AreaTextReader.cpp" />
+    <ClCompile Include="AtlasLayout.cpp" />
+    <ClCompile Include="AutomationTextSource.cpp" />
     <ClCompile Include="CaptureActionHandler.cpp" />
     <ClCompile Include="CaptureEncoder.cpp" />
+    <ClCompile Include="ChangedLines.cpp" />
     <ClCompile Include="ClipboardActionHandler.cpp" />
     <ClCompile Include="ClipboardFormatConverter.cpp" />
     <ClCompile Include="ClipboardSyncHandler.cpp" />
+    <ClCompile Include="DirtyRegion.cpp" />
+    <ClCompile Include="FrameChangeLog.cpp" />
     <ClCompile Include="FramePublisher.cpp" />
     <ClCompile Include="HostConnection.cpp" />
     <ClCompile Include="InputInjectorProvider.cpp" />
@@ -103,15 +134,28 @@
     <ClCompile Include="MotionAnimator.cpp" />
     <ClCompile Include="MouseActionHandler.cpp" />
     <ClCompile Include="MouseInjector.cpp" />
+    <ClCompile Include="PhraseMatcher.cpp" />
+    <ClCompile Include="Pixels.cpp" />
     <ClCompile Include="ProcessActionHandler.cpp" />
     <ClCompile Include="ProcessManager.cpp" />
+    <ClCompile Include="QuickTextReader.cpp" />
+    <ClCompile Include="ScreenBands.cpp" />
     <ClCompile Include="ScreenCapturer.cpp" />
+    <ClCompile Include="ScreenChangeTracker.cpp" />
     <ClCompile Include="ScreenConditionWaiter.cpp" />
+    <ClCompile Include="ScreenFrame.cpp" />
+    <ClCompile Include="ScreenTextCache.cpp" />
+    <ClCompile Include="ShelfPacker.cpp" />
     <ClCompile Include="ShellCommandBuilder.cpp" />
-    <ClCompile Include="TextRecognizer.cpp" />
+    <ClCompile Include="TextAtlas.cpp" />
+    <ClCompile Include="TextLines.cpp" />
+    <ClCompile Include="TextSearch.cpp" />
+    <ClCompile Include="ThoroughTextReader.cpp" />
+    <ClCompile Include="TileChangeDetector.cpp" />
     <ClCompile Include="UserInputHandler.cpp" />
     <ClCompile Include="WindowActionHandler.cpp" />
     <ClCompile Include="WindowManager.cpp" />
+    <ClCompile Include="WindowsTextRecognizer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\SecondShell.Common\SecondShell.Common.vcxproj">

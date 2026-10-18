@@ -1,12 +1,14 @@
 #include "pch.h"
 #include "ActionExecutor.h"
 #include "AppEnvironment.h"
+#include "AutomationTextSource.h"
 #include "ClipboardSyncHandler.h"
 #include "FramePublisher.h"
 #include "UserInputHandler.h"
 #include "KeyboardInjector.h"
 #include "MouseInjector.h"
 #include "ProductInfo.h"
+#include "WindowsTextRecognizer.h"
 
 using namespace Axodox::Infrastructure;
 using namespace SecondShell::Capture;
@@ -36,6 +38,11 @@ int WINAPI wWinMain(HINSTANCE /*instance*/, HINSTANCE /*previousInstance*/, PWST
     dependency_container container;
     auto connection = container.resolve<HostConnection>();
     if (!connection->Open(10s)) return 1;
+
+    //Text waits: UI Automation and Windows OCR on window crops in the quick tier, Windows OCR on bands upscaled 1.5x in
+    //the thorough one (OcrOptions.md, measured)
+    container.add<QuickTextReader>([] { return make_shared<QuickTextReader>(make_shared<AutomationTextSource>(), make_shared<WindowsTextRecognizer>()); });
+    container.add<ThoroughTextReader>([] { return make_shared<ThoroughTextReader>(make_shared<WindowsTextRecognizer>(1.5)); });
 
     //The handlers are added before the peer starts, but run only after the host has accepted this driver
     container.add<IMouseInjector, MouseInjector>();

@@ -9,9 +9,12 @@
 #include <shlobj.h>
 #include <shlwapi.h>
 #include <tlhelp32.h>
+#include <uiautomation.h>
 #include <wincodec.h>
 #include <windows.graphics.capture.interop.h>
 #include <windows.graphics.directx.direct3d11.interop.h>
+
+#include <thread>
 
 #include <winrt/base.h>
 #include <winrt/Windows.Foundation.h>

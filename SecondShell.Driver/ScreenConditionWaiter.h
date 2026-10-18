@@ -1,7 +1,9 @@
 #pragma once
 #include "CancellationToken.h"
+#include "QuickTextReader.h"
 #include "ScreenCapturer.h"
-#include "TextRecognizer.h"
+#include "ThoroughTextReader.h"
+#include "WindowManager.h"
 
 namespace SecondShell::Capture
 {
@@ -14,11 +16,11 @@ namespace SecondShell::Capture
   struct TextWait
   {
     bool IsFound = false;
-    std::string LastRecognized;  //what the screen showed at the last check, to tell why the text was not found
+    std::string LastRecognized;  //what the screen showed at the last reading, to tell why the text was not found
   };
 
-  //Waits for the screen: until a text appears on it (Capture.WaitForText), or until a region stops changing
-  //(Capture.WaitForStable). Both check at each interval until their timeout or a cancellation.
+  //Waits for the screen: until a text appears on it (Capture.WaitForText, see TextSearch), or until a region stops
+  //changing (Capture.WaitForStable). Both check at each interval until their timeout or a cancellation.
   class ScreenConditionWaiter
   {
   public:
@@ -31,6 +33,8 @@ namespace SecondShell::Capture
 
   private:
     std::shared_ptr<ScreenCapturer> _capturer;
-    std::shared_ptr<TextRecognizer> _recognizer;
+    std::shared_ptr<Desktop::WindowManager> _windows;
+    std::shared_ptr<QuickTextReader> _quickReader;
+    std::shared_ptr<ThoroughTextReader> _thoroughReader;
   };
 }

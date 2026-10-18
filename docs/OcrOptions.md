@@ -58,6 +58,7 @@ Six captures from the child session (in `F:\AI\ocr-test`, with the scripts): a c
 - PP-OCRv6 tiny read everything, including the case Windows OCR cannot, at 30–60x the time.
 - **Detector plus Windows OCR** (PP-OCRv6 tiny's detection model, 2 MB, finds the text lines; Windows OCR reads each line, padded and scaled 2x): banner over wallpaper 2/3 (Windows OCR alone 0/3), consoles 9/9, Explorer 9/11 (very short boxes such as "6 items" come back empty). Detection costs ~750 ms per full screen at full resolution (~200 ms when the module scales the screen down to 960 px, which loses the console text) and ~200 ms per window, in Paddle without oneDNN; recognition of all boxes 10–60 ms.
 - **Windows OCR on the window's crop alone** read the banner window 3/3 with fuzzy matching, in 11 ms: cropping to windows solves the hard case without any model. A detector earns its place only for text outside window structure (canvases, games, images), and then on regions, not the whole screen.
+- **Threads:** Windows OCR does about 70 % of its CPU work on threads of its own (20 recognitions of a 1920x300 band at 1.5x: 78 ms on the calling thread, 266 ms in the process, 267 ms wall), one at a time. A low-priority calling thread therefore lowers only its share, but a recognition uses about one core.
 - Not tried: a small vision LLM (llama.cpp with SmolVLM, Qwen2.5-VL, Gemma 3): 0.5–3 GB of weights, seconds per screen on a CPU, text it may paraphrase, no reliable positions; too heavy to poll, and the AI client already reads captures itself.
 
 ## Engines

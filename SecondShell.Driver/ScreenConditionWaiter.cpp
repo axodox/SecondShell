@@ -1,7 +1,9 @@
 #include "pch.h"
 #include "ScreenConditionWaiter.h"
+#include "TextSearch.h"
 
 using namespace Axodox::Infrastructure;
+using namespace SecondShell::Desktop;
 using namespace SecondShell::Rpc;
 using namespace std;
 using namespace std::chrono;
@@ -24,19 +26,18 @@ namespace SecondShell::Capture
 
   ScreenConditionWaiter::ScreenConditionWaiter(dependency_container* container) :
     _capturer(container->resolve<ScreenCapturer>()),
-    _recognizer(container->resolve<TextRecognizer>())
+    _windows(container->resolve<WindowManager>()),
+    _quickReader(container->resolve<QuickTextReader>()),
+    _thoroughReader(container->resolve<ThoroughTextReader>())
   { }
 
   TextWait ScreenConditionWaiter::WaitForText(string_view text, const WaitOptions& options, const CancellationToken& cancellation)
   {
-    TextWait result;
     auto deadline = steady_clock::now() + options.Timeout;
-    do
-    {
-      result.LastRecognized = _recognizer->Recognize(_capturer->Read(_capturer->Screen(), _frameTimeout));
-      result.IsFound = TextRecognizer::Contains(result.LastRecognized, text);
-    } while (!result.IsFound && WaitForNextCheck(deadline, options.Interval, cancellation));
-    return result;
+    TextSearch search{ text, *_capturer, *_windows, *_quickReader, *_thoroughReader };
+    search.Start();
+    while (!search.IsFound() && WaitForNextCheck(deadline, options.Interval, cancellation)) search.Check();
+    return { search.IsFound(), search.Shown() };
   }
 
   bool ScreenConditionWaiter::WaitForStable(const Rect& region, milliseconds stableFor, const WaitOptions& options, const CancellationToken& cancellation)

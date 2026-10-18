@@ -254,10 +254,10 @@ namespace SecondShell::Actions
     });
 
   json_object_descriptor<CaptureWaitForTextAction> CaptureWaitForTextAction::json_description = describe_json_object<CaptureWaitForTextAction, Action>(
-    { .name = "Capture.WaitForText", .description = "Waits until the text appears on the screen, found with OCR, so it may not be 100% accurate." },
+    { .name = "Capture.WaitForText", .description = "Waits until the text appears on the screen, found with UI Automation and OCR (forgiving small misreads, also across line breaks), so it may not be 100% accurate." },
     {
       { &CaptureWaitForTextAction::Text, "text", { .is_required = true } },
-      { &CaptureWaitForTextAction::Interval, "interval", { .is_required = false, .schema = { .description = "Milliseconds between checks, default 500.", .minimum = 1 } } },
+      { &CaptureWaitForTextAction::Interval, "interval", { .is_required = false, .schema = { .description = "Milliseconds between checks, default 250.", .minimum = 1 } } },
       { &CaptureWaitForTextAction::Timeout, "timeout", { .is_required = false, .schema = { .description = _timeout, .minimum = 0 } } }
     });
 

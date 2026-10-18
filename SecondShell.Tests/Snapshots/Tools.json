@@ -1019,14 +1019,14 @@
                 },
                 {
                   "additionalProperties": false,
-                  "description": "Waits until the text appears on the screen, found with OCR, so it may not be 100% accurate.",
+                  "description": "Waits until the text appears on the screen, found with UI Automation and OCR (forgiving small misreads, also across line breaks), so it may not be 100% accurate.",
                   "properties": {
                     "action": {
                       "const": "Capture.WaitForText",
                       "type": "string"
                     },
                     "interval": {
-                      "description": "Milliseconds between checks, default 500.",
+                      "description": "Milliseconds between checks, default 250.",
                       "minimum": 1,
                       "type": "number"
                     },

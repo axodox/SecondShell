@@ -21,6 +21,7 @@
 #include <deque>
 #include <fstream>
 #include <future>
+#include <thread>
 #include <unordered_set>
 
 #include <winrt/base.h>
