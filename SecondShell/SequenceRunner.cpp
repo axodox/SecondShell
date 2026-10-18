@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "SequenceRunner.h"
+#include "ClipboardActions.h"
 #include "ControlActions.h"
 #include "ProtocolErrors.h"
 
@@ -118,6 +119,8 @@ namespace SecondShell::Agent
     case ActionType::CaptureWindow:
     case ActionType::CaptureRegion:
       return Capture(state, step, index);
+    case ActionType::ClipboardRead:
+      return ReadClipboard(state, step, index);
     default:
       return Execute(state, step);
     }
@@ -164,24 +167,46 @@ namespace SecondShell::Agent
     auto& capture = static_cast<CaptureAction&>(*action);
     if (!capture.Tag) capture.Tag = to_string(index);
 
-    auto destination = _captureStore->Decide(capture, state.InlineCaptures);
+    auto destination = _captureStore->Decide(capture.Output, state.InlineCaptures);
     _captureStore->ApplyDefaults(capture, destination);
 
     auto result = Execute(state, action);
-    if (auto captureResult = dynamic_cast<CaptureResult*>(result.get()))
-    {
-      try
-      {
-        _captureStore->Store(*captureResult, capture, destination, format("{}-{}-{}", state.Sequence, index, *capture.Tag));
-      }
-      catch (const exception& exception)
-      {
-        return ActionResult::Failed(ErrorCode::ActionFailed, exception.what());
-      }
+    auto captureResult = dynamic_cast<CaptureResult*>(result.get());
+    if (!captureResult) return result;
 
-      if (destination.IsInline) state.InlineCaptures++;
+    auto& image = captureResult->Image;
+    return StoreImage(state, move(result), image, capture.Path, destination, format("{}-{}-{}", state.Sequence, index, *capture.Tag));
+  }
+
+  value_ptr<ActionResult> SequenceRunner::ReadClipboard(RunState& state, const value_ptr<Action>& step, uint32_t index)
+  {
+    //An image on the clipboard is returned as a capture is
+    auto action = step;
+    auto& read = static_cast<ClipboardReadAction&>(*action);
+    auto destination = _captureStore->Decide(read.Output, state.InlineCaptures);
+    _captureStore->ApplyDefaults(read);
+
+    auto result = Execute(state, action);
+    auto clipboardResult = dynamic_cast<ClipboardResult*>(result.get());
+    if (!clipboardResult || !clipboardResult->Image) return result;
+
+    auto& image = *clipboardResult->Image;
+    return StoreImage(state, move(result), image, read.Path, destination, format("{}-{}-clipboard", state.Sequence, index));
+  }
+
+  value_ptr<ActionResult> SequenceRunner::StoreImage(RunState& state, value_ptr<ActionResult>&& result, CapturedImage& image, const optional<string>& path, const CaptureDestination& destination, string_view fileStem)
+  {
+    try
+    {
+      _captureStore->Store(image, *result, path, destination, fileStem);
     }
-    return result;
+    catch (const exception& exception)
+    {
+      return ActionResult::Failed(ErrorCode::ActionFailed, exception.what());
+    }
+
+    if (destination.IsInline) state.InlineCaptures++;
+    return move(result);
   }
 
   value_ptr<ActionResult> SequenceRunner::Execute(RunState& state, const value_ptr<Action>& action)

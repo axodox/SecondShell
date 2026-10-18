@@ -158,6 +158,15 @@ namespace SecondShell::Session
     winrt::check_hresult(nonScriptable->put_PromptForCredentials(VARIANT_FALSE));
   }
 
+  void RdpHostWindow::UpdateDisplay(uint32_t width, uint32_t height, uint32_t scale, uint32_t orientation)
+  {
+    //The physical size, in millimeters, of a display with this scaling at 96 DPI
+    auto millimeters = [scale](uint32_t pixels) { return ULONG(pixels * 25.4 * 100 / (96.0 * scale)); };
+
+    CComQIPtr<Rdp::IMsRdpClient9> client(_control);
+    winrt::check_hresult(client->UpdateSessionDisplaySettings(width, height, millimeters(width), millimeters(height), orientation, scale, 100));
+  }
+
   void RdpHostWindow::SetCredentials(wstring_view userName, wstring_view domain, wstring_view password)
   {
     CComQIPtr<Rdp::IMsRdpClient9> client(_control);

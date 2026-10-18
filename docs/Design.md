@@ -72,7 +72,7 @@ A process in the user's session cannot start a process in another session withou
 
 1. Just before connecting to a **new** child session, the host writes the per-user `RunOnce` entry `HKCU\Software\Microsoft\Windows\CurrentVersion\RunOnce\SecondShellDriver` = the absolute path of `SecondShell.Driver.exe`.
 2. Windows starts the driver during the child session's logon and deletes the entry.
-3. The host waits for the driver to connect to its pipe and pass the session guard. If it doesn't within 60 seconds of sign-in, the host reports an error.
+3. The host waits for the driver to connect to its pipe and pass the session guard. If it doesn't within the timeout of `Initialize-Session` (default 3 minutes, as the driver starts with the user's startup programs, which can take more than a minute), the host reports an error.
 4. If the connection fails before logon, or **resumes an existing session** (no new logon happens, and the driver started at that session's logon is normally still running), the host deletes the unconsumed entry.
 
 Compared with a permanent `Run` entry (also verified, Findings.md 2.8), `RunOnce` doesn't start the driver at the user's normal logons, doesn't appear in Task Manager's startup list, and can't be disabled there by accident. If the host crashes between writing the entry and the logon, the entry runs at the user's next normal logon instead; the session guard makes the driver exit immediately there, and the host deletes any leftover entry on its next start.
@@ -96,7 +96,7 @@ Every SecondShell program that runs in the child session (the driver) must make 
 This prevents a misdirected start from moving the user's real mouse or showing windows on the user's desktop. That happened once in testing, with COM starting a test program in the user's session (Findings.md 2.7). The same guard, based on a file instead of the pipe, was verified with test programs started both by COM and as a startup app.
 ## MCP tools
 
-- `Initialize-Session`: initializes a new session and starts the second shell process. Display settings and capture settings (see `Configure-Capture`) can be specified, otherwise the defaults will be used. Waits until the login is complete, or until its timeout expires (default 60 seconds).
+- `Initialize-Session`: initializes a new session and starts the second shell process. Display settings and capture settings (see `Configure-Capture`) can be specified, otherwise the defaults will be used. Waits until the login is complete, or until its timeout expires (default 3 minutes).
 
 - `Check-Session`: checks the status of the current session and returns information about the session, such as whether it is active, the display settings, and the process ID of the second shell process. Normally it can be assumed after initialization that the session is active, and running a sequence will check the session status anyways and return an error if the session is not active.
 
@@ -104,7 +104,7 @@ This prevents a misdirected start from moving the user's real mouse or showing w
 
 - `Run-Sequence`: performs a sequence of actions, this is the main tool used by the AI agent to perform input simulation and screen capture.
 
-- `Set-Display`: sets the display resolution and other display settings.
+- `Set-Display`: sets the display resolution and other display settings (resolution, scaling, orientation); settings left out stay as they are. Returns once captures show the new size.
 
 - `Get-Display`: gets the current display settings and information.
 
@@ -181,13 +181,14 @@ All coordinates, sizes and regions in actions and results are in **session pixel
   - `shell` selects how `command` is interpreted: `PowerShell` (default, Windows PowerShell), `Pwsh` (PowerShell 7, if installed), `Cmd`, or `None`. With `None`, `command` is the path of an executable and `args` its arguments, passed without any shell parsing. The default shell can be changed in the SecondShell settings.
   - `workingDirectory` is optional; default is the user's profile folder.
   - Synchronous (default): waits for the process to exit, then returns its exit code and its output and error streams. Each stream is truncated to 64 KB, and the result says if it was. If `timeout` (default 10 seconds) expires, the sequence stops with a `Timeout` error; the process keeps running and its PID is reported, so it can be stopped or killed.
-  - Asynchronous (`"async": true`): returns the PID immediately and the process runs in parallel with the next actions. Use this to start GUI applications, which otherwise block until they are closed. `Process.WaitForProcess` waits for it later.
+  - Synchronous runs have no window and an empty input stream, so they suit commands, not programs to interact with.
+  - Asynchronous (`"async": true`): starts the program as Explorer would and returns its PID immediately; it keeps running in parallel with the next actions, and `Control.Join` does not wait for it. Console programs get a window of their own, and nothing is redirected, so the output is not collected. Use this for GUI applications, which otherwise block until they are closed, and for consoles to interact with. With `shell` `None` the PID is the program's own; with a shell it is the shell's. `Process.WaitForProcess` waits for it later.
 
 - `{ "action": "Process.Stop", "pid": pid, "timeout": timeoutMS }`: **Stop process**: asks the process to exit gracefully, like a user would: its windows receive a close request (as when clicking X), and console processes receive Ctrl+C. The application may still ask for confirmation (e.g. to save changes). Waits up to `timeout` (default 10 seconds) for the process to exit and returns its exit code. If it hasn't exited by then, the sequence stops with a `Timeout` error; use `Process.Kill` to force it.
 
 - `{ "action": "Process.Kill", "pid": pid, "tree": true/false }`: **Kill process**: terminates the process immediately, without giving it a chance to save or clean up. With `"tree": true` its child processes are terminated as well (default false). Returns once the process has exited.
 
-- `{ "action": "Process.WaitForProcess", "pid": pid, "timeout": timeoutMS }`: **Wait for process**: waits for the specified process to complete before executing the next action, and returns its exit code. For processes started with `Process.Run`, also returns their output and error streams (truncated as above). The PID of the process can be obtained from a previous `Process.Run` action. The timeout is the maximum time to wait for the process to complete, default is 10 seconds.
+- `{ "action": "Process.WaitForProcess", "pid": pid, "timeout": timeoutMS }`: **Wait for process**: waits for the specified process to complete before executing the next action, and returns its exit code. The PID of the process can be obtained from a previous `Process.Run` action. The timeout is the maximum time to wait for the process to complete, default is 10 seconds.
 
 - `{ "action": "Process.Enumerate" }`: **Enumerate processes**: returns a list of all running processes with their PIDs, names, and other relevant information, such as CPU/GPU/RAM/disk/network utilization.
 
@@ -323,7 +324,7 @@ Clipboard content is described by a **format** and its **data**:
 | `files` | array of file paths (valid in the session, which shares the user's file system) | `CF_HDROP` |
 | `raw` | base64-encoded bytes, plus `"name"`: a registered clipboard format name or a standard format number | as named |
 
-- `{ "action": "Clipboard.Read", "format": format }`: **Read clipboard**: reads the clipboard in the requested format. Without `format`, returns the list of formats currently on the clipboard plus the text, if there is any. Images are returned like captures: inline by default, and the capture output fields (`output`, `path`, `resolution`) apply. Raw data is limited to 1 MB.
+- `{ "action": "Clipboard.Read", "format": format }`: **Read clipboard**: reads the clipboard in the requested format, and lists the formats currently on it. Without `format`, returns the text too, if there is any. For `raw`, `"name"` gives the clipboard format, as for writing. Images are returned like captures: inline by default, and the capture output fields (`output`, `path`, `resolution`) apply. Raw data is limited to 1 MB.
 
 - `{ "action": "Clipboard.Write", "content": [{ "format": format, "data": data }] }`: **Write clipboard**: replaces the clipboard content. `content` is a list, so the same content can be offered in several formats at once (e.g. `text` and `html`), as applications usually do.
 

@@ -69,4 +69,27 @@ namespace SecondShell::Capture
     winrt::check_hresult(IStream_Read(stream.get(), result.Data.data(), ULONG(result.Data.size())));
     return result;
   }
+
+  Pixels CaptureEncoder::Decode(span<const uint8_t> file) const
+  {
+    winrt::com_ptr<IStream> stream;
+    stream.attach(SHCreateMemStream(file.data(), UINT(file.size())));
+    if (!stream) throw bad_alloc();
+
+    winrt::com_ptr<IWICBitmapDecoder> decoder;
+    if (FAILED(_factory->CreateDecoderFromStream(stream.get(), nullptr, WICDecodeMetadataCacheOnDemand, decoder.put()))) throw invalid_argument("The data is not an image.");
+
+    winrt::com_ptr<IWICBitmapFrameDecode> frame;
+    winrt::check_hresult(decoder->GetFrame(0, frame.put()));
+
+    winrt::com_ptr<IWICFormatConverter> converter;
+    winrt::check_hresult(_factory->CreateFormatConverter(converter.put()));
+    winrt::check_hresult(converter->Initialize(frame.get(), GUID_WICPixelFormat32bppBGRA, WICBitmapDitherTypeNone, nullptr, 0, WICBitmapPaletteTypeCustom));
+
+    Pixels pixels;
+    winrt::check_hresult(converter->GetSize(&pixels.Width, &pixels.Height));
+    pixels.Bgra.resize(size_t(pixels.Width) * pixels.Height * 4);
+    winrt::check_hresult(converter->CopyPixels(nullptr, pixels.Width * 4, UINT(pixels.Bgra.size()), pixels.Bgra.data()));
+    return pixels;
+  }
 }

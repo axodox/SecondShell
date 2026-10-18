@@ -17,6 +17,7 @@ using namespace std::chrono;
 namespace SecondShell::Session
 {
   const milliseconds _resetTimeout{ 5000 };
+  const milliseconds _screenTimeout{ 5000 };
   const milliseconds _cancellationPollInterval{ 100 };
 
   //One client of the driver pipe, accepted or not.
@@ -123,6 +124,15 @@ namespace SecondShell::Session
 
     CancellationToken noCancellation;
     return driver->Peer.Request(ResetInputRequest{}, _resetTimeout, noCancellation);
+  }
+
+  RpcResult<ScreenResponse> DriverLink::GetScreen()
+  {
+    auto driver = Driver();
+    if (!driver) return ProtocolErrors::Make(ErrorCode::SessionNotActive, "The driver is not connected.");
+
+    CancellationToken noCancellation;
+    return driver->Peer.Request(GetScreenRequest{}, _screenTimeout, noCancellation);
   }
 
   void DriverLink::OnClientConnected(messaging_server* /*server*/, messaging_channel* channel)

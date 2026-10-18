@@ -9,6 +9,7 @@ namespace SecondShell::Actions
     static Axodox::Json::json_object_descriptor<ClipboardReadAction> json_description;
 
     std::optional<ClipboardFormat> Format;
+    std::optional<std::string> Name;
     std::optional<CaptureOutput> Output;
     std::optional<std::string> Path;
     std::optional<Size> Resolution;

@@ -14,8 +14,8 @@ namespace SecondShell::Actions
   json_object_descriptor<ClipboardContent> ClipboardContent::json_description = describe_json_object<ClipboardContent>({
     { &ClipboardContent::Format, "format", { .is_required = true } },
     { &ClipboardContent::Data, "data", { .is_required = false, .schema = { .description = "text and html: a string; image and raw: base64; files: an array of paths." } } },
-    { &ClipboardContent::Path, "path", { .is_required = false, .schema = { .description = "image: a PNG file to put on the clipboard instead of data." } } },
-    { &ClipboardContent::Name, "name", { .is_required = false, .schema = { .description = "raw: a registered clipboard format name or a standard format number." } } }
+    { &ClipboardContent::Path, "path", { .is_required = false, .schema = { .description = "image: an image file (PNG, JPEG, BMP, ...) to put on the clipboard instead of data." } } },
+    { &ClipboardContent::Name, "name", { .is_required = false, .schema = { .description = "raw: a registered clipboard format name, a standard one such as CF_UNICODETEXT, or a format number." } } }
     });
 
   json_object_descriptor<InputState> InputState::json_description = describe_json_object<InputState>({

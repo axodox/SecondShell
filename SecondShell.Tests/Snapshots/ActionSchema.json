@@ -1009,7 +1009,7 @@
     },
     {
       "additionalProperties": false,
-      "description": "Runs a command in the session. Synchronous by default: waits for the exit and returns the exit code and the output and error streams (each truncated to 64 KB). Use async for GUI applications, which otherwise block until closed: it returns the process ID at once.",
+      "description": "Runs a command in the session. Synchronous by default: waits for the exit and returns the exit code and the output and error streams (each truncated to 64 KB). Use async for programs that keep running, e.g. GUI applications or a console to interact with: it starts the program as Explorer would and returns its process ID at once; with shell None the ID is the program's own.",
       "properties": {
         "action": {
           "const": "Process.Run",
@@ -1023,7 +1023,7 @@
           "type": "array"
         },
         "async": {
-          "description": "Return the process ID at once and run in parallel; wait for it later with Process.WaitForProcess.",
+          "description": "Start the program as Explorer would (console programs get a window, nothing is redirected) and return its process ID at once; Control.Join does not wait for it, Process.WaitForProcess does.",
           "type": "boolean"
         },
         "command": {
@@ -1105,7 +1105,7 @@
     },
     {
       "additionalProperties": false,
-      "description": "Waits for a process to exit and returns its exit code, and for processes started with Process.Run also their output.",
+      "description": "Waits for a process to exit and returns its exit code.",
       "properties": {
         "action": {
           "const": "Process.WaitForProcess",
@@ -1143,7 +1143,7 @@
     },
     {
       "additionalProperties": false,
-      "description": "Reads the session's clipboard (separate from the user's). Without format: the list of formats on the clipboard and the text, if any. Images are returned like captures.",
+      "description": "Reads the session's clipboard (separate from the user's). Always lists the formats on the clipboard; without format also returns the text, if any. Images are returned like captures. Raw data is limited to 1 MB.",
       "properties": {
         "action": {
           "const": "Clipboard.Read",
@@ -1158,6 +1158,10 @@
             "Files",
             "Raw"
           ],
+          "type": "string"
+        },
+        "name": {
+          "description": "For Raw: a registered clipboard format name, a standard one such as CF_UNICODETEXT, or a format number.",
           "type": "string"
         },
         "output": {
@@ -1222,11 +1226,11 @@
                 "type": "string"
               },
               "name": {
-                "description": "raw: a registered clipboard format name or a standard format number.",
+                "description": "raw: a registered clipboard format name, a standard one such as CF_UNICODETEXT, or a format number.",
                 "type": "string"
               },
               "path": {
-                "description": "image: a PNG file to put on the clipboard instead of data.",
+                "description": "image: an image file (PNG, JPEG, BMP, ...) to put on the clipboard instead of data.",
                 "type": "string"
               }
             },

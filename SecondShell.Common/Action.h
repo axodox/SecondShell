@@ -19,6 +19,7 @@ namespace SecondShell::Actions
 
     //For actions which wait for something: how long they may wait, if the action sets it.
     virtual std::optional<std::chrono::milliseconds> WaitTimeout() const;
+    static constexpr std::chrono::milliseconds DefaultWaitTimeout{ 10000 };
 
     //The action name, e.g. "Mouse.Click".
     const char* Name() const;

@@ -86,19 +86,29 @@ namespace SecondShell::Mcp
   {
     for (auto& result : response.Results)
     {
-      auto capture = dynamic_cast<CaptureResult*>(result.get());
-      if (!capture || capture->Image.Data.empty()) continue;
-
-      //A caption ties the image to its capture in the structured result, which keeps everything but the data
-      auto& image = capture->Image;
-      auto caption = make_value<TextContent>();
-      caption->Text = format("Capture {}: {}x{} pixels, scale {}.", capture->Tag, image.Width, image.Height, image.Scale);
-      context.Content.push_back(move(caption));
-
-      auto content = make_value<ImageContent>();
-      content->Data = exchange(image.Data, {});
-      content->MimeType = image.Format == ImageFormat::Jpeg ? "image/jpeg" : "image/png";
-      context.Content.push_back(move(content));
+      //A caption ties the image to its result in the structured result, which keeps everything but the data
+      if (auto capture = dynamic_cast<CaptureResult*>(result.get()))
+      {
+        AddImage(capture->Image, format("Capture {}", capture->Tag), context);
+      }
+      else if (auto clipboard = dynamic_cast<ClipboardResult*>(result.get()); clipboard && clipboard->Image)
+      {
+        AddImage(*clipboard->Image, "Clipboard image", context);
+      }
     }
+  }
+
+  void SessionToolSource::AddImage(CapturedImage& image, string_view name, ToolContext& context)
+  {
+    if (image.Data.empty()) return;
+
+    auto caption = make_value<TextContent>();
+    caption->Text = format("{}: {}x{} pixels, scale {}.", name, image.Width, image.Height, image.Scale);
+    context.Content.push_back(move(caption));
+
+    auto content = make_value<ImageContent>();
+    content->Data = exchange(image.Data, {});
+    content->MimeType = image.Format == ImageFormat::Jpeg ? "image/jpeg" : "image/png";
+    context.Content.push_back(move(content));
   }
 }

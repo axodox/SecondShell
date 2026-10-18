@@ -7,6 +7,24 @@ using namespace std;
 
 namespace SecondShell::Session
 {
+  namespace
+  {
+    uint32_t OrientationDegrees(DisplayOrientation orientation)
+    {
+      switch (orientation)
+      {
+      case DisplayOrientation::Portrait:
+        return 90;
+      case DisplayOrientation::LandscapeFlipped:
+        return 180;
+      case DisplayOrientation::PortraitFlipped:
+        return 270;
+      default:
+        return 0;
+      }
+    }
+  }
+
   RdpClient::RdpClient(dependency_container* container) :
     LoginCompleted(_events),
     Disconnected(_events),
@@ -38,6 +56,16 @@ namespace SecondShell::Session
     _thread.Invoke([this] {
       if (_window) _window->Disconnect();
       });
+  }
+
+  void RdpClient::UpdateDisplay(const DisplaySettings& display)
+  {
+    _thread.Invoke([&] {
+      if (!_window) throw runtime_error("There is no connection to the child session.");
+      _window->UpdateDisplay(display.Width, display.Height, display.Scale, OrientationDegrees(display.Orientation));
+      });
+
+    _logger.log(log_severity::information, "Changing the display to {}x{}, {}%, {}.", display.Width, display.Height, display.Scale, to_string(display.Orientation));
   }
 
   void RdpClient::OnEvent(string_view name, long argument)

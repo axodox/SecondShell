@@ -35,6 +35,8 @@ namespace SecondShell::Capture
 
     //A region of the newest frame; waits for the first frame. Throws if the region is not inside the screen.
     Pixels Read(const Rect& region, std::chrono::milliseconds timeout);
+    //The screen as the newest frame shows it, so captures and their regions agree, also while a resolution change
+    //reaches the frames.
     Rect Screen() const;
 
   private:
@@ -47,7 +49,7 @@ namespace SecondShell::Capture
     winrt::Windows::Graphics::SizeInt32 _poolSize{};  //after Start, used on the frame pool's thread only
 
     //Guards the context and the newest frame, which the frame pool's thread replaces
-    std::mutex _mutex;
+    mutable std::mutex _mutex;
     std::condition_variable _frameArrived;
     winrt::com_ptr<ID3D11Texture2D> _frame;
 

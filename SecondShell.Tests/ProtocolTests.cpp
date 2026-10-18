@@ -143,6 +143,16 @@ namespace SecondShell::Tests
       Assert::IsTrue(error.find("'width'") != string::npos, to_wstring(error).c_str());
     }
 
+    TEST_METHOD(DisplayChangesKeepWhatTheyLeaveOut)
+    {
+      DisplayChange change{ .Scale = 150 };
+      auto display = change.ApplyTo({ .Width = 2560, .Height = 1440, .Scale = 100, .Orientation = DisplayOrientation::Portrait });
+      Assert::AreEqual(2560u, display.Width);
+      Assert::AreEqual(1440u, display.Height);
+      Assert::AreEqual(150u, display.Scale);
+      Assert::IsTrue(display.Orientation == DisplayOrientation::Portrait);
+    }
+
     TEST_METHOD(ErrorCodesMapToRpcErrors)
     {
       for (auto& code : enum_values<ErrorCode>())

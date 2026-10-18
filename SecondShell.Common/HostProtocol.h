@@ -74,7 +74,10 @@ namespace SecondShell::Protocol
   {
     static Axodox::Json::json_object_descriptor<InitializeSessionRequest> json_description;
     using ResponseType = SessionResponse;
-    static constexpr std::chrono::milliseconds DefaultTimeout{ 60000 };
+
+    //Sign-in and the driver's start: the driver starts with the user's startup programs, after the machine's, which
+    //can take more than a minute (Findings.md 2.16)
+    static constexpr std::chrono::milliseconds DefaultTimeout{ 180000 };
 
     std::optional<DisplaySettings> Display;
     std::optional<CaptureSettings> Capture;
@@ -149,12 +152,25 @@ namespace SecondShell::Protocol
     DisplaySettings Display;
   };
 
+  //Display settings to change; what is not set stays as it is.
+  struct SECONDSHELL_COMMON_API DisplayChange
+  {
+    static Axodox::Json::json_object_descriptor<DisplayChange> json_description;
+
+    std::optional<uint32_t> Width;
+    std::optional<uint32_t> Height;
+    std::optional<uint32_t> Scale;
+    std::optional<DisplayOrientation> Orientation;
+
+    DisplaySettings ApplyTo(DisplaySettings settings) const;
+  };
+
   struct SECONDSHELL_COMMON_API SetDisplayRequest
   {
     static Axodox::Json::json_object_descriptor<SetDisplayRequest> json_description;
     using ResponseType = DisplayResponse;
 
-    DisplaySettings Display;
+    DisplayChange Display;
   };
 
   struct SECONDSHELL_COMMON_API GetDisplayRequest

@@ -85,6 +85,16 @@ namespace SecondShell::Capture
 
   Rect ScreenCapturer::Screen() const
   {
+    {
+      lock_guard lock{ _mutex };
+      if (_frame)
+      {
+        D3D11_TEXTURE2D_DESC description;
+        _frame->GetDesc(&description);
+        return { 0, 0, description.Width, description.Height };
+      }
+    }
+
     return { 0, 0, uint32_t(GetSystemMetrics(SM_CXSCREEN)), uint32_t(GetSystemMetrics(SM_CYSCREEN)) };
   }
 
@@ -104,8 +114,14 @@ namespace SecondShell::Capture
     winrt::com_ptr<ID3D11Texture2D> texture;
     winrt::check_hresult(frame.Surface().as<::Windows::Graphics::DirectX::Direct3D11::IDirect3DDxgiInterfaceAccess>()->GetInterface(IID_PPV_ARGS(texture.put())));
 
+    //The frame which shows a resolution change still has a texture of the old size: the content is kept if it fits, and
+    //otherwise the next frame of the recreated pool has it
     D3D11_TEXTURE2D_DESC description;
     texture->GetDesc(&description);
+    if (uint32_t(size.Width) > description.Width || uint32_t(size.Height) > description.Height) return;
+
+    description.Width = size.Width;
+    description.Height = size.Height;
     description.Usage = D3D11_USAGE_DEFAULT;
     description.BindFlags = 0;
     description.CPUAccessFlags = 0;
@@ -122,7 +138,8 @@ namespace SecondShell::Capture
         winrt::check_hresult(_device->CreateTexture2D(&description, nullptr, _frame.put()));
       }
 
-      _context->CopyResource(_frame.get(), texture.get());
+      D3D11_BOX content{ 0, 0, 0, description.Width, description.Height, 1 };
+      _context->CopySubresourceRegion(_frame.get(), 0, 0, 0, 0, texture.get(), 0, &content);
     }
     _frameArrived.notify_all();
   }

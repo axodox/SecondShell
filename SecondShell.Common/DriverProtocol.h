@@ -70,6 +70,23 @@ namespace SecondShell::Protocol
   };
 #pragma endregion
 
+#pragma region screen/get
+  struct SECONDSHELL_COMMON_API ScreenResponse
+  {
+    static Axodox::Json::json_object_descriptor<ScreenResponse> json_description;
+
+    uint32_t Width = 0;
+    uint32_t Height = 0;
+  };
+
+  //Host to driver: the size of the session's screen, as the driver sees it, e.g. once a display change has applied.
+  struct SECONDSHELL_COMMON_API GetScreenRequest
+  {
+    static Axodox::Json::json_object_descriptor<GetScreenRequest> json_description;
+    using ResponseType = ScreenResponse;
+  };
+#pragma endregion
+
 #pragma region frames/subscribe
   struct SECONDSHELL_COMMON_API SubscribeFramesResponse
   {

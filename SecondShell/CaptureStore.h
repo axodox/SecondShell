@@ -2,6 +2,7 @@
 #include "ActionResult.h"
 #include "AppEnvironment.h"
 #include "CaptureActions.h"
+#include "ClipboardActions.h"
 #include "HostProtocol.h"
 
 namespace SecondShell::Agent
@@ -14,8 +15,8 @@ namespace SecondShell::Agent
     bool IsOverInlineLimit = false;  //asked for inline, but the sequence has returned its most inline captures
   };
 
-  //The capture settings, and what happens to captures (Design.md, Capture output): the inline limit per sequence,
-  //defaults for the actions, and saving files in the session's capture folder.
+  //The capture settings, and what happens to captures and clipboard images (Design.md, Capture output): the inline
+  //limit per sequence, defaults for the actions, and saving files in the session's capture folder.
   class CaptureStore
   {
   public:
@@ -24,13 +25,15 @@ namespace SecondShell::Agent
     Protocol::CaptureSettings Settings() const;
     void Configure(const Protocol::CaptureSettings& settings);
 
-    CaptureDestination Decide(const Actions::CaptureAction& action, uint32_t inlineCountSoFar) const;
+    CaptureDestination Decide(const std::optional<Actions::CaptureOutput>& output, uint32_t inlineCountSoFar) const;
 
     //Fills in what the action leaves to the settings; inline captures are always PNG.
     void ApplyDefaults(Actions::CaptureAction& action, const CaptureDestination& destination) const;
+    void ApplyDefaults(Actions::ClipboardReadAction& action) const;
 
-    //Saves the image if it goes to file, and drops its data unless it goes inline.
-    void Store(Actions::CaptureResult& result, const Actions::CaptureAction& action, const CaptureDestination& destination, std::string_view fileStem) const;
+    //Saves the image if it goes to file (to the path, if given), and drops its data unless it goes inline. Notes on the
+    //result when the inline limit sent the image to file.
+    void Store(Actions::CapturedImage& image, Actions::ActionResult& result, const std::optional<std::string>& path, const CaptureDestination& destination, std::string_view fileStem) const;
 
   private:
     std::shared_ptr<Environment::AppEnvironment> _environment;

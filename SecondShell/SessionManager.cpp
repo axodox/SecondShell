@@ -13,6 +13,7 @@ namespace SecondShell::Session
 {
   const milliseconds _logOffTimeout{ 15000 };
   const milliseconds _pollInterval{ 100 };
+  const milliseconds _displayTimeout{ 10000 };
 
   namespace
   {
@@ -83,6 +84,46 @@ namespace SecondShell::Session
     SetState(SessionState::Stopping);
     CleanUp();
     SetState(SessionState::Stopped);
+  }
+
+  optional<JsonRpcError> SessionManager::SetDisplay(const DisplayChange& change, const CancellationToken& cancellation)
+  {
+    lock_guard startLock{ _startMutex };
+    auto info = Info();
+    if (info.State != SessionState::Ready || !info.Display) return ProtocolErrors::Make(ErrorCode::SessionNotActive, "No session is running; start one with Initialize-Session.");
+
+    auto display = change.ApplyTo(*info.Display);
+
+    try
+    {
+      _rdpClient->UpdateDisplay(display);
+    }
+    catch (const exception& exception)
+    {
+      return ProtocolErrors::Make(ErrorCode::ActionFailed, format("The session did not take the display settings: {}", exception.what()));
+    }
+    catch (const winrt::hresult_error& error)
+    {
+      return ProtocolErrors::Make(ErrorCode::ActionFailed, format("The session did not take the display settings: {}", winrt::to_string(error.message())));
+    }
+
+    //A rotated screen may report its sides either way
+    auto isApplied = [&] {
+      auto screen = _driverLink->GetScreen();
+      auto size = get_if<ScreenResponse>(&screen);
+      return size && minmax(size->Width, size->Height) == minmax(display.Width, display.Height);
+      };
+
+    auto deadline = steady_clock::now() + _displayTimeout;
+    while (!isApplied())
+    {
+      if (steady_clock::now() > deadline) return ProtocolErrors::Make(ErrorCode::Timeout, format("The session did not change to {}x{} within {}.", display.Width, display.Height, duration_cast<seconds>(_displayTimeout)));
+      if (cancellation.WaitFor(_pollInterval)) return JsonRpcError{ JsonRpcErrorCode::RequestCancelled, "Changing the display was cancelled." };
+    }
+
+    lock_guard lock{ _mutex };
+    _display = display;
+    return nullopt;
   }
 
   optional<JsonRpcError> SessionManager::ResetExistingSession(const optional<ExistingSessionPolicy>& policy)

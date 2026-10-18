@@ -317,11 +317,11 @@
               "type": "string"
             },
             "name": {
-              "description": "raw: a registered clipboard format name or a standard format number.",
+              "description": "raw: a registered clipboard format name, a standard one such as CF_UNICODETEXT, or a format number.",
               "type": "string"
             },
             "path": {
-              "description": "image: a PNG file to put on the clipboard instead of data.",
+              "description": "image: an image file (PNG, JPEG, BMP, ...) to put on the clipboard instead of data.",
               "type": "string"
             }
           },

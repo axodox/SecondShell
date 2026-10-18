@@ -58,6 +58,9 @@
     <ClInclude Include="ActionExecutor.h" />
     <ClInclude Include="CaptureActionHandler.h" />
     <ClInclude Include="CaptureEncoder.h" />
+    <ClInclude Include="ClipboardActionHandler.h" />
+    <ClInclude Include="ClipboardFormatConverter.h" />
+    <ClInclude Include="ClipboardManager.h" />
     <ClInclude Include="HostConnection.h" />
     <ClInclude Include="IKeyboardInjector.h" />
     <ClInclude Include="IMouseInjector.h" />
@@ -65,10 +68,18 @@
     <ClInclude Include="InputStateTracker.h" />
     <ClInclude Include="KeyboardActionHandler.h" />
     <ClInclude Include="KeyboardInjector.h" />
+    <ClInclude Include="MessageWindow.h" />
     <ClInclude Include="MotionAnimator.h" />
     <ClInclude Include="MouseActionHandler.h" />
     <ClInclude Include="MouseInjector.h" />
+    <ClInclude Include="ProcessActionHandler.h" />
+    <ClInclude Include="ProcessManager.h" />
     <ClInclude Include="ScreenCapturer.h" />
+    <ClInclude Include="ScreenConditionWaiter.h" />
+    <ClInclude Include="ShellCommandBuilder.h" />
+    <ClInclude Include="TextRecognizer.h" />
+    <ClInclude Include="WindowActionHandler.h" />
+    <ClInclude Include="WindowManager.h" />
     <ClInclude Include="pch.h" />
   </ItemGroup>
   <ItemGroup>
@@ -78,16 +89,27 @@
     <ClCompile Include="ActionExecutor.cpp" />
     <ClCompile Include="CaptureActionHandler.cpp" />
     <ClCompile Include="CaptureEncoder.cpp" />
+    <ClCompile Include="ClipboardActionHandler.cpp" />
+    <ClCompile Include="ClipboardFormatConverter.cpp" />
+    <ClCompile Include="ClipboardManager.cpp" />
     <ClCompile Include="HostConnection.cpp" />
     <ClCompile Include="InputInjectorProvider.cpp" />
     <ClCompile Include="InputStateTracker.cpp" />
     <ClCompile Include="KeyboardActionHandler.cpp" />
     <ClCompile Include="KeyboardInjector.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="MessageWindow.cpp" />
     <ClCompile Include="MotionAnimator.cpp" />
     <ClCompile Include="MouseActionHandler.cpp" />
     <ClCompile Include="MouseInjector.cpp" />
+    <ClCompile Include="ProcessActionHandler.cpp" />
+    <ClCompile Include="ProcessManager.cpp" />
     <ClCompile Include="ScreenCapturer.cpp" />
+    <ClCompile Include="ScreenConditionWaiter.cpp" />
+    <ClCompile Include="ShellCommandBuilder.cpp" />
+    <ClCompile Include="TextRecognizer.cpp" />
+    <ClCompile Include="WindowActionHandler.cpp" />
+    <ClCompile Include="WindowManager.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\SecondShell.Common\SecondShell.Common.vcxproj">

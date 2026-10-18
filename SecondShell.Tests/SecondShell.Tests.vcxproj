@@ -70,8 +70,10 @@
     </ClCompile>
     <ClCompile Include="ActionTests.cpp" />
     <ClCompile Include="CancellationTokenTests.cpp" />
+    <ClCompile Include="ClipboardFormatConverterTests.cpp" />
     <ClCompile Include="CredentialStoreTests.cpp" />
     <ClCompile Include="CaptureEncoderTests.cpp" />
+    <ClCompile Include="CaptureStoreTests.cpp" />
     <ClCompile Include="DriverInputTests.cpp" />
     <ClCompile Include="DriverLinkTests.cpp" />
     <ClCompile Include="EnvironmentTests.cpp" />
@@ -89,13 +91,18 @@
     <ClCompile Include="SequenceRunnerTests.cpp" />
     <ClCompile Include="SessionProbeTests.cpp" />
     <ClCompile Include="SessionToolSourceTests.cpp" />
+    <ClCompile Include="ShellCommandBuilderTests.cpp" />
+    <ClCompile Include="TextRecognizerTests.cpp" />
   </ItemGroup>
   <ItemGroup Label="SecondShell.Driver">
     <ClCompile Include="..\SecondShell.Driver\CaptureEncoder.cpp" />
+    <ClCompile Include="..\SecondShell.Driver\ClipboardFormatConverter.cpp" />
     <ClCompile Include="..\SecondShell.Driver\InputStateTracker.cpp" />
     <ClCompile Include="..\SecondShell.Driver\KeyboardActionHandler.cpp" />
     <ClCompile Include="..\SecondShell.Driver\MotionAnimator.cpp" />
     <ClCompile Include="..\SecondShell.Driver\MouseActionHandler.cpp" />
+    <ClCompile Include="..\SecondShell.Driver\ShellCommandBuilder.cpp" />
+    <ClCompile Include="..\SecondShell.Driver\TextRecognizer.cpp" />
   </ItemGroup>
   <ItemGroup Label="SecondShell">
     <ClCompile Include="..\SecondShell\ActionLog.cpp" />

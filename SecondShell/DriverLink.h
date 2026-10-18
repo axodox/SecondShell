@@ -28,6 +28,9 @@ namespace SecondShell::Session
     virtual Rpc::RpcResult<Protocol::ExecuteActionResponse> Execute(const Protocol::ExecuteActionRequest& request, std::chrono::milliseconds timeout, const Rpc::CancellationToken& cancellation) override;
     virtual Rpc::RpcResult<Protocol::ResetInputResponse> ResetInput() override;
 
+    //The screen size the driver sees; fails with SessionNotActive if no driver is connected.
+    Rpc::RpcResult<Protocol::ScreenResponse> GetScreen();
+
   private:
     Axodox::Networking::named_pipe_messaging_server _server;
     Axodox::Infrastructure::event_subscription _clientConnectedSubscription;

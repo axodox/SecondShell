@@ -1,9 +1,12 @@
 #pragma once
 #include "CaptureActionHandler.h"
+#include "ClipboardActionHandler.h"
 #include "DriverProtocol.h"
 #include "HostConnection.h"
 #include "KeyboardActionHandler.h"
 #include "MouseActionHandler.h"
+#include "ProcessActionHandler.h"
+#include "WindowActionHandler.h"
 
 namespace SecondShell::Driver
 {
@@ -24,6 +27,10 @@ namespace SecondShell::Driver
     std::shared_ptr<MouseActionHandler> _mouse;
     std::shared_ptr<KeyboardActionHandler> _keyboard;
     std::shared_ptr<CaptureActionHandler> _capture;
+    std::shared_ptr<WindowActionHandler> _windows;
+    std::shared_ptr<ProcessActionHandler> _processes;
+    std::shared_ptr<ClipboardActionHandler> _clipboard;
+    std::shared_ptr<Capture::ScreenCapturer> _capturer;
 
     std::mutex _mutex;
     std::unordered_map<uint64_t, std::shared_ptr<Rpc::CancellationToken>> _asyncActions;
@@ -31,6 +38,7 @@ namespace SecondShell::Driver
 
     Rpc::RpcResult<Protocol::ExecuteActionResponse> ExecuteAction(const Protocol::ExecuteActionRequest& request, const Rpc::CancellationToken& cancellation);
     Rpc::RpcResult<Protocol::ResetInputResponse> ResetInput(const Protocol::ResetInputRequest& request, const Rpc::CancellationToken& cancellation);
+    Rpc::RpcResult<Protocol::ScreenResponse> GetScreen(const Protocol::GetScreenRequest& request, const Rpc::CancellationToken& cancellation);
 
     Axodox::Infrastructure::value_ptr<Actions::ActionResult> Execute(const Actions::Action& action, const Rpc::CancellationToken& cancellation);
     void StartAsync(uint64_t actionId, Axodox::Infrastructure::value_ptr<Actions::Action> action);

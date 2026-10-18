@@ -123,7 +123,8 @@ namespace SecondShell::Tests
       Assert::IsTrue(run.Shell == ShellKind::None);
       Assert::AreEqual(size_t(1), run.Args.size());
       Assert::AreEqual(string("C:\\Temp"), *run.WorkingDirectory);
-      Assert::IsTrue(run.IsAsync());
+      Assert::IsTrue(*run.Async);
+      Assert::IsFalse(run.IsAsync(), L"an async Process.Run returns the process ID at once, and Control.Join does not wait for it");
       Assert::IsTrue(run.WaitTimeout() == 5000ms);
 
       auto capture = ParseAs<CaptureScreenAction>(_examples[8].second);
@@ -161,7 +162,7 @@ namespace SecondShell::Tests
       Assert::IsFalse(click.IsAsync());
 
       auto wait = ParseAs<ProcessWaitForProcessAction>(R"({"action": "Process.WaitForProcess", "pid": 5})");
-      Assert::IsFalse(wait.WaitTimeout().has_value(), L"the host applies the default timeout");
+      Assert::IsFalse(wait.WaitTimeout().has_value(), L"the driver applies Action::DefaultWaitTimeout");
     }
 
     TEST_METHOD(ActionNamesAreCaseInsensitive)

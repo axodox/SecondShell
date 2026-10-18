@@ -21,6 +21,9 @@ namespace SecondShell::Session
     void Connect(const Protocol::DisplaySettings& display);
     void Disconnect();
 
+    //Changes the display of the connected session; throws if the session does not take it.
+    void UpdateDisplay(const Protocol::DisplaySettings& display);
+
     //Raised on the RDP thread.
     Axodox::Infrastructure::event_publisher<RdpClient*> LoginCompleted;
     Axodox::Infrastructure::event_publisher<RdpClient*, long> Disconnected;  //the disconnect reason

@@ -42,10 +42,10 @@ namespace SecondShell::Agent
     _settings = settings;
   }
 
-  CaptureDestination CaptureStore::Decide(const CaptureAction& action, uint32_t inlineCountSoFar) const
+  CaptureDestination CaptureStore::Decide(const optional<CaptureOutput>& output, uint32_t inlineCountSoFar) const
   {
-    auto output = action.Output.value_or(CaptureOutput::Inline);
-    CaptureDestination result{ .IsInline = output != CaptureOutput::File, .IsFile = output != CaptureOutput::Inline };
+    auto target = output.value_or(CaptureOutput::Inline);
+    CaptureDestination result{ .IsInline = target != CaptureOutput::File, .IsFile = target != CaptureOutput::Inline };
 
     //Beyond the limit, inline captures go to file, so a runaway sequence cannot flood the AI's context
     if (result.IsInline && inlineCountSoFar >= Settings().InlineLimit)
@@ -62,22 +62,27 @@ namespace SecondShell::Agent
     action.Format = destination.IsInline ? ImageFormat::Png : action.Format.value_or(settings.Format);
   }
 
-  void CaptureStore::Store(CaptureResult& result, const CaptureAction& action, const CaptureDestination& destination, string_view fileStem) const
+  void CaptureStore::ApplyDefaults(ClipboardReadAction& action) const
+  {
+    if (!action.Resolution) action.Resolution = Settings().Resolution;
+  }
+
+  void CaptureStore::Store(CapturedImage& image, ActionResult& result, const optional<string>& filePath, const CaptureDestination& destination, string_view fileStem) const
   {
     if (destination.IsFile)
     {
-      auto extension = result.Image.Format == ImageFormat::Jpeg ? ".jpg" : ".png";
-      auto file = action.Path ? path(winrt::to_hstring(*action.Path).c_str()) : _environment->CaptureFolder(_sessionName) / (SafeFileName(fileStem) + extension);
+      auto extension = image.Format == ImageFormat::Jpeg ? ".jpg" : ".png";
+      auto file = filePath ? path(winrt::to_hstring(*filePath).c_str()) : _environment->CaptureFolder(_sessionName) / (SafeFileName(fileStem) + extension);
       create_directories(file.parent_path());
 
       ofstream stream(file, ios::binary);
-      stream.write(reinterpret_cast<const char*>(result.Image.Data.data()), streamsize(result.Image.Data.size()));
+      stream.write(reinterpret_cast<const char*>(image.Data.data()), streamsize(image.Data.size()));
       if (!stream) throw runtime_error(format("The capture could not be saved to {}.", winrt::to_string(file.wstring())));
 
-      result.Image.Path = winrt::to_string(file.wstring());
+      image.Path = winrt::to_string(file.wstring());
     }
 
-    if (!destination.IsInline) result.Image.Data.clear();
+    if (!destination.IsInline) image.Data.clear();
     if (destination.IsOverInlineLimit) result.Message = format("Saved to file instead of inline: the sequence has returned its most inline captures ({}).", Settings().InlineLimit);
   }
 }

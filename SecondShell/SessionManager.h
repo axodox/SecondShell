@@ -27,6 +27,10 @@ namespace SecondShell::Session
     //Always logs the session off.
     void Shutdown();
 
+    //Changes the display of the running session, keeping what the change leaves out; returns once the driver sees the
+    //new size, so captures show it.
+    std::optional<Rpc::JsonRpcError> SetDisplay(const Protocol::DisplayChange& change, const Rpc::CancellationToken& cancellation);
+
     Axodox::Infrastructure::event_publisher<SessionManager*, Protocol::SessionState> StateChanged;
 
   private:

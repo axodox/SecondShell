@@ -36,7 +36,7 @@ namespace SecondShell::Protocol
       { &InitializeSessionRequest::Display, "display", { .is_required = false, .schema = { .description = "Display settings; default: 1920x1080 at 100%." } } },
       { &InitializeSessionRequest::Capture, "capture", { .is_required = false, .schema = { .description = "Capture defaults, as Configure-Capture sets them." } } },
       { &InitializeSessionRequest::ExistingSession, "existingSession", { .is_required = false, .schema = { .description = "Required when a child session exists already, e.g. from before a restart: Reset logs it off, closing its applications, and starts a new one. Resume is not supported yet." } } },
-      { &InitializeSessionRequest::Timeout, "timeout", { .is_required = false, .schema = { .description = "Milliseconds to wait for the session, default 60000.", .minimum = 0 } } }
+      { &InitializeSessionRequest::Timeout, "timeout", { .is_required = false, .schema = { .description = "Milliseconds to wait for the session, default 180000.", .minimum = 0 } } }
     });
 
   json_object_descriptor<CheckSessionRequest> CheckSessionRequest::json_description = describe_json_object<CheckSessionRequest>(
@@ -82,8 +82,24 @@ namespace SecondShell::Protocol
     { &DisplayResponse::Display, "display" }
     });
 
+  json_object_descriptor<DisplayChange> DisplayChange::json_description = describe_json_object<DisplayChange>({
+    { &DisplayChange::Width, "width", { .is_required = false, .schema = { .description = "Session pixels.", .minimum = 640, .maximum = 8192 } } },
+    { &DisplayChange::Height, "height", { .is_required = false, .schema = { .description = "Session pixels.", .minimum = 480, .maximum = 8192 } } },
+    { &DisplayChange::Scale, "scale", { .is_required = false, .schema = { .description = "Display scaling in percent.", .minimum = 100, .maximum = 500 } } },
+    { &DisplayChange::Orientation, "orientation", { .is_required = false } }
+    });
+
+  DisplaySettings DisplayChange::ApplyTo(DisplaySettings settings) const
+  {
+    if (Width) settings.Width = *Width;
+    if (Height) settings.Height = *Height;
+    if (Scale) settings.Scale = *Scale;
+    if (Orientation) settings.Orientation = *Orientation;
+    return settings;
+  }
+
   json_object_descriptor<SetDisplayRequest> SetDisplayRequest::json_description = describe_json_object<SetDisplayRequest>(
-    { .name = "display/set", .description = "Changes the session's display resolution, scaling and orientation." },
+    { .name = "display/set", .description = "Changes the session's display resolution, scaling and orientation; what is left out stays as it is." },
     {
       { &SetDisplayRequest::Display, "display", { .is_required = true } }
     });

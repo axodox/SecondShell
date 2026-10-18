@@ -26,5 +26,6 @@ namespace SecondShell::Mcp
 
     //Captures returned inline become image content, which the AI can see.
     static void MoveImagesToContent(Protocol::RunSequenceResponse& response, ToolContext& context);
+    static void AddImage(Actions::CapturedImage& image, std::string_view name, ToolContext& context);
   };
 }

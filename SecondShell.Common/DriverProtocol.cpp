@@ -40,6 +40,13 @@ namespace SecondShell::Protocol
 
   json_object_descriptor<ResetInputRequest> ResetInputRequest::json_description = describe_json_object<ResetInputRequest>({ .name = "input/reset" }, {});
 
+  json_object_descriptor<ScreenResponse> ScreenResponse::json_description = describe_json_object<ScreenResponse>({
+    { &ScreenResponse::Width, "width" },
+    { &ScreenResponse::Height, "height" }
+    });
+
+  json_object_descriptor<GetScreenRequest> GetScreenRequest::json_description = describe_json_object<GetScreenRequest>({ .name = "screen/get" }, {});
+
   json_object_descriptor<SubscribeFramesResponse> SubscribeFramesResponse::json_description = describe_json_object<SubscribeFramesResponse>({
     { &SubscribeFramesResponse::Textures, "textures" },
     { &SubscribeFramesResponse::Width, "width" },

@@ -200,6 +200,23 @@ The spikes were first run from a terminal inside the Claude desktop app, which i
 
 **Consequence:** gamepad support cannot rely on `InputInjector` for desktop apps. The alternatives from Design.md remain: a virtual controller driver (elevation to install) or no gamepad support.
 
+### 2.16 Desktop services in the child session (stage 6)
+
+Found while building and testing the window, process, clipboard, wait and display actions (`SessionProbeTests`, 2026-10-18):
+
+- **PowerShell errors**: with `-EncodedCommand`, `powershell.exe` writes errors to a redirected error stream as CLIXML (`#< CLIXML`), also with `-OutputFormat Text`. With `-Command` and the script as one argument, quoted by the C runtime's rules (double quotes in the script survive), they are text. Its error messages quote the script's line, so a prelude belongs on a line of its own.
+- **Console windows** report the client process in them (e.g. `cmd.exe`) to `GetWindowThreadProcessId`, not the `conhost.exe` which owns them. An agent stops a console through that PID.
+- **Hidden starts**: a console program started with `CREATE_NO_WINDOW` and an empty input stream has no window, and `cmd` exits at once; programs to look at or interact with have to start as Explorer would.
+- **Ctrl+C to another console** from a GUI process (`AttachConsole`, `GenerateConsoleCtrlEvent`): the event reaches the sender too, on a thread the console creates afterwards. Handlers registered before attaching are not called, nor, apparently, after detaching; the default handler then ends the process (exit code 0xC000013A, no crash report). Registering a handler after attaching, and detaching only once it has seen the event, works (a test program, not kept; `SessionProbeTests` covers it). `SetConsoleCtrlHandler(NULL, TRUE)` would be inherited by child processes.
+- **Foreground lock**: `SetForegroundWindow` from the driver is refused while another application has the foreground; input injected with `InputInjector` does not count as the driver's last input. A `SendInput` mouse move by nothing does, and changes nothing. `AttachThreadInput` to the foreground thread did not help.
+- **Resolution changes** (`IMsRdpClient9::UpdateSessionDisplaySettings`): `GetSystemMetrics` reports the new size before captures do. The first frame after a change still has the old pool's texture size, with the new content size; growing, the next frame of the recreated pool has the new size. Captures and the size the host waits for are therefore taken from the newest frame.
+- **OCR** (Windows.Media.Ocr, en-US) reads the console font's "ll" as "11" and misses a letter at the very edge of a window ("Microsoft" as "icrosoft" in a console's first column).
+- **Clipboard**: every session has its own; with RDP clipboard redirection off, writes in the child session leave the user's clipboard alone. Windows adds the synthesized formats (`CF_TEXT`, `CF_OEMTEXT`, `CF_LOCALE` for text; `CF_BITMAP`, `CF_DIB` for `CF_DIBV5`). A console pastes what `Clipboard.Write` puts there.
+
+- **The driver's start** waits for Explorer's startup programs, which it runs one at a time, in a fixed order: the machine's RunOnce and Run, the user's Run, packaged apps' startup tasks, then the user's RunOnce, where the driver's entry is. On this machine (2026-10-18, later the same day) that took 74 s: about 30 s of Explorer's own delay before startup programs, 30 s waiting for `SecurityHealthSystray.exe` (machine Run), which never became ready in the child session, 7 s for `iTunesHelper.exe`, and a few seconds for the rest. Earlier that day it took about 20 s. Explorer's logon tasks themselves finish within 2 s (Shell-Core events 62170/62171; 9705–9708 for the startup programs). `Initialize-Session` therefore waits 3 minutes by default.
+
+**Consequences:** see Architecture.md 6.9.
+
 ## 3. Proposed architecture
 
 ```

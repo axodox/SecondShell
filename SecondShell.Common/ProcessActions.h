@@ -14,7 +14,7 @@ namespace SecondShell::Actions
     std::optional<bool> Async;
     std::optional<uint32_t> Timeout;
 
-    virtual bool IsAsync() const override;
+    //Async here means not waiting for the exit: the action returns the process ID at once, so it is not an async action
     virtual std::optional<std::chrono::milliseconds> WaitTimeout() const override;
   };
 

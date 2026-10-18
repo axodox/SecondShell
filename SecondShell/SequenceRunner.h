@@ -44,6 +44,8 @@ namespace SecondShell::Agent
     Axodox::Infrastructure::value_ptr<Actions::ActionResult> Join(RunState& state);
     Axodox::Infrastructure::value_ptr<Actions::ActionResult> Reset(RunState& state);
     Axodox::Infrastructure::value_ptr<Actions::ActionResult> Capture(RunState& state, const Axodox::Infrastructure::value_ptr<Actions::Action>& step, uint32_t index);
+    Axodox::Infrastructure::value_ptr<Actions::ActionResult> ReadClipboard(RunState& state, const Axodox::Infrastructure::value_ptr<Actions::Action>& step, uint32_t index);
+    Axodox::Infrastructure::value_ptr<Actions::ActionResult> StoreImage(RunState& state, Axodox::Infrastructure::value_ptr<Actions::ActionResult>&& result, Actions::CapturedImage& image, const std::optional<std::string>& path, const CaptureDestination& destination, std::string_view fileStem);
     Axodox::Infrastructure::value_ptr<Actions::ActionResult> Execute(RunState& state, const Axodox::Infrastructure::value_ptr<Actions::Action>& action);
 
     Protocol::RunSequenceResponse Failure(Actions::ErrorCode error, std::string message) const;

@@ -3,6 +3,7 @@
 
 using namespace Axodox::Infrastructure;
 using namespace SecondShell::Actions;
+using namespace SecondShell::Capture;
 using namespace SecondShell::Input;
 using namespace SecondShell::Protocol;
 using namespace SecondShell::Rpc;
@@ -15,10 +16,15 @@ namespace SecondShell::Driver
     _inputState(container->resolve<InputStateTracker>()),
     _mouse(container->resolve<MouseActionHandler>()),
     _keyboard(container->resolve<KeyboardActionHandler>()),
-    _capture(container->resolve<CaptureActionHandler>())
+    _capture(container->resolve<CaptureActionHandler>()),
+    _windows(container->resolve<WindowActionHandler>()),
+    _processes(container->resolve<ProcessActionHandler>()),
+    _clipboard(container->resolve<ClipboardActionHandler>()),
+    _capturer(container->resolve<ScreenCapturer>())
   {
     _connection->Peer().AddHandler(this, &ActionExecutor::ExecuteAction);
     _connection->Peer().AddHandler(this, &ActionExecutor::ResetInput);
+    _connection->Peer().AddHandler(this, &ActionExecutor::GetScreen);
   }
 
   ActionExecutor::~ActionExecutor()
@@ -57,6 +63,14 @@ namespace SecondShell::Driver
     return ResetInputResponse{ _inputState->ReleaseAll() };
   }
 
+  RpcResult<ScreenResponse> ActionExecutor::GetScreen(const GetScreenRequest& /*request*/, const CancellationToken& /*cancellation*/)
+  {
+    if (!_connection->IsAccepted()) return JsonRpcError{ JsonRpcErrorCode::InvalidRequest, "The host has not accepted this driver." };
+
+    auto screen = _capturer->Screen();
+    return ScreenResponse{ screen.Width, screen.Height };
+  }
+
   value_ptr<ActionResult> ActionExecutor::Execute(const Action& action, const CancellationToken& cancellation)
   {
     try
@@ -69,6 +83,12 @@ namespace SecondShell::Driver
         return _keyboard->Execute(action, cancellation);
       case ActionKind::Capture:
         return _capture->Execute(action, cancellation);
+      case ActionKind::Window:
+        return _windows->Execute(action, cancellation);
+      case ActionKind::Process:
+        return _processes->Execute(action, cancellation);
+      case ActionKind::Clipboard:
+        return _clipboard->Execute(action, cancellation);
       default:
         return ActionResult::Failed(ErrorCode::ActionFailed, format("{} is not available yet.", action.Name()));
       }

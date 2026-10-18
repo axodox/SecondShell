@@ -23,6 +23,9 @@ namespace SecondShell::Session
     void Connect();
     void Disconnect();
 
+    //Changes the size, scaling and orientation (in degrees) of the connected session.
+    void UpdateDisplay(uint32_t width, uint32_t height, uint32_t scale, uint32_t orientation);
+
   private:
     HWND _window = nullptr;
     CComPtr<IUnknown> _control;

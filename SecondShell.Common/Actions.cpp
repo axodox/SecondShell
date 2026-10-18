@@ -338,20 +338,15 @@ namespace SecondShell::Actions
 
 #pragma region Process
   json_object_descriptor<ProcessRunAction> ProcessRunAction::json_description = describe_json_object<ProcessRunAction, Action>(
-    { .name = "Process.Run", .description = "Runs a command in the session. Synchronous by default: waits for the exit and returns the exit code and the output and error streams (each truncated to 64 KB). Use async for GUI applications, which otherwise block until closed: it returns the process ID at once." },
+    { .name = "Process.Run", .description = "Runs a command in the session. Synchronous by default: waits for the exit and returns the exit code and the output and error streams (each truncated to 64 KB). Use async for programs that keep running, e.g. GUI applications or a console to interact with: it starts the program as Explorer would and returns its process ID at once; with shell None the ID is the program's own." },
     {
       { &ProcessRunAction::Command, "command", { .is_required = true, .schema = { .description = "The command for the shell, or with shell None the path of an executable." } } },
       { &ProcessRunAction::Shell, "shell", { .is_required = false, .schema = { .description = "PowerShell (default, Windows PowerShell), Pwsh (PowerShell 7), Cmd, or None (no shell parsing)." } } },
       { &ProcessRunAction::Args, "args", { .is_required = false, .schema = { .description = "Arguments, passed without shell parsing with shell None." } } },
       { &ProcessRunAction::WorkingDirectory, "workingDirectory", { .is_required = false, .schema = { .description = "Default: the user's profile folder." } } },
-      { &ProcessRunAction::Async, "async", { .is_required = false, .schema = { .description = "Return the process ID at once and run in parallel; wait for it later with Process.WaitForProcess." } } },
+      { &ProcessRunAction::Async, "async", { .is_required = false, .schema = { .description = "Start the program as Explorer would (console programs get a window, nothing is redirected) and return its process ID at once; Control.Join does not wait for it, Process.WaitForProcess does." } } },
       { &ProcessRunAction::Timeout, "timeout", { .is_required = false, .schema = { .description = "Milliseconds to wait for the exit, default 10000; when it expires the sequence stops with a Timeout error and the process keeps running.", .minimum = 0 } } }
     });
-
-  bool ProcessRunAction::IsAsync() const
-  {
-    return Async.value_or(false);
-  }
 
   optional<milliseconds> ProcessRunAction::WaitTimeout() const
   {
@@ -378,7 +373,7 @@ namespace SecondShell::Actions
     });
 
   json_object_descriptor<ProcessWaitForProcessAction> ProcessWaitForProcessAction::json_description = describe_json_object<ProcessWaitForProcessAction, Action>(
-    { .name = "Process.WaitForProcess", .description = "Waits for a process to exit and returns its exit code, and for processes started with Process.Run also their output." },
+    { .name = "Process.WaitForProcess", .description = "Waits for a process to exit and returns its exit code." },
     {
       { &ProcessWaitForProcessAction::ProcessId, "pid", { .is_required = true, .schema = { .description = _processId } } },
       { &ProcessWaitForProcessAction::Timeout, "timeout", { .is_required = false, .schema = { .description = _timeout, .minimum = 0 } } }
@@ -395,9 +390,10 @@ namespace SecondShell::Actions
 
 #pragma region Clipboard
   json_object_descriptor<ClipboardReadAction> ClipboardReadAction::json_description = describe_json_object<ClipboardReadAction, Action>(
-    { .name = "Clipboard.Read", .description = "Reads the session's clipboard (separate from the user's). Without format: the list of formats on the clipboard and the text, if any. Images are returned like captures." },
+    { .name = "Clipboard.Read", .description = "Reads the session's clipboard (separate from the user's). Always lists the formats on the clipboard; without format also returns the text, if any. Images are returned like captures. Raw data is limited to 1 MB." },
     {
       { &ClipboardReadAction::Format, "format", { .is_required = false, .schema = { .description = "Text, Html, Image, Files or Raw." } } },
+      { &ClipboardReadAction::Name, "name", { .is_required = false, .schema = { .description = "For Raw: a registered clipboard format name, a standard one such as CF_UNICODETEXT, or a format number." } } },
       { &ClipboardReadAction::Output, "output", { .is_required = false, .schema = { .description = "For images: Inline (default), File or Both." } } },
       { &ClipboardReadAction::Path, "path", { .is_required = false, .schema = { .description = "For images: the file path for File and Both." } } },
       { &ClipboardReadAction::Resolution, "resolution", { .is_required = false, .schema = { .description = "For images: the largest image size." } } }

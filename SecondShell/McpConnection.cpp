@@ -60,9 +60,10 @@ namespace SecondShell::Agent
     return _sequences->Run(request, progress, cancellation);
   }
 
-  RpcResult<DisplayResponse> McpConnection::SetDisplay(const SetDisplayRequest& /*request*/, const CancellationToken& /*cancellation*/)
+  RpcResult<DisplayResponse> McpConnection::SetDisplay(const SetDisplayRequest& request, const CancellationToken& cancellation)
   {
-    return ProtocolErrors::Make(ErrorCode::ActionFailed, "Changing the display of a running session is not available yet; set it with Initialize-Session.");
+    if (auto error = _sessions->SetDisplay(request.Display, cancellation)) return *error;
+    return DisplayResponse{ *_sessions->Info().Display };
   }
 
   RpcResult<DisplayResponse> McpConnection::GetDisplay(const GetDisplayRequest& /*request*/, const CancellationToken& /*cancellation*/)
