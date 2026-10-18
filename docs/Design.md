@@ -546,7 +546,8 @@ The SecondShell window has an **"Add to AI apps"** page. It lists the supported 
 ### Rules
 
 - **Never overwrite the user's configuration.** Read the existing file, add or update only the `secondshell` entry, keep everything else (including formatting where possible), and write a backup (`<file>.bak`) first.
-- **Use the client's own command-line tool where one exists** (e.g. `claude mcp add`, `code --add-mcp`). It knows its own file format and location better than SecondShell does.
+- **Use the client's own command-line tool where the file is the client's own business**: Claude Code rewrites `~/.claude.json` while it runs, so SecondShell uses `claude mcp add` / `remove` there. Elsewhere SecondShell edits the file itself, as text: only its entry changes, and the file's order, formatting and comments (JSONC) stay, which `code --add-mcp` cannot undo anyway.
+- **One entry**: an entry under another name that runs a `SecondShell.Mcp.exe` counts as SecondShell's, and is updated rather than added twice; updating it changes only its `command`, keeping its other settings (e.g. `env`). A file that cannot be read or parsed is left alone and shown as such.
 - **Show what will change** before writing, and say whether the client needs a restart to pick it up.
 - **Keep entries current**: the checks on every start detect entries that point at an old location (portable build moved) and offer to update them.
 - **Uninstall removes all entries** that SecondShell added.
@@ -557,19 +558,20 @@ The entry runs the MCP server, with the path from Build differences in code and 
 
 Config locations and formats change between client versions, so each must be verified at implementation time. Each client is a small, separate adapter, so new clients are easy to add.
 
-| Client | How | Config (current knowledge, to verify) |
+Checked in October 2026 against each client's documentation (and Asgard's `Holomaps.Mcp` installer, which configures several of them):
+
+| Client | How | Config |
 |---|---|---|
-| Claude Desktop | Edit config | `%APPDATA%\Claude\claude_desktop_config.json`, `mcpServers`. The Store/MSIX version of Claude Desktop may keep it in its package folder instead. |
-| Claude Code | CLI | `claude mcp add --scope user secondshell -- <path>` |
-| VS Code (GitHub Copilot) | CLI or edit config | `code --add-mcp "{...}"`, or the user-level `mcp.json` (`servers`, not `mcpServers`). Same for VS Code Insiders. |
-| Visual Studio | Edit config | `%USERPROFILE%\.mcp.json`, `servers` |
-| Cursor | Edit config | `%USERPROFILE%\.cursor\mcp.json`, `mcpServers` |
-| Windsurf | Edit config | `%USERPROFILE%\.codeium\windsurf\mcp_config.json`, `mcpServers` |
-| LM Studio | Edit config | `%USERPROFILE%\.lmstudio\mcp.json`, `mcpServers` |
-| Gemini CLI | Edit config | `%USERPROFILE%\.gemini\settings.json`, `mcpServers` |
-| OpenAI Codex CLI | Edit config | `%USERPROFILE%\.codex\config.toml`, `[mcp_servers.secondshell]` (TOML) |
-| Bionic | To research | |
-| Others (Cline, Continue, Zed, JetBrains AI Assistant, ...) | Later | Shown as "copy configuration" with a ready-to-paste snippet. |
+| Claude Desktop | Edit config | `%APPDATA%\Claude\claude_desktop_config.json`, `mcpServers`. The Store (MSIX) build reads `%LOCALAPPDATA%\Packages\Claude_pzs8sxrjxfjjc\LocalCache\Roaming\Claude\` instead (anthropics/claude-code#26073); used when that package folder exists. Quit and start again. |
+| Claude Code | CLI | `claude mcp add --transport stdio --scope user secondshell -- <path>`, `claude mcp remove secondshell --scope user`; state from `%USERPROFILE%\.claude.json`, `mcpServers`. Found as `%USERPROFILE%\.local\bin\claude.exe` or on the PATH. |
+| VS Code (GitHub Copilot) | Edit config | `%APPDATA%\Code\User\mcp.json`, `servers`, entries with `"type": "stdio"`; Insiders in `Code - Insiders`. Picked up without a restart. |
+| Visual Studio | Edit config | `%USERPROFILE%\.mcp.json`, `servers`, `"type": "stdio"`. Its tools are enabled once in the chat. |
+| Cursor | Edit config | `%USERPROFILE%\.cursor\mcp.json`, `mcpServers`, `"type": "stdio"`. Restart. |
+| Windsurf (Devin Desktop since June 2026) | Edit config | `%USERPROFILE%\.codeium\windsurf\mcp_config.json` if there, else `%APPDATA%\devin\mcp_config.json`; `mcpServers`. |
+| LM Studio | Edit config | `<home>\mcp.json`, `mcpServers`; home from `%USERPROFILE%\.lmstudio-home-pointer`, else `.lmstudio`, else (older) `.cache\lm-studio`. |
+| Gemini CLI | Edit config | `%USERPROFILE%\.gemini\settings.json`, `mcpServers`. |
+| OpenAI Codex (CLI, IDE extension, ChatGPT app) | Edit config | `%CODEX_HOME%` or `%USERPROFILE%\.codex`, `config.toml`, `[mcp_servers.secondshell]` with `command` (a TOML literal string) and `args`. |
+| Others (GitHub Copilot CLI, Antigravity, Zed, Cline, Roo Code, Kiro, Continue, JetBrains, opencode, ...) | Snippet | Shown as "Another app" with a ready-to-paste snippet. |
 
 For any client that isn't supported, the page offers a generic snippet to copy:
 

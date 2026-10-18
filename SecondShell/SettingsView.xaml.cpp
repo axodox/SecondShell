@@ -4,6 +4,7 @@
 #include "SettingsView.g.cpp"
 #endif
 #include "AboutSettings.xaml.h"
+#include "AiAppsSettings.xaml.h"
 #include "GeneralSettings.xaml.h"
 
 using namespace Axodox::Infrastructure;
@@ -20,12 +21,14 @@ namespace winrt::SecondShell::implementation
   void SettingsView::UseServices(dependency_container* container)
   {
     get_self<GeneralSettings>(GeneralPage())->UseServices(container);
+    get_self<AiAppsSettings>(AiAppsPage())->UseServices(container);
     get_self<AboutSettings>(AboutPage())->UseServices(container);
   }
 
   void SettingsView::Refresh()
   {
     get_self<GeneralSettings>(GeneralPage())->Refresh();
+    get_self<AiAppsSettings>(AiAppsPage())->Refresh();
     PageScroller().ChangeView(nullptr, 0.0, nullptr, true);
   }
 
@@ -35,7 +38,9 @@ namespace winrt::SecondShell::implementation
     auto page = item ? unbox_value_or<hstring>(item.Tag(), L"General") : hstring{ L"General" };
 
     GeneralPage().Visibility(page == L"General" ? Visibility::Visible : Visibility::Collapsed);
+    AiAppsPage().Visibility(page == L"AiApps" ? Visibility::Visible : Visibility::Collapsed);
     AboutPage().Visibility(page == L"About" ? Visibility::Visible : Visibility::Collapsed);
+    if (page == L"AiApps") get_self<AiAppsSettings>(AiAppsPage())->Refresh();
     PageScroller().ChangeView(nullptr, 0.0, nullptr, true);
   }
 }

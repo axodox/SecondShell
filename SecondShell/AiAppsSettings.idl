@@ -1,0 +1,8 @@
+namespace SecondShell
+{
+  [default_interface]
+  runtimeclass AiAppsSettings : Microsoft.UI.Xaml.Controls.UserControl
+  {
+    AiAppsSettings();
+  }
+}

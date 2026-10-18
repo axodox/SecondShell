@@ -5,7 +5,7 @@ Where the work stands, for continuing after a break. The plan and its status tab
 ## State
 
 - **Branch** `stage_1_and_2`. Stages 0–8 and the Axodox.Common refactor are committed; nothing is pushed.
-- **Stage 9, setup, settings and AI client integrations: in progress.** Parts 1 (setup and repair) and 2 (settings) are done (192 unit tests, 15 session probe tests). Next: part 3, Add to AI apps (config editors, client adapters after checking each client's config location, the page, the preview dialog, `--integrate` / `--unintegrate`); then part 4, uninstall.
+- **Stage 9, setup, settings and AI client integrations: in progress.** Parts 1 (setup and repair), 2 (settings) and 3 (Add to AI apps) are done (207 unit tests, 15 session probe tests). Next: part 4, uninstall (`--uninstall`, and the same in Settings).
 - **Stage 8, touch and pen: done.** x64 and ARM64 build.
 - **Stage 7, host UI and session view: done.** The user's hands-on check is still to come (below).
 - **Axodox.Common:** SecondShell uses the package `1.0.124-named-pipe-messaging` (in `packages`, built locally from `G:\dev\axodox-common`). Axodox has no uncommitted changes of mine.
@@ -17,6 +17,13 @@ Where the work stands, for continuing after a break. The plan and its status tab
 - **Manual test (the user)**: on a PC without child sessions (or after `WTSEnableChildSessions(FALSE)`), the dialog at start, Set up with the administrator prompt, declining it, and the smooth view option. Here child sessions are on and `DWMFRAMEINTERVAL` = 15 was set by hand, so SecondShell does not count it as its own.
 - **Checked here**: the dialog and the notice (with a local switch faking the missing setup, not committed); `SecondShell.exe --setup` unelevated with nothing to do exits 0 without a window.
 - `MachineConfiguration` is the only code that writes the machine's settings; tests use a fake (`SetupTests`).
+
+## Stage 9, part 3: Add to AI apps
+
+Settings, Add to AI apps: ten apps with their state, Add / Update / Remove behind a preview of the change; `--integrate` / `--unintegrate`. Client locations checked against current docs (Design.md, Supported clients) and Asgard's `Holomaps.Mcp\McpInstaller.cpp`, from which the Claude Desktop MSIX path, the LM Studio folders, finding an entry by its command and updating only its command were taken. Architecture.md 6.6, 6.12.
+
+- **Checked here**: the page and the Cursor preview (cancelled), `--integrate` with an unknown app (exit 2); `IntegrationTests` against temporary folders (no real config, no `claude` run).
+- **Not tried**: adding to a real app (the user's choice which; from this terminal the writes to `%APPDATA%` would land in the Claude app's package, Findings.md 2.12), and the Claude Code command line for real.
 
 ## Stage 9, part 2: settings
 

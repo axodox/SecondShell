@@ -1,12 +1,13 @@
 #pragma once
 #include "ActionLog.h"
 #include "ElevatedSetupLauncher.h"
+#include "AiClientIntegration.h"
 #include "ExistingSessionPrompt.h"
 #include "SetupChecker.h"
 
 namespace SecondShell::Ui
 {
-  //The window's questions about the session (docs/UIDesign.md, Dialogs), as WinUI content dialogs. On the UI thread.
+  //The window's questions (docs/UIDesign.md, Dialogs), as WinUI content dialogs. On the UI thread.
   class SessionDialogs
   {
   public:
@@ -18,5 +19,8 @@ namespace SecondShell::Ui
 
     //The one-time setup: what to set up, or nothing for "Not now".
     static winrt::Windows::Foundation::IAsyncOperation<winrt::Windows::Foundation::IReference<bool>> AskToSetUp(winrt::Microsoft::UI::Xaml::XamlRoot root, Setup::SetupStatus status);
+
+    //The integration preview: the change to an AI app's configuration before it is made. True: make it.
+    static winrt::Windows::Foundation::IAsyncOperation<bool> AskToChangeIntegration(winrt::Microsoft::UI::Xaml::XamlRoot root, winrt::hstring title, winrt::hstring action, Integrations::IntegrationChange change);
   };
 }

@@ -79,6 +79,7 @@
     <ClCompile Include="CaptureEncoderTests.cpp" />
     <ClCompile Include="ActionLogTests.cpp" />
     <ClCompile Include="CaptureStoreTests.cpp" />
+    <ClCompile Include="ConfigEditorTests.cpp" />
     <ClCompile Include="DirtyRegionTests.cpp" />
     <ClCompile Include="DriverInputTests.cpp" />
     <ClCompile Include="DriverLinkTests.cpp" />
@@ -103,6 +104,7 @@
     <ClCompile Include="SetupTests.cpp" />
     <ClCompile Include="SettingsStoreTests.cpp" />
     <ClCompile Include="HostWindow.cpp" />
+    <ClCompile Include="IntegrationTests.cpp" />
     <ClCompile Include="SessionProbeTests.cpp" />
     <ClCompile Include="SessionToolSourceTests.cpp" />
     <ClCompile Include="ShelfPackerTests.cpp" />
@@ -142,6 +144,12 @@
   </ItemGroup>
   <ItemGroup Label="SecondShell">
     <ClCompile Include="..\SecondShell\ActionLog.cpp" />
+    <ClCompile Include="..\SecondShell\AiClientIntegration.cpp" />
+    <ClCompile Include="..\SecondShell\CliRunner.cpp" />
+    <ClCompile Include="..\SecondShell\ClaudeCodeIntegration.cpp" />
+    <ClCompile Include="..\SecondShell\CodexIntegration.cpp" />
+    <ClCompile Include="..\SecondShell\IntegrationManager.cpp" />
+    <ClCompile Include="..\SecondShell\JsonFileIntegration.cpp" />
     <ClCompile Include="..\SecondShell\AgentControl.cpp" />
     <ClCompile Include="..\SecondShell\CaptureStore.cpp" />
     <ClCompile Include="..\SecondShell\ChildSessionApi.cpp" />
@@ -150,9 +158,12 @@
     <ClCompile Include="..\SecondShell\DriverLink.cpp" />
     <ClCompile Include="..\SecondShell\ElevatedSetupLauncher.cpp" />
     <ClCompile Include="..\SecondShell\IDriverLink.cpp" />
+    <ClCompile Include="..\SecondShell\JsonConfigEditor.cpp" />
     <ClCompile Include="..\SecondShell\MachineSetup.cpp" />
     <ClCompile Include="..\SecondShell\SequenceRunner.cpp" />
     <ClCompile Include="..\SecondShell\SettingsStore.cpp" />
+    <ClCompile Include="..\SecondShell\TextDiff.cpp" />
+    <ClCompile Include="..\SecondShell\TomlConfigEditor.cpp" />
     <ClCompile Include="..\SecondShell\VisualizationFeed.cpp" />
   </ItemGroup>
   <ItemGroup Label="SecondShell.Mcp">

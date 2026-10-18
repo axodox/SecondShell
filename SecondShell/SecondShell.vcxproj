@@ -91,6 +91,15 @@
     <ClInclude Include="Credentials.h" />
     <ClInclude Include="CredentialStore.h" />
     <ClInclude Include="CursorOverlay.h" />
+    <ClInclude Include="TextDiff.h" />
+    <ClInclude Include="JsonFileIntegration.h" />
+    <ClInclude Include="IntegrationManager.h" />
+    <ClInclude Include="CodexIntegration.h" />
+    <ClInclude Include="ClaudeCodeIntegration.h" />
+    <ClInclude Include="CliRunner.h" />
+    <ClInclude Include="AiClientIntegration.h" />
+    <ClInclude Include="TomlConfigEditor.h" />
+    <ClInclude Include="JsonConfigEditor.h" />
     <ClInclude Include="SettingsStore.h" />
     <ClInclude Include="SetupChecker.h" />
     <ClInclude Include="MachineSetup.h" />
@@ -131,6 +140,9 @@
     <ClInclude Include="StatusBar.xaml.h">
       <DependentUpon>StatusBar.xaml</DependentUpon>
     </ClInclude>
+    <ClInclude Include="AiAppsSettings.xaml.h">
+      <DependentUpon>AiAppsSettings.xaml</DependentUpon>
+    </ClInclude>
     <ClInclude Include="AboutSettings.xaml.h">
       <DependentUpon>AboutSettings.xaml</DependentUpon>
     </ClInclude>
@@ -146,6 +158,7 @@
     <Page Include="MainWindow.xaml" />
     <Page Include="ActionLogPanel.xaml" />
     <Page Include="StatusBar.xaml" />
+    <Page Include="AiAppsSettings.xaml" />
     <Page Include="AboutSettings.xaml" />
     <Page Include="GeneralSettings.xaml" />
     <Page Include="SettingsView.xaml" />
@@ -166,6 +179,9 @@
     <ClCompile Include="ExistingSessionPrompt.cpp" />
     <ClCompile Include="StatusBar.xaml.cpp">
       <DependentUpon>StatusBar.xaml</DependentUpon>
+    </ClCompile>
+    <ClCompile Include="AiAppsSettings.xaml.cpp">
+      <DependentUpon>AiAppsSettings.xaml</DependentUpon>
     </ClCompile>
     <ClCompile Include="AboutSettings.xaml.cpp">
       <DependentUpon>AboutSettings.xaml</DependentUpon>
@@ -192,6 +208,15 @@
     <ClCompile Include="Credentials.cpp" />
     <ClCompile Include="CredentialStore.cpp" />
     <ClCompile Include="CursorOverlay.cpp" />
+    <ClCompile Include="TextDiff.cpp" />
+    <ClCompile Include="JsonFileIntegration.cpp" />
+    <ClCompile Include="IntegrationManager.cpp" />
+    <ClCompile Include="CodexIntegration.cpp" />
+    <ClCompile Include="ClaudeCodeIntegration.cpp" />
+    <ClCompile Include="CliRunner.cpp" />
+    <ClCompile Include="AiClientIntegration.cpp" />
+    <ClCompile Include="TomlConfigEditor.cpp" />
+    <ClCompile Include="JsonConfigEditor.cpp" />
     <ClCompile Include="SettingsStore.cpp" />
     <ClCompile Include="SetupChecker.cpp" />
     <ClCompile Include="MachineSetup.cpp" />
@@ -236,6 +261,10 @@
     <Midl Include="StatusBar.idl">
       <SubType>Code</SubType>
       <DependentUpon>StatusBar.xaml</DependentUpon>
+    </Midl>
+    <Midl Include="AiAppsSettings.idl">
+      <SubType>Code</SubType>
+      <DependentUpon>AiAppsSettings.xaml</DependentUpon>
     </Midl>
     <Midl Include="AboutSettings.idl">
       <SubType>Code</SubType>

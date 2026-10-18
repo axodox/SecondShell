@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Settings, Add to AI apps (docs/ui/AiApps.html): each app with its state and what can be done, and a snippet for others -->
+<UserControl
+  x:Class="SecondShell.AiAppsSettings"
+  xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:local="using:SecondShell">
+  <StackPanel Spacing="4">
+    <TextBlock Text="Add to AI apps" Style="{StaticResource SettingsPageTitleStyle}" />
+    <TextBlock Text="SecondShell adds its MCP server to the apps you choose. It changes only its own entry, shows the change first and keeps a backup of the file."
+               Style="{StaticResource SettingsDescriptionStyle}" FontSize="13" Margin="0,0,0,12" />
+
+    <!-- A card per app, made in code (AiAppsSettings::ShowApps) -->
+    <StackPanel x:Name="AppList" Spacing="4" />
+
+    <TextBlock Text="Another app" Style="{StaticResource SettingsSectionTitleStyle}" />
+    <Grid Style="{StaticResource SettingsCardStyle}">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="*" />
+        <ColumnDefinition Width="Auto" />
+      </Grid.ColumnDefinitions>
+      <StackPanel VerticalAlignment="Center" Spacing="6">
+        <TextBlock Text="Paste this into its MCP configuration" Style="{StaticResource SettingsNameStyle}" />
+        <TextBlock x:Name="SnippetText" Style="{StaticResource SettingsPathStyle}" />
+      </StackPanel>
+      <Button Grid.Column="1" Content="Copy" VerticalAlignment="Center" Click="OnCopySnippetClick" />
+    </Grid>
+  </StackPanel>
+</UserControl>

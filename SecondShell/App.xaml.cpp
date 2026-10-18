@@ -3,6 +3,7 @@
 #include "AppEnvironment.h"
 #include "CaptureStore.h"
 #include "ClipboardSync.h"
+#include "IntegrationManager.h"
 #include "MachineSetup.h"
 #include "McpRequestHandler.h"
 #include "ProductInfo.h"
@@ -11,6 +12,7 @@
 using namespace Axodox::Infrastructure;
 using namespace ::SecondShell::Agent;
 using namespace ::SecondShell::Environment;
+using namespace ::SecondShell::Integrations;
 using namespace ::SecondShell::Protocol;
 using namespace ::SecondShell::Rendering;
 using namespace ::SecondShell::Session;
@@ -42,6 +44,7 @@ namespace winrt::SecondShell::implementation
 
     //Through exit, so the log is written out
     if (auto request = SetupRequest::FromArguments(arguments)) exit(RunSetup(*request));
+    if (auto exitCode = RunIntegrationCommand(arguments)) exit(*exitCode);
 
     logger{ "App" }.log(log_severity::information, "{} host {} started.", ProductInfo::Name(), ProductInfo::Version());
 
@@ -77,6 +80,53 @@ namespace winrt::SecondShell::implementation
     catch (const exception& exception)
     {
       log.log(log_severity::error, "The setup failed: {}", exception.what());
+    }
+    return 1;
+  }
+
+  std::optional<int> App::RunIntegrationCommand(span<const wstring> arguments)
+  {
+    auto command = ranges::find_if(arguments, [](const wstring& argument) { return argument == L"--integrate" || argument == L"--unintegrate"; });
+    if (command == arguments.end()) return std::nullopt;
+
+    //A window app has no console of its own: it writes to the one it was started from, if there is one
+    if (AttachConsole(ATTACH_PARENT_PROCESS))
+    {
+      FILE* stream = nullptr;
+      freopen_s(&stream, "CONOUT$", "w", stdout);
+    }
+
+    dependency_container container;
+    auto integrations = container.resolve<IntegrationManager>();
+    auto isAdding = *command == L"--integrate";
+    auto target = command + 1 == arguments.end() ? string{} : to_string(*(command + 1));
+
+    auto integration = integrations->Find(target);
+    if (!integration)
+    {
+      printf("Usage: SecondShell.exe --integrate|--unintegrate <app>\nApps:");
+      for (auto& item : integrations->Integrations()) printf(" %.*s", int(item->Id().size()), item->Id().data());
+      printf("\n");
+      return 2;
+    }
+
+    try
+    {
+      if (isAdding) integration->Add();
+      else integration->Remove();
+
+      auto done = std::format("{} {}.", isAdding ? "Added SecondShell to" : "Removed SecondShell from", integration->Name());
+      printf("%s %s\n", done.c_str(), integration->PreviewAdd().Note.c_str());
+      logger{ "App" }.log(log_severity::information, "{} (from the command line)", done);
+      return 0;
+    }
+    catch (const winrt::hresult_error& error)
+    {
+      printf("%s\n", to_string(error.message()).c_str());
+    }
+    catch (const exception& exception)
+    {
+      printf("%s\n", exception.what());
     }
     return 1;
   }

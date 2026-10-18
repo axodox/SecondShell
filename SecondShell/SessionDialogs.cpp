@@ -3,8 +3,11 @@
 #include "ActionView.h"
 #include "ActivityBars.h"
 #include "SequenceView.h"
+#include "TextDiff.h"
+#include <winrt/Microsoft.UI.Xaml.Documents.h>
 
 using namespace SecondShell::Agent;
+using namespace SecondShell::Integrations;
 using namespace SecondShell::Session;
 using namespace std;
 using namespace std::chrono;
@@ -83,6 +86,38 @@ namespace SecondShell::Ui
       return row;
     }
 
+    //Lines in a monospace box, added ones in green and removed ones in red
+    Border CodeBox(const vector<DiffLine>& lines)
+    {
+      TextBlock text;
+      text.FontFamily(ActionView::Resource<Media::FontFamily>(L"MonoFontFamily"));
+      text.FontSize(12);
+      text.IsTextSelectionEnabled(true);
+      for (auto& line : lines)
+      {
+        Documents::Run run;
+        run.Text(to_hstring(line.Mark == '~' ? "  \xE2\x80\xA6" : format("{} {}", line.Mark, line.Text)));
+        if (line.Mark == '+') run.Foreground(ActionView::Resource<Brush>(L"SuccessBrush"));
+        else if (line.Mark == '-') run.Foreground(ActionView::Resource<Brush>(L"FailureBrush"));
+        else run.Foreground(ActionView::Resource<Brush>(L"MutedTextBrush"));
+
+        if (text.Inlines().Size() > 0) text.Inlines().Append(Documents::LineBreak());
+        text.Inlines().Append(run);
+      }
+
+      ScrollViewer scroller;
+      scroller.MaxHeight(260);
+      scroller.HorizontalScrollBarVisibility(ScrollBarVisibility::Auto);
+      scroller.Content(text);
+
+      Border box;
+      box.Padding({ 12, 10, 12, 10 });
+      box.CornerRadius({ 6, 6, 6, 6 });
+      box.Background(ActionView::Resource<Brush>(L"OutputBrush"));
+      box.Child(scroller);
+      return box;
+    }
+
     StackPanel Content()
     {
       StackPanel content;
@@ -154,5 +189,37 @@ namespace SecondShell::Ui
     if (co_await dialog.ShowAsync() != ContentDialogResult::Primary) co_return nullptr;
 
     co_return box_value(smoothView && smoothView.IsChecked().Value()).as<IReference<bool>>();
+  }
+
+  IAsyncOperation<bool> SessionDialogs::AskToChangeIntegration(XamlRoot root, hstring title, hstring action, IntegrationChange change)
+  {
+    auto content = Content();
+    content.MaxWidth(560);
+
+    if (change.File.empty())
+    {
+      //The app's own command line makes the change
+      content.Children().Append(Paragraph("SecondShell runs the app's own command line:"));
+      vector<DiffLine> commands;
+      for (auto line : views::split(change.After, '\n')) commands.push_back({ '>', string{ line.begin(), line.end() } });
+      content.Children().Append(CodeBox(commands));
+    }
+    else
+    {
+      content.Children().Append(Paragraph("This changes SecondShell's entry in the file below and keeps everything else in it."));
+      auto file = ActionView::Text(to_string(change.File.wstring()), L"MutedTextBrush", 12);
+      file.FontFamily(ActionView::Resource<Media::FontFamily>(L"MonoFontFamily"));
+      file.TextWrapping(TextWrapping::Wrap);
+      file.IsTextSelectionEnabled(true);
+      content.Children().Append(file);
+      content.Children().Append(CodeBox(ChangedLines(change.Before, change.After)));
+    }
+
+    auto note = change.Before.empty() || change.File.empty() ? change.Note : format("A backup is saved as {}.bak. {}", to_string(change.File.filename().wstring()), change.Note);
+    content.Children().Append(Paragraph(note, L"MutedTextBrush"));
+
+    auto dialog = Dialog(root, title.c_str(), content, action.c_str(), L"Cancel");
+    dialog.DefaultButton(ContentDialogButton::Primary);
+    co_return co_await dialog.ShowAsync() == ContentDialogResult::Primary;
   }
 }

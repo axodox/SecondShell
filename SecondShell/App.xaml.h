@@ -21,6 +21,10 @@ namespace winrt::SecondShell::implementation
     //SecondShell.exe --setup, started elevated by ElevatedSetupLauncher: the machine-wide steps, then the exit code.
     static int RunSetup(const ::SecondShell::Setup::SetupRequest& request);
 
+    //SecondShell.exe --integrate <app> / --unintegrate <app>: adds SecondShell to an AI app, or removes it, without the
+    //window (Design.md, AI client integration); writes what it did to the console it was started from.
+    static std::optional<int> RunIntegrationCommand(std::span<const std::wstring> arguments);
+
     void RegisterServices();
     bool StartServices();
     void ShowWindow();
