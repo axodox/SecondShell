@@ -29,7 +29,7 @@ Each process has one `Axodox::Infrastructure::dependency_container`, created by 
 - **Services are singletons** that take the container in an explicit constructor and resolve their dependencies in the member initializer list, together with their event subscriptions. The order of the initializer list is deliberate (dependencies first, then the subscriptions to them).
 - **The container pointer is not stored.** A service that needs the container later (e.g. in asynchronous code) keeps a `dependency_container_ref` from `container->get_ref()` and calls `try_lock()` when it needs it.
 - **The composition root registers** interface-to-implementation mappings (`add<IInterface, Implementation>()`), instances that need explicit construction (`add<T>(instance)`), and the contributions to registries. Everything else is created by the container on first `resolve<T>()`. There are no separate registration classes.
-- **Interfaces only where there is a real alternative**: input injectors (`InputInjector` implementation, Win32 fallback), message transports (stdio, pipe), the driver link (a fake in tests).
+- **Interfaces only where there is a real alternative**: input injectors (`InputInjector` implementation, Win32 fallback), message transports (stdio, pipe), the driver link (a fake in tests), text recognizers and window text sources (OCR engines per tier, UI Automation; fakes in tests).
 
 ```cpp
 //SequenceRunner.h
@@ -567,7 +567,8 @@ public:
   Size ScreenSize() const;
   LUID AdapterLuid() const;
 
-  Axodox::Infrastructure::event_publisher<ScreenCapturer*> FrameArrived;
+  //With the frame's dirty regions, where Windows reports them (11 24H2 and later).
+  Axodox::Infrastructure::event_publisher<ScreenCapturer*, const CapturedFrame&> FrameArrived;
 };
 
 //Writes new frames into the shared frame ring for the host (SharedFrameWriter), and answers frames/subscribe.
@@ -584,20 +585,58 @@ public:
   EncodedImage Encode(ID3D11Texture2D* frame, const Rect& region, const std::optional<Size>& maxResolution, ImageFormat format) const;  //bytes, size, scale
 };
 
-//Windows.Media.Ocr over a frame region.
-class TextRecognizer
+//Text waits (OcrOptions.md, Decided design for text waits). Every OCR engine is an ITextRecognizer and UI Automation
+//an IWindowTextSource, so the wait logic sees only words with their screen boxes, whatever produced them.
+struct ScreenWord { std::string Text; Rect Box; };
+
+class ITextRecognizer
 {
 public:
-  std::vector<RecognizedText> Recognize(ID3D11Texture2D* frame, const Rect& region) const;
+  virtual std::vector<ScreenWord> Recognize(const Pixels& pixels, const Rect& region) const = 0;  //boxes on the screen
 };
 
-//Capture.WaitForText and Capture.WaitForStable.
+class IWindowTextSource
+{
+public:
+  virtual std::vector<ScreenWord> Read(Actions::WindowId window) const = 0;
+};
+
+class WindowsTextRecognizer : public ITextRecognizer;  //Windows.Media.Ocr, upscaled (1.5x) within its maximum size
+class AutomationTextSource : public IWindowTextSource;  //TextPattern, else cached Name / Value; FindAll with a CacheRequest, IUIAutomation2 timeouts
+
+//The tiers. Each caches what an area read with the fingerprint of its pixels (ScreenTextCache), between waits too.
+class QuickTextReader  //per window: UI Automation and the quick recognizer on the window's crop
+{
+public:
+  QuickTextReader(std::shared_ptr<IWindowTextSource> exposedText, std::shared_ptr<ITextRecognizer> recognizer);
+  WindowText Read(const Pixels& screen, Actions::WindowId window, const Rect& area);
+};
+
+class ThoroughTextReader  //the whole screen in overlapping bands (ScreenBands), duplicates from the overlaps merged
+{
+public:
+  explicit ThoroughTextReader(std::shared_ptr<ITextRecognizer> recognizer);
+  std::vector<ScreenWord> Read(const Pixels& screen, std::stop_token stop);
+};
+
+//One Capture.WaitForText: the quick tier on all windows, the thorough tier in the background (LowPriorityTask), then
+//both again over what changed (ScreenChangeTracker: the capture's dirty regions, or tile fingerprints, as a
+//DirtyRegion). Matching is PhraseMatcher's: normalized, lines rebuilt from the boxes (TextLines), bounded fuzzy.
+class TextSearch
+{
+public:
+  void Start();
+  void Check();
+  bool IsFound() const;
+};
+
+//Capture.WaitForText (a TextSearch per wait) and Capture.WaitForStable.
 class ScreenConditionWaiter
 {
 public:
   explicit ScreenConditionWaiter(Axodox::Infrastructure::dependency_container* container);
 
-  bool WaitForText(std::string_view text, const Rect& region, const WaitOptions& options, const CancellationToken& cancellation);
+  TextWait WaitForText(std::string_view text, const WaitOptions& options, const CancellationToken& cancellation);
   bool WaitForStable(const Rect& region, std::chrono::milliseconds stableFor, const WaitOptions& options, const CancellationToken& cancellation);
 };
 ```
@@ -1206,7 +1245,7 @@ Where the code differs from the sketches above, and why (Findings.md 2.16):
 - **Windows** (`WindowManager`, `WindowActionHandler`): windows as the taskbar lists them (visible, not cloaked, not tool windows or owned popups), in Z order. Positions and sizes are of the visible frame (`DWMWA_EXTENDED_FRAME_BOUNDS`), as captures show it; `Move` and `Resize` take the frame too and add the invisible borders. State changes and moves are asynchronous (`ShowWindowAsync`, `SWP_ASYNCWINDOWPOS`) and then awaited for up to 2 s, so a hung application cannot block the driver. `Focus` sends a `SendInput` mouse move by nothing when Windows refuses the foreground. `Capture.Window` uses `WindowManager` for its rectangle.
 - **Processes** (`ShellCommandBuilder`, `ProcessManager`, `ProcessActionHandler`): `ProcessManager::Start` runs commands hidden (`CREATE_NO_WINDOW`), with empty input, collecting output and error (64 KB each) on threads of their own; only the three standard handles are inherited (`PROC_THREAD_ATTRIBUTE_HANDLE_LIST`), so concurrent starts do not hold each other's pipes open. `Launch` (async `Process.Run`) starts as Explorer would: a window for console programs, nothing redirected, no output. Output is UTF-8 if it decodes as such, otherwise the OEM code page. PowerShell gets its script as one `-Command` argument after a UTF-8 and no-progress prelude line; `cmd` gets `/d /s /c "..."`; with shell None the arguments are quoted by the C runtime's rules. The shells are started from the system folder by full path. Processes of other sessions are refused. `Stop` sends Ctrl+C (attached to the target's console, see 2.16) before the close requests; `Kill` with `tree` follows parent IDs, checking creation times against reused IDs.
 - **Clipboard** (`MessageWindow`, `ClipboardManager`, `ClipboardFormatConverter`, `ClipboardActionHandler`): `ClipboardManager` works in Windows formats and bytes, on the message window's thread, which owns what it writes; it retries while another application has the clipboard open. The converter does UTF-16 text, the CF_HTML header (byte offsets), CF_HDROP, DIBs (written as 32-bit `BITMAPV5HEADER`, read through a `.bmp` file header and WIC) and format names. Images go both as `CF_DIBV5` and, from PNG data, as `PNG`; reading prefers `PNG`. `Clipboard.Read` has a `name` for `raw`. The host stores clipboard images as captures (`CaptureStore::Store` takes any `CapturedImage`).
-- **Waits** (`TextRecognizer`, `ScreenConditionWaiter`): OCR in the user's profile languages (English otherwise); `Capture.WaitForText` matches without case and spacing and treats l/I/1/| and O/0 as alike, and on timeout reports what the screen showed. `Capture.WaitForStable` compares the region's pixels at each interval.
+- **Waits** (`TextRecognizer`, `ScreenConditionWaiter`): OCR in the user's profile languages (English otherwise); `Capture.WaitForText` matches without case and spacing and treats l/I/1/| and O/0 as alike, and on timeout reports what the screen showed. (Stage 7 replaced this with the two-tier text waits, 6.10.) `Capture.WaitForStable` compares the region's pixels at each interval.
 - **Display**: `display/set` is `SessionManager::SetDisplay` rather than a `DisplayController`, as the session's display and its start lock live there: `RdpClient::UpdateDisplay` (`UpdateSessionDisplaySettings`, physical size for 96 DPI at the scale), then it waits until the driver's `screen/get` reports the new size. `ScreenCapturer::Screen` is the newest frame's size.
 - **Timeouts**: actions which wait use `WaitTimeout()`, or `Action::DefaultWaitTimeout` (10 s), in the driver; the host's sequence deadline bounds the driver request.
 
@@ -1225,6 +1264,7 @@ Where the code differs from the sketches above, and why (Findings.md 2.16):
 - **Activity cards** (`ActivityCards`): what the agent types, presses, runs and copies, as cards over the session view in its bottom left corner, drawn by `ActionView` as in the status bar. A WinUI panel over the `SwapChainPanel`, anchored to the letterboxed session (`SessionRenderer::Transform`), fed by `ActionLog`; cards slide in, move up (`RepositionThemeTransition`) and fade out after 4 s; a pressed key's card stays, highlighted, until the key is released. It replaced the Direct2D `ActivityOverlay`; the cursor, ripples and capture flash stay in Direct2D.
 - **Dialogs** (`SessionDialogs`): closing while a sequence runs asks first (`AppWindow::Closing`), and closing stops the agent; a child session from before is asked about through `ExistingSessionPrompt` when `Initialize-Session` gives no policy (only Reset or Cancel: resuming needs the driver restarted in that session).
 - **Frame rate**: the session view is paced by `DisplayClock` (waits for the vertical blank of the window's monitor), so it keeps up with any refresh rate. The child session composes at ~30 fps unless `DWMFRAMEINTERVAL` is set (Findings.md 3); the capture sets `MinUpdateInterval` to 1 ms, which does not change that.
+- **Text waits** (`TextSearch`, `QuickTextReader`, `ThoroughTextReader`, `ScreenChangeTracker`, `PhraseMatcher`; OcrOptions.md, Decided design for text waits): `Capture.WaitForText` searches every window first (`AutomationTextSource`, then `WindowsTextRecognizer` at 1x on the window's crop), then starts a thorough pass over the screen (`ScreenBands`: 300 px bands overlapping by 48 px, `WindowsTextRecognizer` at 1.5x, high-quality cubic via WIC) on a `LowPriorityTask` (a `jthread` in background mode). Each check (default every 250 ms) searches the windows which changed, and every 1.5 s, if anything changed since the last pass, starts another pass; a pass re-reads only the bands whose fingerprints changed. Changes come from `Direct3D11CaptureFrame::DirtyRegions` (the session's `DirtyRegionMode` set to `ReportOnly`), collected into a 32 px tile grid (`DirtyRegion`) between checks; a frame without dirty regions makes the next check compare tile fingerprints of the screen (`TileChangeDetector`), so it works before Windows 11 24H2 too. Each tier keeps a `ScreenTextCache` (64 areas, least recently used dropped) keyed by area and pixel fingerprint, for the life of the driver. Matching: NFKC (`NormalizeString`), `CharLowerBuffW`, no whitespace, i/1/|/l and 0/o and rn/m as one; lines rebuilt from the boxes as in `F:\AI\ocr-test\score.py`; Sellers' substring edit distance, at most (length − 1) / 5 edits. UI Automation: one `ElementFromHandleBuildCache` and `FindAllBuildCache` per window (control view, not off screen) with Name, Value, bounds and TextPattern cached; text controls give their visible ranges, one run per range with the union of its line boxes; 0.5 s connection and 1 s transaction timeouts; errors (timeouts, UIPI) give no text, and OCR still reads the window. Measured on this machine: Windows OCR does about 70 % of its CPU work on its own threads, at their own priority, but one at a time (process CPU time equals the wall time), so the background mode covers only the calling thread's share; a pass still uses about one core.
 
 ## 7. Key flows
 

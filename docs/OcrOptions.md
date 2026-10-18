@@ -25,6 +25,8 @@ Two tiers, so the expensive work is rare and never repeated for areas that did n
 4. **A screen text cache** of what each area read, kept between waits, so a wait for text already on an unchanged screen answers at once.
 5. **Every recognizer behind one interface** (an image region in, words with their boxes out), used by both tiers, so engines can be swapped or mixed per tier: Windows OCR first; PP-OCRv6 tiny (or its detector feeding another recognizer) on ONNX Runtime later if the quick tier misses too often in use. UI Automation sits behind a matching text source interface (a window in, words with boxes out), so the wait logic sees only words, whatever produced them. The thorough tier runs on a low-priority thread, on one core.
 
+Built on 2026-10-18 (Architecture.md 6.10): checks every 250 ms, thorough passes at most every 1.5 s, fuzzy matching up to (length − 1) / 5 edits. Not yet checked live in the child session.
+
 ## What PowerToys Text Extractor does
 
 PowerToys' screen OCR (based on Joe Finney's Text Grab; `src/modules/PowerOCR/PowerOCR.Core` in microsoft/PowerToys) uses the same engine, `Windows.Media.Ocr`, with the OCR language the user picks (it recognizes only installed OCR language packs):
@@ -55,6 +57,7 @@ Six captures from the child session (in `F:\AI\ocr-test`, with the scripts): a c
 - PP-OCRv6 tiny read everything, including the case Windows OCR cannot, at 30–60x the time.
 - **Detector plus Windows OCR** (PP-OCRv6 tiny's detection model, 2 MB, finds the text lines; Windows OCR reads each line, padded and scaled 2x): banner over wallpaper 2/3 (Windows OCR alone 0/3), consoles 9/9, Explorer 9/11 (very short boxes such as "6 items" come back empty). Detection costs ~750 ms per full screen at full resolution (~200 ms when the module scales the screen down to 960 px, which loses the console text) and ~200 ms per window, in Paddle without oneDNN; recognition of all boxes 10–60 ms.
 - **Windows OCR on the window's crop alone** read the banner window 3/3 with fuzzy matching, in 11 ms: cropping to windows solves the hard case without any model. A detector earns its place only for text outside window structure (canvases, games, images), and then on regions, not the whole screen.
+- **Threads:** Windows OCR does about 70 % of its CPU work on threads of its own (20 recognitions of a 1920x300 band at 1.5x: 78 ms on the calling thread, 266 ms in the process, 267 ms wall), one at a time. A low-priority calling thread therefore lowers only its share, but a recognition uses about one core.
 - Not tried: a small vision LLM (llama.cpp with SmolVLM, Qwen2.5-VL, Gemma 3): 0.5–3 GB of weights, seconds per screen on a CPU, text it may paraphrase, no reliable positions; too heavy to poll, and the AI client already reads captures itself.
 
 ## Engines

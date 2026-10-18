@@ -40,9 +40,11 @@ namespace SecondShell::Capture
     _session.IsBorderRequired(false);
     _session.IsCursorCaptureEnabled(true);
     _session.MinUpdateInterval(milliseconds(1));
+    auto reportingSession = _session.try_as<IGraphicsCaptureSession4>();
+    if (reportingSession) reportingSession.DirtyRegionMode(GraphicsCaptureDirtyRegionMode::ReportOnly);
     _session.StartCapture();
 
-    _logger.log(log_severity::information, "Capturing {}x{}, at most every {} ms.", _poolSize.Width, _poolSize.Height, duration_cast<milliseconds>(_session.MinUpdateInterval()).count());
+    _logger.log(log_severity::information, "Capturing {}x{}, at most every {} ms, {} dirty regions.", _poolSize.Width, _poolSize.Height, duration_cast<milliseconds>(_session.MinUpdateInterval()).count(), reportingSession ? "with" : "without");
   }
 
   Pixels ScreenCapturer::Read(const Rect& region, milliseconds timeout)
@@ -138,6 +140,7 @@ namespace SecondShell::Capture
     texture->GetDesc(&description);
     if (uint32_t(size.Width) > description.Width || uint32_t(size.Height) > description.Height) return;
 
+    auto dirtyRegions = DirtyRegionsOf(frame);
     description.Width = size.Width;
     description.Height = size.Height;
     description.Usage = D3D11_USAGE_DEFAULT;
@@ -159,8 +162,18 @@ namespace SecondShell::Capture
       D3D11_BOX content{ 0, 0, 0, description.Width, description.Height, 1 };
       _context->CopySubresourceRegion(_frame.get(), 0, 0, 0, 0, texture.get(), 0, &content);
 
-      _events.raise(FrameArrived, this, CapturedFrame{ _context.get(), _frame.get(), description.Width, description.Height });
+      _events.raise(FrameArrived, this, CapturedFrame{ _context.get(), _frame.get(), description.Width, description.Height, dirtyRegions });
     }
     _frameArrived.notify_all();
+  }
+
+  vector<Rect> ScreenCapturer::DirtyRegionsOf(const Direct3D11CaptureFrame& frame)
+  {
+    vector<Rect> result;
+    auto reporting = frame.try_as<IDirect3D11CaptureFrame2>();
+    if (!reporting) return result;
+
+    for (auto region : reporting.DirtyRegions()) result.push_back({ region.X, region.Y, uint32_t(max(region.Width, 0)), uint32_t(max(region.Height, 0)) });
+    return result;
   }
 }

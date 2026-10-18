@@ -1,24 +1,9 @@
 #pragma once
 #include "FrameRateMeter.h"
+#include "Pixels.h"
 
 namespace SecondShell::Capture
 {
-  struct Rect
-  {
-    int32_t X = 0;
-    int32_t Y = 0;
-    uint32_t Width = 0;
-    uint32_t Height = 0;
-  };
-
-  //Pixels of a region, 32-bit BGRA, rows without padding.
-  struct Pixels
-  {
-    uint32_t Width = 0;
-    uint32_t Height = 0;
-    std::vector<uint8_t> Bgra;
-  };
-
   //A new frame, for the FrameArrived handlers: valid during the call only, on the capture's device context.
   struct CapturedFrame
   {
@@ -26,6 +11,7 @@ namespace SecondShell::Capture
     ID3D11Texture2D* Texture;
     uint32_t Width;
     uint32_t Height;
+    std::span<const Rect> DirtyRegions;  //what changed since the previous frame, if Windows reports it (11 24H2 and later)
   };
 
   //Captures the session's desktop (its primary and only monitor) with Windows.Graphics.Capture and keeps the newest
@@ -75,5 +61,6 @@ namespace SecondShell::Capture
     winrt::com_ptr<ID3D11Texture2D> _frame;
 
     void OnFrameArrived(const winrt::Windows::Graphics::Capture::Direct3D11CaptureFramePool& sender, const winrt::Windows::Foundation::IInspectable& args);
+    static std::vector<Rect> DirtyRegionsOf(const winrt::Windows::Graphics::Capture::Direct3D11CaptureFrame& frame);
   };
 }

@@ -14,7 +14,7 @@ namespace SecondShell::Driver
   const milliseconds _firstFrameTimeout{ 2000 };
 
   //Design.md, Capture actions
-  const milliseconds _textInterval{ 500 };
+  const milliseconds _textInterval{ 250 };
   const milliseconds _stableInterval{ 100 };
   const milliseconds _stableFor{ 500 };
   const size_t _recognizedTextLimit = 500;
@@ -72,7 +72,7 @@ namespace SecondShell::Driver
     if (wait.IsFound) return ActionResult::Succeeded();
     if (cancellation.IsCancelled()) return ActionResult::Cancelled();
 
-    //What OCR saw helps to tell a misread from a missing text
+    //What was read helps to tell a misread from a missing text
     auto recognized = wait.LastRecognized.substr(0, _recognizedTextLimit);
     replace(recognized.begin(), recognized.end(), '\n', ' ');
     return ActionResult::Failed(ErrorCode::Timeout, format("The text \"{}\" did not appear within {} ms. The screen showed: {}", action.Text, timeout.count(), recognized));
