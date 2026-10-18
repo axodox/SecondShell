@@ -1,6 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Compiler and output settings shared by all C++ projects. Imported as a property sheet, after Microsoft.Cpp.props. -->
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <!-- The version of every binary and package: ProductInfo, the version resource, package.ps1 -->
+  <PropertyGroup>
+    <SecondShellVersion>0.1.0</SecondShellVersion>
+    <SecondShellVersionNumber>$(SecondShellVersion.Replace('.', ',')),0</SecondShellVersionNumber>
+  </PropertyGroup>
+
   <PropertyGroup>
     <OutDir>$(SecondShellRoot)bin\$(Platform)\$(Configuration)\</OutDir>
     <IntDir>$(SecondShellRoot)obj\$(Platform)\$(Configuration)\$(MSBuildProjectName)\</IntDir>
@@ -16,12 +22,15 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <PreprocessorDefinitions>NOMINMAX;UNICODE;_UNICODE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NOMINMAX;UNICODE;_UNICODE;SECONDSHELL_VERSION="$(SecondShellVersion)";%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalOptions>/utf-8 /bigobj %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <ResourceCompile>
+      <PreprocessorDefinitions>SECONDSHELL_VERSION=\"$(SecondShellVersion)\";SECONDSHELL_VERSION_NUMBER=$(SecondShellVersionNumber);%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ResourceCompile>
   </ItemDefinitionGroup>
 
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Debug'">

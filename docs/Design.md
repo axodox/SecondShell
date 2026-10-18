@@ -510,6 +510,7 @@ SecondShell ships in two builds of the same binaries: a **portable** folder and 
 - Can run from any folder. The driver's `RunOnce` entry is written fresh for each new session with the current path, and the checks on every start keep the AI client integrations pointing at the current location, so moving the folder only needs a restart.
 - Doesn't create a Start menu entry or any other shortcut; users can create one themselves.
 - Should be code-signed: unsigned downloaded executables trigger SmartScreen, and an unsigned program that injects input is likely to be flagged by security software.
+- **As built** (`package.ps1`): `SecondShell-<version>-<platform>.zip` holds one folder, `SecondShell`, with no version in its name, so an update extracted over it keeps the path the AI apps run (a moved folder shows as Out of date in Add to AI apps); the self-contained Windows App SDK and the Visual C++ runtime (app-local) are in it. SecondShell's own binaries are signed; for now with a self-signed `CN=Axodox` certificate (10 years), which Windows does not trust, so SmartScreen still warns until a trusted certificate replaces it. The symbols are a separate zip. The version is `SecondShellVersion` in `Build\SecondShell.Cpp.props`, also the binaries' version resource.
 
 ### MSIX
 

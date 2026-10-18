@@ -5,7 +5,8 @@ Where the work stands, for continuing after a break. The plan and its status tab
 ## State
 
 - **Branch** `stage_1_and_2`. Stages 0–8 and the Axodox.Common refactor are committed; nothing is pushed.
-- **Stage 9, setup, settings and AI client integrations: done.** Four parts: setup and repair, settings, Add to AI apps, uninstall (210 unit tests, 15 session probe tests; x64 and ARM64 build). The user's hands-on check is to come (below). Next is stage 10, packaging (portable zip, code signing, MSIX).
+- **Stage 10, packaging: in progress.** The portable part is done: `package.ps1` makes the signed zips for x64 and ARM64; the x64 zip ran end to end from a fresh folder. Next: the MSIX package (App Execution Aliases, so AI apps run a path that survives updates; the RunOnce check; `.appinstaller` on GitHub releases).
+- **Stage 9, setup, settings and AI client integrations: done.** The user's hands-on check is to come (below).
 - **Stage 8, touch and pen: done.** x64 and ARM64 build.
 - **Stage 7, host UI and session view: done.** The user's hands-on check is still to come (below).
 - **Axodox.Common:** SecondShell uses the package `1.0.124-named-pipe-messaging` (in `packages`, built locally from `G:\dev\axodox-common`). Axodox has no uncommitted changes of mine.
@@ -17,6 +18,16 @@ Where the work stands, for continuing after a break. The plan and its status tab
 - **Manual test (the user)**: on a PC without child sessions (or after `WTSEnableChildSessions(FALSE)`), the dialog at start, Set up with the administrator prompt, declining it, and the smooth view option. Here child sessions are on and `DWMFRAMEINTERVAL` = 15 was set by hand, so SecondShell does not count it as its own.
 - **Checked here**: the dialog and the notice (with a local switch faking the missing setup, not committed); `SecondShell.exe --setup` unelevated with nothing to do exits 0 without a window.
 - `MachineConfiguration` is the only code that writes the machine's settings; tests use a fake (`SetupTests`).
+
+## Stage 10, part 1: portable
+
+`package.ps1 [-Platforms x64,ARM64] [-SkipBuild] [-CertificateSubject "CN=Axodox"] [-TimestampUrl <url>]`: builds Release, stages `artifacts\<platform>\SecondShell` (the Release output without symbols, build leftovers and the test projects, plus the Visual C++ runtime from Visual Studio's redist folder), signs SecondShell's own five binaries with the newest valid certificate of that subject in `Cert:\CurrentUser\My`, and writes `artifacts\SecondShell-<version>-<platform>.zip` (x64: 24 MB, 259 files) and `...-symbols.zip`.
+
+- **Certificate**: self-signed, `CN=Axodox`, code signing, RSA 3072, valid until 2036-10-18, thumbprint `89D3A530B13C9FA9FF38A4A5C39FAFEE786F69FF`, its private key exportable, only in this user's store (created through `Breakaway --explorer`, as this terminal's store writes would be redirected into the Claude app's package). Back it up (export with its key) to sign on another machine; Windows does not trust it, so the signatures show `UnknownError` and SmartScreen still warns.
+- **Version**: `SecondShellVersion` in `Build\SecondShell.Cpp.props` feeds `ProductInfo::Version`, the version resource of the executables (`Assets\SecondShell.rc`) and the zip names.
+- **Tested here**: the x64 zip unzipped to `obj\portable-test`: the MCP server there started the host there, which started the driver there in the child session; a console, typing, a text wait and a capture worked, and the session shut down. Not tested: a clean machine without the Visual C++ runtime installed (Windows Sandbox would do), and the ARM64 zip on an ARM64 device.
+- **Release-only bug found and fixed**: DriverLink and McpRequestHandler destroyed a disconnected connection inside the channel's disconnected event, whose next handler was the destroyed transport's (6ca49da).
+- **Build "stalls" were the output pipe**: piping a build into `Select-Object -First N` (or `head`) stops reading its output; with Release's many warnings the pipe fills, and MSBuild and the compilers block writing to it (seen as idle `cl.exe`). Write the whole output to a file and filter that. `build.ps1` now also asks for the 64-bit compilers (`PreferredToolArchitecture=x64`), which ARM64 builds otherwise do not use.
 
 ## Stage 9, part 4: uninstall
 
@@ -111,7 +122,7 @@ The child session's desktop drawn live in the SecondShell window, letterboxed, f
   - The native test adapter ignores `TestCategory`, hence the filter by class name.
 - **Snapshots**: rewrite with `SECONDSHELL_UPDATE_SNAPSHOTS=1`, then review the diff of `SecondShell.Tests/Snapshots/*.json`.
 - **Before rebuilding**: log the session off and close the host window (it locks `SecondShell.Common.dll` and `Axodox.Common.dll`).
-- **A stalled build** shows idle `cl.exe` and `mspdbsrv` processes with almost no CPU. End them, delete the project's `obj\x64\Debug\<project>` folder, and build again. It happened twice after a `pch.h` change.
+- **A stalled build** shows idle `cl.exe` and `mspdbsrv` processes with almost no CPU: something stopped reading the build's output (e.g. `Select-Object -First N`), and the compilers block writing their warnings. Never cut a build's output short; write it to a file. End the processes, delete the project's `obj\<platform>\<configuration>\<project>` folder, and build again.
 - **Manual probing**: a small Python MCP client and scenario scripts are in this session's scratchpad (`probe.py`, `s_*.py`; `snap_host.py` saves the host window with PrintWindow and `PW_RENDERFULLCONTENT`). The scratchpad is temporary, so recreate them if gone.
   - Messages to `SecondShell.Mcp.exe` must be single-line JSON.
   - Run Python with `PYTHONIOENCODING=utf-8`, and open files with `encoding="utf-8"` (the Windows default is cp1252).

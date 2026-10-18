@@ -10,6 +10,7 @@ namespace SecondShell::Environment
 
   const char* ProductInfo::Version()
   {
-    return "0.1.0";
+    //From Build\SecondShell.Cpp.props
+    return SECONDSHELL_VERSION;
   }
 }

@@ -37,7 +37,8 @@ foreach ($platform in $Platforms)
   foreach ($configuration in $Configurations)
   {
     Write-Host "Building $configuration $platform..." -ForegroundColor Magenta
-    & $msbuild (Join-Path $root "SecondShell.sln") -p:Configuration=$configuration -p:Platform=$platform -m -v:m -nologo
+    #The 64-bit compilers for every platform, also for ARM64, whose default is the 32-bit ones
+    & $msbuild (Join-Path $root "SecondShell.sln") -p:Configuration=$configuration -p:Platform=$platform -p:PreferredToolArchitecture=x64 -m -v:m -nologo
     if ($LASTEXITCODE -ne 0) { throw "Building $configuration $platform failed." }
   }
 }
