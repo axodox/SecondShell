@@ -6,6 +6,7 @@
 #include "DriverLink.h"
 #include "HostProtocol.h"
 #include "RdpClient.h"
+#include "SettingsStore.h"
 
 namespace SecondShell::Session
 {
@@ -36,6 +37,7 @@ namespace SecondShell::Session
 
   private:
     std::shared_ptr<ChildSessionApi> _childSessions;
+    std::shared_ptr<SettingsStore> _settings;
     std::shared_ptr<CredentialProvider> _credentials;
     std::shared_ptr<ExistingSessionPrompt> _existingSessionPrompt;
     std::shared_ptr<DriverLauncher> _driverLauncher;

@@ -63,6 +63,7 @@
     <ClInclude Include="McpProbe.h" />
     <ClInclude Include="McpTestClient.h" />
     <ClInclude Include="TestPipeName.h" />
+    <ClInclude Include="TestSettings.h" />
     <ClInclude Include="MemoryTransport.h" />
   </ItemGroup>
   <ItemGroup>
@@ -100,6 +101,7 @@
     <ClCompile Include="ScreenTextCacheTests.cpp" />
     <ClCompile Include="SequenceRunnerTests.cpp" />
     <ClCompile Include="SetupTests.cpp" />
+    <ClCompile Include="SettingsStoreTests.cpp" />
     <ClCompile Include="HostWindow.cpp" />
     <ClCompile Include="SessionProbeTests.cpp" />
     <ClCompile Include="SessionToolSourceTests.cpp" />
@@ -150,6 +152,7 @@
     <ClCompile Include="..\SecondShell\IDriverLink.cpp" />
     <ClCompile Include="..\SecondShell\MachineSetup.cpp" />
     <ClCompile Include="..\SecondShell\SequenceRunner.cpp" />
+    <ClCompile Include="..\SecondShell\SettingsStore.cpp" />
     <ClCompile Include="..\SecondShell\VisualizationFeed.cpp" />
   </ItemGroup>
   <ItemGroup Label="SecondShell.Mcp">

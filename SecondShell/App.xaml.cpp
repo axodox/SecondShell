@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "App.xaml.h"
 #include "AppEnvironment.h"
+#include "CaptureStore.h"
 #include "ClipboardSync.h"
 #include "MachineSetup.h"
 #include "McpRequestHandler.h"
@@ -102,6 +103,9 @@ namespace winrt::SecondShell::implementation
 
     //Per-user problems are fixed here and now; machine-wide ones the window offers to set up
     _container->resolve<SetupChecker>()->Check();
+
+    //Old capture folders go in the background; there may be many files
+    thread([captures = _container->resolve<CaptureStore>()] { captures->RemoveOldCaptures(); }).detach();
     _container->resolve<DriverLink>()->Start();
     _container->resolve<ClipboardSync>();
     return true;

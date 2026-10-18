@@ -397,7 +397,7 @@ namespace SecondShell::Actions
     { .name = "Process.Run", .description = "Runs a command in the session. Synchronous by default: waits for the exit and returns the exit code and the output and error streams (each truncated to 64 KB). Use async for programs that keep running, e.g. GUI applications or a console to interact with: it starts the program as Explorer would and returns its process ID at once; with shell None the ID is the program's own." },
     {
       { &ProcessRunAction::Command, "command", { .is_required = true, .schema = { .description = "The command for the shell, or with shell None the path of an executable." } } },
-      { &ProcessRunAction::Shell, "shell", { .is_required = false, .schema = { .description = "PowerShell (default, Windows PowerShell), Pwsh (PowerShell 7), Cmd, or None (no shell parsing)." } } },
+      { &ProcessRunAction::Shell, "shell", { .is_required = false, .schema = { .description = "PowerShell (Windows PowerShell), Pwsh (PowerShell 7), Cmd, or None (no shell parsing); default: the user's setting, PowerShell unless they changed it." } } },
       { &ProcessRunAction::Args, "args", { .is_required = false, .schema = { .description = "Arguments, passed without shell parsing with shell None." } } },
       { &ProcessRunAction::WorkingDirectory, "workingDirectory", { .is_required = false, .schema = { .description = "Default: the user's profile folder." } } },
       { &ProcessRunAction::Async, "async", { .is_required = false, .schema = { .description = "Start the program as Explorer would (console programs get a window, nothing is redirected) and return its process ID at once; Control.Join does not wait for it, Process.WaitForProcess does." } } },

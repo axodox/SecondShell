@@ -5,6 +5,7 @@ using namespace Axodox::Infrastructure;
 using namespace SecondShell::Actions;
 using namespace SecondShell::Environment;
 using namespace SecondShell::Protocol;
+using namespace SecondShell::Session;
 using namespace std;
 using namespace std::chrono;
 using namespace std::filesystem;
@@ -27,8 +28,12 @@ namespace SecondShell::Agent
 
   CaptureStore::CaptureStore(dependency_container* container) :
     _environment(container->resolve<AppEnvironment>()),
-    _sessionName(format("{:%Y%m%d-%H%M%S}", floor<seconds>(system_clock::now())))
-  { }
+    _settingsStore(container->resolve<SettingsStore>()),
+    _sessionName(format("{:%Y%m%d-%H%M%S}", floor<seconds>(system_clock::now()))),
+    _settingsChangedSubscription(_settingsStore->Changed({ this, &CaptureStore::OnSettingsChanged }))
+  {
+    OnSettingsChanged(_settingsStore.get(), _settingsStore->Current());
+  }
 
   CaptureSettings CaptureStore::Settings() const
   {
@@ -40,6 +45,29 @@ namespace SecondShell::Agent
   {
     lock_guard lock{ _mutex };
     _settings = settings;
+  }
+
+  void CaptureStore::RemoveOldCaptures() const
+  {
+    auto retention = _settingsStore->Current().CaptureRetention;
+    auto captures = _environment->CapturesFolder();
+    if (retention == 0 || !exists(captures)) return;
+
+    //By the time of their last write, which is the run's last capture
+    auto oldest = file_time_type::clock::now() - days(retention);
+    error_code error;
+    for (auto& folder : directory_iterator(captures, error))
+    {
+      if (!folder.is_directory() || folder.path().filename() == _sessionName || folder.last_write_time() >= oldest) continue;
+      remove_all(folder.path(), error);
+    }
+  }
+
+  void CaptureStore::OnSettingsChanged(SettingsStore* /*sender*/, const Session::Settings& settings)
+  {
+    lock_guard lock{ _mutex };
+    _settings.Format = settings.CaptureFormat;
+    _settings.InlineLimit = settings.InlineCaptureLimit;
   }
 
   CaptureDestination CaptureStore::Decide(const optional<CaptureOutput>& output, uint32_t inlineCountSoFar) const

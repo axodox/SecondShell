@@ -1,0 +1,8 @@
+namespace SecondShell
+{
+  [default_interface]
+  runtimeclass GeneralSettings : Microsoft.UI.Xaml.Controls.UserControl
+  {
+    GeneralSettings();
+  }
+}

@@ -33,6 +33,7 @@ namespace SecondShell::Agent
     std::shared_ptr<AgentControl> _agentControl;
     Axodox::Infrastructure::event_subscription _modeChangedSubscription;
     std::shared_ptr<CaptureStore> _captureStore;
+    std::shared_ptr<Session::SettingsStore> _settings;
     std::shared_ptr<ActionLog> _actionLog;
     std::shared_ptr<VisualizationFeed> _visualization;
 
@@ -51,6 +52,7 @@ namespace SecondShell::Agent
     Axodox::Infrastructure::value_ptr<Actions::ActionResult> Reset(RunState& state);
     Axodox::Infrastructure::value_ptr<Actions::ActionResult> Capture(RunState& state, const Axodox::Infrastructure::value_ptr<Actions::Action>& step, uint32_t index);
     Axodox::Infrastructure::value_ptr<Actions::ActionResult> ReadClipboard(RunState& state, const Axodox::Infrastructure::value_ptr<Actions::Action>& step, uint32_t index);
+    Axodox::Infrastructure::value_ptr<Actions::ActionResult> RunProcess(RunState& state, const Axodox::Infrastructure::value_ptr<Actions::Action>& step);
     Axodox::Infrastructure::value_ptr<Actions::ActionResult> StoreImage(RunState& state, Axodox::Infrastructure::value_ptr<Actions::ActionResult>&& result, Actions::CapturedImage& image, const std::optional<std::string>& path, const CaptureDestination& destination, std::string_view fileStem);
     Axodox::Infrastructure::value_ptr<Actions::ActionResult> Execute(RunState& state, const Axodox::Infrastructure::value_ptr<Actions::Action>& action);
 

@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Settings, General (docs/ui/Settings.html): the session, captures, commands, sign-in and setup -->
+<UserControl
+  x:Class="SecondShell.GeneralSettings"
+  xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:local="using:SecondShell">
+  <StackPanel Spacing="4">
+    <TextBlock Text="General" Style="{StaticResource SettingsPageTitleStyle}" />
+
+    <TextBlock Text="Session" Style="{StaticResource SettingsSectionTitleStyle}" />
+    <Grid Style="{StaticResource SettingsCardStyle}">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="*" />
+        <ColumnDefinition Width="Auto" />
+      </Grid.ColumnDefinitions>
+      <StackPanel VerticalAlignment="Center" Spacing="2">
+        <TextBlock Text="Display" Style="{StaticResource SettingsNameStyle}" />
+        <TextBlock Text="For new sessions; Set-Display changes a running one" Style="{StaticResource SettingsDescriptionStyle}" />
+      </StackPanel>
+      <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+        <ComboBox x:Name="ResolutionBox" Style="{StaticResource SettingsComboBoxStyle}" MinWidth="150" AutomationProperties.Name="Display resolution" SelectionChanged="OnChanged" />
+        <ComboBox x:Name="ScaleBox" Style="{StaticResource SettingsComboBoxStyle}" MinWidth="100" AutomationProperties.Name="Display scale" SelectionChanged="OnChanged" />
+      </StackPanel>
+    </Grid>
+
+    <Grid Style="{StaticResource SettingsCardStyle}">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="*" />
+        <ColumnDefinition Width="Auto" />
+      </Grid.ColumnDefinitions>
+      <StackPanel VerticalAlignment="Center" Spacing="2">
+        <TextBlock Text="Sign-in timeout" Style="{StaticResource SettingsNameStyle}" />
+        <TextBlock Text="The driver starts with your startup apps, which can take over a minute" Style="{StaticResource SettingsDescriptionStyle}" />
+      </StackPanel>
+      <ComboBox x:Name="TimeoutBox" Grid.Column="1" Style="{StaticResource SettingsComboBoxStyle}" AutomationProperties.Name="Sign-in timeout" SelectionChanged="OnChanged" />
+    </Grid>
+
+    <TextBlock Text="Captures" Style="{StaticResource SettingsSectionTitleStyle}" />
+    <Grid Style="{StaticResource SettingsCardStyle}">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="*" />
+        <ColumnDefinition Width="Auto" />
+      </Grid.ColumnDefinitions>
+      <StackPanel VerticalAlignment="Center" Spacing="2">
+        <TextBlock Text="Format" Style="{StaticResource SettingsNameStyle}" />
+        <TextBlock Text="Of captures saved to files; captures sent inline are always PNG" Style="{StaticResource SettingsDescriptionStyle}" />
+      </StackPanel>
+      <ComboBox x:Name="FormatBox" Grid.Column="1" Style="{StaticResource SettingsComboBoxStyle}" AutomationProperties.Name="Capture format" SelectionChanged="OnChanged" />
+    </Grid>
+
+    <Grid Style="{StaticResource SettingsCardStyle}">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="*" />
+        <ColumnDefinition Width="Auto" />
+      </Grid.ColumnDefinitions>
+      <StackPanel VerticalAlignment="Center" Spacing="2">
+        <TextBlock Text="Inline captures per sequence" Style="{StaticResource SettingsNameStyle}" />
+        <TextBlock Text="Beyond this, captures go to files and the agent gets their paths" Style="{StaticResource SettingsDescriptionStyle}" />
+      </StackPanel>
+      <NumberBox x:Name="InlineLimitBox" Grid.Column="1" Minimum="0" Maximum="20" SmallChange="1" SpinButtonPlacementMode="Inline" VerticalAlignment="Center"
+                 MinWidth="140" AutomationProperties.Name="Inline captures per sequence" ValueChanged="OnInlineLimitChanged" />
+    </Grid>
+
+    <Grid Style="{StaticResource SettingsCardStyle}">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="*" />
+        <ColumnDefinition Width="Auto" />
+      </Grid.ColumnDefinitions>
+      <StackPanel VerticalAlignment="Center" Spacing="2">
+        <TextBlock Text="Capture files" Style="{StaticResource SettingsNameStyle}" />
+        <TextBlock x:Name="CaptureFolderText" Style="{StaticResource SettingsPathStyle}" />
+      </StackPanel>
+      <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+        <TextBlock Text="Keep for" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" />
+        <ComboBox x:Name="RetentionBox" Style="{StaticResource SettingsComboBoxStyle}" MinWidth="120" AutomationProperties.Name="Keep capture files for" SelectionChanged="OnChanged" />
+        <Button Content="Open folder" Click="OnOpenCaptureFolderClick" />
+      </StackPanel>
+    </Grid>
+
+    <TextBlock Text="Commands" Style="{StaticResource SettingsSectionTitleStyle}" />
+    <Grid Style="{StaticResource SettingsCardStyle}">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="*" />
+        <ColumnDefinition Width="Auto" />
+      </Grid.ColumnDefinitions>
+      <StackPanel VerticalAlignment="Center" Spacing="2">
+        <TextBlock Text="Default shell" Style="{StaticResource SettingsNameStyle}" />
+        <TextBlock Text="For Process.Run when the agent names none" Style="{StaticResource SettingsDescriptionStyle}" />
+      </StackPanel>
+      <ComboBox x:Name="ShellBox" Grid.Column="1" Style="{StaticResource SettingsComboBoxStyle}" AutomationProperties.Name="Default shell" SelectionChanged="OnChanged" />
+    </Grid>
+
+    <TextBlock Text="Sign-in and setup" Style="{StaticResource SettingsSectionTitleStyle}" />
+    <Grid Style="{StaticResource SettingsCardStyle}">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="*" />
+        <ColumnDefinition Width="Auto" />
+      </Grid.ColumnDefinitions>
+      <StackPanel VerticalAlignment="Center" Spacing="2">
+        <TextBlock x:Name="PasswordTitle" Text="Password saved" Style="{StaticResource SettingsNameStyle}" />
+        <TextBlock x:Name="PasswordDetail" Text="In Windows Credential Manager, encrypted for this app; used only to sign the session in" Style="{StaticResource SettingsDescriptionStyle}" />
+      </StackPanel>
+      <Button x:Name="ForgetPasswordButton" Grid.Column="1" Content="Forget saved password" VerticalAlignment="Center" Click="OnForgetPasswordClick" />
+    </Grid>
+
+    <Grid Style="{StaticResource SettingsCardStyle}">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="*" />
+        <ColumnDefinition Width="Auto" />
+      </Grid.ColumnDefinitions>
+      <StackPanel VerticalAlignment="Center" Spacing="2">
+        <TextBlock x:Name="ChildSessionsTitle" Text="Child sessions enabled" Style="{StaticResource SettingsNameStyle}" />
+        <TextBlock x:Name="ChildSessionsDetail" Text="Set up once for this PC" Style="{StaticResource SettingsDescriptionStyle}" />
+      </StackPanel>
+      <Button x:Name="SetupButton" Grid.Column="1" Content="Check again" VerticalAlignment="Center" Click="OnSetupClick" />
+    </Grid>
+
+    <Grid Style="{StaticResource SettingsCardStyle}">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="*" />
+        <ColumnDefinition Width="Auto" />
+      </Grid.ColumnDefinitions>
+      <StackPanel VerticalAlignment="Center" Spacing="2">
+        <TextBlock Text="Smooth session view (60 fps)" Style="{StaticResource SettingsNameStyle}" />
+        <TextBlock x:Name="SmoothViewDetail" Text="Every Remote Desktop session on this PC is drawn at 60 fps instead of 30, from its next sign-in; incoming connections too. Changing it needs administrator rights." Style="{StaticResource SettingsDescriptionStyle}" />
+      </StackPanel>
+      <ToggleSwitch x:Name="SmoothViewSwitch" Grid.Column="1" VerticalAlignment="Center" MinWidth="0" OnContent="On" OffContent="Off" AutomationProperties.Name="Smooth session view" Toggled="OnSmoothViewToggled" />
+    </Grid>
+  </StackPanel>
+</UserControl>

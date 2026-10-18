@@ -39,6 +39,8 @@ namespace SecondShell::Protocol
     uint32_t Height = 1080;
     uint32_t Scale = 100;  //percent
     DisplayOrientation Orientation = DisplayOrientation::Landscape;
+
+    bool operator==(const DisplaySettings&) const = default;
   };
 
   struct SECONDSHELL_COMMON_API CaptureSettings
@@ -78,6 +80,8 @@ namespace SecondShell::Protocol
     //Sign-in and the driver's start: the driver starts with the user's startup programs, after the machine's, which
     //can take more than a minute (Findings.md 2.16)
     static constexpr std::chrono::milliseconds DefaultTimeout{ 180000 };
+    //Without a timeout the host waits as long as the user's setting says, at most this long (SettingsStore)
+    static constexpr std::chrono::milliseconds LongestTimeout{ 3600000 };
 
     std::optional<DisplaySettings> Display;
     std::optional<CaptureSettings> Capture;

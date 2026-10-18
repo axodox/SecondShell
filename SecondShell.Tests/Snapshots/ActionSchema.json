@@ -1214,7 +1214,7 @@
           "type": "string"
         },
         "shell": {
-          "description": "PowerShell (default, Windows PowerShell), Pwsh (PowerShell 7), Cmd, or None (no shell parsing).",
+          "description": "PowerShell (Windows PowerShell), Pwsh (PowerShell 7), Cmd, or None (no shell parsing); default: the user's setting, PowerShell unless they changed it.",
           "enum": [
             "PowerShell",
             "Pwsh",

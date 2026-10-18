@@ -91,6 +91,7 @@
     <ClInclude Include="Credentials.h" />
     <ClInclude Include="CredentialStore.h" />
     <ClInclude Include="CursorOverlay.h" />
+    <ClInclude Include="SettingsStore.h" />
     <ClInclude Include="SetupChecker.h" />
     <ClInclude Include="MachineSetup.h" />
     <ClInclude Include="MachineConfiguration.h" />
@@ -130,12 +131,24 @@
     <ClInclude Include="StatusBar.xaml.h">
       <DependentUpon>StatusBar.xaml</DependentUpon>
     </ClInclude>
+    <ClInclude Include="AboutSettings.xaml.h">
+      <DependentUpon>AboutSettings.xaml</DependentUpon>
+    </ClInclude>
+    <ClInclude Include="GeneralSettings.xaml.h">
+      <DependentUpon>GeneralSettings.xaml</DependentUpon>
+    </ClInclude>
+    <ClInclude Include="SettingsView.xaml.h">
+      <DependentUpon>SettingsView.xaml</DependentUpon>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ApplicationDefinition Include="App.xaml" />
     <Page Include="MainWindow.xaml" />
     <Page Include="ActionLogPanel.xaml" />
     <Page Include="StatusBar.xaml" />
+    <Page Include="AboutSettings.xaml" />
+    <Page Include="GeneralSettings.xaml" />
+    <Page Include="SettingsView.xaml" />
     <Page Include="Theme.xaml" />
   </ItemGroup>
   <ItemGroup>
@@ -154,6 +167,15 @@
     <ClCompile Include="StatusBar.xaml.cpp">
       <DependentUpon>StatusBar.xaml</DependentUpon>
     </ClCompile>
+    <ClCompile Include="AboutSettings.xaml.cpp">
+      <DependentUpon>AboutSettings.xaml</DependentUpon>
+    </ClCompile>
+    <ClCompile Include="GeneralSettings.xaml.cpp">
+      <DependentUpon>GeneralSettings.xaml</DependentUpon>
+    </ClCompile>
+    <ClCompile Include="SettingsView.xaml.cpp">
+      <DependentUpon>SettingsView.xaml</DependentUpon>
+    </ClCompile>
     <ClCompile Include="ActionLog.cpp" />
     <ClCompile Include="ActionView.cpp" />
     <ClCompile Include="ActivityBars.cpp" />
@@ -170,6 +192,7 @@
     <ClCompile Include="Credentials.cpp" />
     <ClCompile Include="CredentialStore.cpp" />
     <ClCompile Include="CursorOverlay.cpp" />
+    <ClCompile Include="SettingsStore.cpp" />
     <ClCompile Include="SetupChecker.cpp" />
     <ClCompile Include="MachineSetup.cpp" />
     <ClCompile Include="MachineConfiguration.cpp" />
@@ -213,6 +236,18 @@
     <Midl Include="StatusBar.idl">
       <SubType>Code</SubType>
       <DependentUpon>StatusBar.xaml</DependentUpon>
+    </Midl>
+    <Midl Include="AboutSettings.idl">
+      <SubType>Code</SubType>
+      <DependentUpon>AboutSettings.xaml</DependentUpon>
+    </Midl>
+    <Midl Include="GeneralSettings.idl">
+      <SubType>Code</SubType>
+      <DependentUpon>GeneralSettings.xaml</DependentUpon>
+    </Midl>
+    <Midl Include="SettingsView.idl">
+      <SubType>Code</SubType>
+      <DependentUpon>SettingsView.xaml</DependentUpon>
     </Midl>
   </ItemGroup>
   <ItemGroup>

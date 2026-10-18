@@ -2,6 +2,7 @@
 #include "SequenceRunner.h"
 #include "ClipboardActions.h"
 #include "ControlActions.h"
+#include "ProcessActions.h"
 #include "ProtocolErrors.h"
 
 using namespace Axodox::Infrastructure;
@@ -50,6 +51,7 @@ namespace SecondShell::Agent
     _agentControl(container->resolve<AgentControl>()),
     _modeChangedSubscription(_agentControl->ModeChanged({ this, &SequenceRunner::OnModeChanged })),
     _captureStore(container->resolve<CaptureStore>()),
+    _settings(container->resolve<SettingsStore>()),
     _actionLog(container->resolve<ActionLog>()),
     _visualization(container->resolve<VisualizationFeed>())
   { }
@@ -139,6 +141,8 @@ namespace SecondShell::Agent
       return Capture(state, step, index);
     case ActionType::ClipboardRead:
       return ReadClipboard(state, step, index);
+    case ActionType::ProcessRun:
+      return RunProcess(state, step);
     default:
       return Execute(state, step);
     }
@@ -210,6 +214,15 @@ namespace SecondShell::Agent
 
     auto& image = *clipboardResult->Image;
     return StoreImage(state, move(result), image, read.Path, destination, format("{}-{}-clipboard", state.Sequence, index));
+  }
+
+  value_ptr<ActionResult> SequenceRunner::RunProcess(RunState& state, const value_ptr<Action>& step)
+  {
+    //The driver gets the user's default shell when the agent names none
+    auto action = step;
+    auto& run = static_cast<ProcessRunAction&>(*action);
+    if (!run.Shell) run.Shell = _settings->Current().DefaultShell;
+    return Execute(state, action);
   }
 
   value_ptr<ActionResult> SequenceRunner::StoreImage(RunState& state, value_ptr<ActionResult>&& result, CapturedImage& image, const optional<string>& path, const CaptureDestination& destination, string_view fileStem)

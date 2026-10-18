@@ -1,7 +1,9 @@
 #include "pch.h"
 #include "CaptureActions.h"
+#include "ProcessActions.h"
 #include "ProtocolErrors.h"
 #include "SequenceRunner.h"
+#include "TestSettings.h"
 
 using namespace Axodox::Infrastructure;
 using namespace Axodox::Json;
@@ -96,6 +98,7 @@ namespace SecondShell::Tests
     SequenceRunnerTests()
     {
       _container.add<IDriverLink>(_driver);
+      UseDefaultSettings(_container);
     }
 
     TEST_METHOD(StepsRunInOrderWithProgress)
@@ -111,6 +114,16 @@ namespace SecondShell::Tests
       auto requests = _driver->Requests();
       Assert::AreEqual(size_t(2), requests.size(), L"Control.Wait runs in the host");
       Assert::IsTrue(requests[0].Action->Type() == ActionType::MouseClick && requests[1].Action->Type() == ActionType::KeyboardType);
+    }
+
+    TEST_METHOD(CommandsGetTheDefaultShellWhenTheAgentNamesNone)
+    {
+      _container.resolve<SettingsStore>()->Update([](Settings& settings) { settings.DefaultShell = ShellKind::Cmd; });
+      Run(R"({"steps": [{"action": "Process.Run", "command": "dir"}, {"action": "Process.Run", "command": "ls", "shell": "Pwsh"}]})");
+
+      auto requests = _driver->Requests();
+      Assert::IsTrue(static_cast<const ProcessRunAction&>(*requests[0].Action).Shell == ShellKind::Cmd, L"the user's default");
+      Assert::IsTrue(static_cast<const ProcessRunAction&>(*requests[1].Action).Shell == ShellKind::Pwsh, L"the agent's choice");
     }
 
     TEST_METHOD(AFailedStepStopsTheSequenceAndReleasesInput)

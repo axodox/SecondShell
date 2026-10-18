@@ -17,6 +17,7 @@
   <Color x:Key="UserColor">#FFB547</Color>
   <Color x:Key="StopColor">#C42B1C</Color>
 
+  <SolidColorBrush x:Key="GroundBrush" Color="#1B1B1F" />
   <SolidColorBrush x:Key="SessionAreaBrush" Color="#121215" />
   <SolidColorBrush x:Key="BarBrush" Color="#202024" />
   <SolidColorBrush x:Key="BarBorderBrush" Color="#0FFFFFFF" />
@@ -177,5 +178,52 @@
     <Setter Property="Padding" Value="0" />
     <Setter Property="Background" Value="Transparent" />
     <Setter Property="BorderThickness" Value="0" />
+  </Style>
+
+  <!-- Settings (docs/ui/Settings.html): a page title, sections, and a card per setting with its name, a line on it, and its control -->
+  <SolidColorBrush x:Key="SettingsCardBrush" Color="#2A2A30" />
+  <SolidColorBrush x:Key="SettingsCardBorderBrush" Color="#0DFFFFFF" />
+
+  <Style x:Key="SettingsPageTitleStyle" TargetType="TextBlock">
+    <Setter Property="FontSize" Value="26" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Margin" Value="0,0,0,6" />
+  </Style>
+
+  <Style x:Key="SettingsSectionTitleStyle" TargetType="TextBlock">
+    <Setter Property="FontSize" Value="14" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Margin" Value="0,16,0,6" />
+  </Style>
+
+  <Style x:Key="SettingsCardStyle" TargetType="Grid">
+    <Setter Property="Padding" Value="16,12" />
+    <Setter Property="MinHeight" Value="64" />
+    <Setter Property="ColumnSpacing" Value="16" />
+    <Setter Property="CornerRadius" Value="8" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="Background" Value="{StaticResource SettingsCardBrush}" />
+    <Setter Property="BorderBrush" Value="{StaticResource SettingsCardBorderBrush}" />
+  </Style>
+
+  <Style x:Key="SettingsNameStyle" TargetType="TextBlock">
+    <Setter Property="FontSize" Value="13" />
+    <Setter Property="FontWeight" Value="Medium" />
+  </Style>
+
+  <Style x:Key="SettingsDescriptionStyle" TargetType="TextBlock">
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="Foreground" Value="{StaticResource SecondaryTextBrush}" />
+    <Setter Property="TextWrapping" Value="Wrap" />
+  </Style>
+
+  <Style x:Key="SettingsPathStyle" TargetType="TextBlock" BasedOn="{StaticResource SettingsDescriptionStyle}">
+    <Setter Property="FontFamily" Value="{StaticResource MonoFontFamily}" />
+    <Setter Property="IsTextSelectionEnabled" Value="True" />
+  </Style>
+
+  <Style x:Key="SettingsComboBoxStyle" TargetType="ComboBox" BasedOn="{StaticResource DefaultComboBoxStyle}">
+    <Setter Property="MinWidth" Value="180" />
+    <Setter Property="VerticalAlignment" Value="Center" />
   </Style>
 </ResourceDictionary>

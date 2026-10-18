@@ -30,6 +30,8 @@ namespace winrt::SecondShell::implementation
     void OnGiveBackClick(const Windows::Foundation::IInspectable& sender, const Microsoft::UI::Xaml::RoutedEventArgs& eventArgs);
     void OnStopClick(const Windows::Foundation::IInspectable& sender, const Microsoft::UI::Xaml::RoutedEventArgs& eventArgs);
     void OnSetUpClick(const Windows::Foundation::IInspectable& sender, const Microsoft::UI::Xaml::RoutedEventArgs& eventArgs);
+    void OnSettingsClick(const Windows::Foundation::IInspectable& sender, const Microsoft::UI::Xaml::RoutedEventArgs& eventArgs);
+    void OnBackClick(const Windows::Foundation::IInspectable& sender, const Microsoft::UI::Xaml::RoutedEventArgs& eventArgs);
 
     //The user's input in the session view, which goes to the session while they have control.
     void OnSessionPointerMoved(const Windows::Foundation::IInspectable& sender, const Microsoft::UI::Xaml::Input::PointerRoutedEventArgs& eventArgs);
@@ -60,6 +62,9 @@ namespace winrt::SecondShell::implementation
     Microsoft::UI::Dispatching::DispatcherQueueTimer _agentIdleTimer{ nullptr };
 
     bool _isCloseConfirmed = false;
+
+    //The settings in place of the session view, or the session view again.
+    void ShowSettings(bool isShown);
 
     //The one-time setup (Design.md, Repair): asked when the window opens and from Set up; runs elevated.
     fire_and_forget OfferSetup();

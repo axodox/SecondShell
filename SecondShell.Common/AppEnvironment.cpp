@@ -85,9 +85,14 @@ namespace SecondShell::Environment
     return _dataFolder;
   }
 
+  path AppEnvironment::CapturesFolder() const
+  {
+    return _dataFolder / "Captures";
+  }
+
   path AppEnvironment::CaptureFolder(string_view sessionName) const
   {
-    return _dataFolder / "Captures" / sessionName;
+    return CapturesFolder() / sessionName;
   }
 
   path AppEnvironment::LogFolder() const

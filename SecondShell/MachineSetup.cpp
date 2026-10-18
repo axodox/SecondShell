@@ -29,6 +29,11 @@ namespace SecondShell::Setup
     return interval && *interval <= _smoothFrameInterval;
   }
 
+  bool MachineSetup::IsSmoothSessionViewOurs() const
+  {
+    return _configuration->IsFrameIntervalOurs();
+  }
+
   void MachineSetup::SetSmoothSessionView(bool isOn)
   {
     if (isOn)

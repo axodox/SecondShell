@@ -43,7 +43,7 @@
             "type": "object"
           },
           "display": {
-            "description": "Display settings; default: 1920x1080 at 100%.",
+            "description": "Display settings; default: the user's setting in SecondShell, 1920x1080 at 100% unless they changed it.",
             "properties": {
               "height": {
                 "description": "Session pixels.",
@@ -84,7 +84,7 @@
             "type": "string"
           },
           "timeout": {
-            "description": "Milliseconds to wait for the session, default 180000.",
+            "description": "Milliseconds to wait for the session; default: the user's sign-in timeout setting, 3 minutes unless they changed it.",
             "minimum": 0,
             "type": "number"
           }
@@ -1474,7 +1474,7 @@
                       "type": "string"
                     },
                     "shell": {
-                      "description": "PowerShell (default, Windows PowerShell), Pwsh (PowerShell 7), Cmd, or None (no shell parsing).",
+                      "description": "PowerShell (Windows PowerShell), Pwsh (PowerShell 7), Cmd, or None (no shell parsing); default: the user's setting, PowerShell unless they changed it.",
                       "enum": [
                         "PowerShell",
                         "Pwsh",

@@ -19,10 +19,10 @@ namespace SecondShell::Setup
   {
     RepairPerUser();
 
-    SetupStatus status{ _machineSetup->AreChildSessionsEnabled(), _machineSetup->IsSmoothSessionViewOn() };
+    SetupStatus status{ _machineSetup->AreChildSessionsEnabled(), _machineSetup->IsSmoothSessionViewOn(), _machineSetup->IsSmoothSessionViewOurs() };
     {
       lock_guard lock{ _mutex };
-      auto isChanged = !_status || _status->AreChildSessionsEnabled != status.AreChildSessionsEnabled || _status->IsSmoothSessionViewOn != status.IsSmoothSessionViewOn;
+      auto isChanged = _status != status;
       _status = status;
       if (!isChanged) return status;
     }

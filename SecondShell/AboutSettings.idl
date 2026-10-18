@@ -1,0 +1,8 @@
+namespace SecondShell
+{
+  [default_interface]
+  runtimeclass AboutSettings : Microsoft.UI.Xaml.Controls.UserControl
+  {
+    AboutSettings();
+  }
+}

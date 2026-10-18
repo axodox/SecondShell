@@ -26,6 +26,7 @@ namespace SecondShell::Session
   SessionManager::SessionManager(dependency_container* container) :
     StateChanged(_events),
     _childSessions(container->resolve<ChildSessionApi>()),
+    _settings(container->resolve<SettingsStore>()),
     _credentials(container->resolve<CredentialProvider>()),
     _existingSessionPrompt(container->resolve<ExistingSessionPrompt>()),
     _driverLauncher(container->resolve<DriverLauncher>()),
@@ -59,10 +60,11 @@ namespace SecondShell::Session
 
     if (!_childSessions->IsEnabled()) return ProtocolErrors::Make(ErrorCode::SetupRequired, "Child sessions are not enabled on this machine. The user can enable them once in the SecondShell window (Set up), which needs administrator rights.");
 
-    auto deadline = steady_clock::now() + (request.Timeout ? milliseconds(*request.Timeout) : InitializeSessionRequest::DefaultTimeout);
+    auto settings = _settings->Current();
+    auto deadline = steady_clock::now() + (request.Timeout ? milliseconds(*request.Timeout) : seconds(settings.SignInTimeout));
     if (auto error = ResetExistingSession(request.ExistingSession)) return error;
 
-    auto error = SignIn(request.Display.value_or(DisplaySettings{}), deadline, cancellation);
+    auto error = SignIn(request.Display.value_or(settings.Display), deadline, cancellation);
     if (!error) error = StartDriver(deadline, cancellation);
 
     if (error)

@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "CaptureStore.h"
+#include "TestSettings.h"
 
 using namespace Axodox::Infrastructure;
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
@@ -14,7 +15,7 @@ namespace SecondShell::Tests
   TEST_CLASS(CaptureStoreTests)
   {
     dependency_container _container;
-    shared_ptr<CaptureStore> _store = _container.resolve<CaptureStore>();
+    shared_ptr<CaptureStore> _store = (UseDefaultSettings(_container), _container.resolve<CaptureStore>());
     path _folder = temp_directory_path() / format("SecondShell.CaptureStoreTests.{}", GetCurrentProcessId());
 
     static CapturedImage Image()

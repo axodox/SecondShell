@@ -420,7 +420,7 @@ The child session needs the user's Windows password to sign in, because single s
 
 ### Files
 
-Captures and logs are stored under `%LOCALAPPDATA%\SecondShell`, which is accessible only to the user. Old session folders are deleted automatically.
+Captures and logs are stored under `%LOCALAPPDATA%\SecondShell`, which is accessible only to the user. Old session folders are deleted automatically, at start, after the time set in Settings (7 days by default). The settings themselves are `settings.json` there; what the agent leaves out (the display and sign-in timeout of `Initialize-Session`, the capture format and inline limit, the shell of `Process.Run`) comes from them.
 
 ## Setup and repair
 

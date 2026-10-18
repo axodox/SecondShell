@@ -17,6 +17,7 @@ namespace SecondShell::Environment
     std::filesystem::path McpExecutable() const;  //the App Execution Alias when packaged, which survives updates
 
     std::filesystem::path DataFolder() const;     //the real path, also when MSIX redirects the writes of the app
+    std::filesystem::path CapturesFolder() const;  //holds a folder per run
     std::filesystem::path CaptureFolder(std::string_view sessionName) const;
     std::filesystem::path LogFolder() const;
 

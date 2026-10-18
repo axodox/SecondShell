@@ -8,6 +8,9 @@ namespace SecondShell::Setup
   {
     bool AreChildSessionsEnabled = false;
     bool IsSmoothSessionViewOn = false;  //optional: reported, never required
+    bool IsSmoothSessionViewOurs = false;  //set by SecondShell, so it can turn it off
+
+    bool operator==(const SetupStatus&) const = default;
 
     bool IsReady() const { return AreChildSessionsEnabled; }
   };

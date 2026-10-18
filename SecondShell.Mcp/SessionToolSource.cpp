@@ -39,7 +39,7 @@ namespace SecondShell::Mcp
   {
     if (auto error = _host->Start(context.Cancellation)) return *error;
 
-    return _host->Request(arguments, HostTimeout(arguments.Timeout, InitializeSessionRequest::DefaultTimeout), context.Cancellation);
+    return _host->Request(arguments, HostTimeout(arguments.Timeout, InitializeSessionRequest::LongestTimeout), context.Cancellation);
   }
 
   RpcResult<SessionResponse> SessionToolSource::CheckSession(const CheckSessionRequest& arguments, ToolContext& context)

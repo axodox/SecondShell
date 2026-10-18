@@ -4,6 +4,7 @@
 #include "CaptureActions.h"
 #include "ClipboardActions.h"
 #include "HostProtocol.h"
+#include "SettingsStore.h"
 
 namespace SecondShell::Agent
 {
@@ -16,7 +17,8 @@ namespace SecondShell::Agent
   };
 
   //The capture settings, and what happens to captures and clipboard images (Design.md, Capture output): the inline
-  //limit per sequence, defaults for the actions, and saving files in the session's capture folder.
+  //limit per sequence, defaults for the actions, and saving files in the session's capture folder. The format and the
+  //inline limit start as the user's settings, and follow them; capture/configure changes them for this run.
   class CaptureStore
   {
   public:
@@ -24,6 +26,9 @@ namespace SecondShell::Agent
 
     Protocol::CaptureSettings Settings() const;
     void Configure(const Protocol::CaptureSettings& settings);
+
+    //Deletes the capture folders of earlier runs older than the settings keep them (Design.md, Files).
+    void RemoveOldCaptures() const;
 
     CaptureDestination Decide(const std::optional<Actions::CaptureOutput>& output, uint32_t inlineCountSoFar) const;
 
@@ -38,9 +43,13 @@ namespace SecondShell::Agent
 
   private:
     std::shared_ptr<Environment::AppEnvironment> _environment;
+    std::shared_ptr<Session::SettingsStore> _settingsStore;
     std::string _sessionName;
 
     mutable std::mutex _mutex;
     Protocol::CaptureSettings _settings;
+
+    Axodox::Infrastructure::event_subscription _settingsChangedSubscription;
+    void OnSettingsChanged(Session::SettingsStore* sender, const Session::Settings& settings);
   };
 }

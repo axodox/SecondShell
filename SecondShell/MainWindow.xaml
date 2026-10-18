@@ -16,15 +16,25 @@
       <RowDefinition Height="Auto" />
     </Grid.RowDefinitions>
 
-    <!-- The window's own title bar: the drag area, the toolbar, then room for the system's caption buttons -->
+    <!-- The window's own title bar: back from the settings, the drag area, the toolbar, then room for the system's caption
+         buttons -->
     <Grid Grid.Row="0">
       <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="Auto" />
         <ColumnDefinition Width="*" />
         <ColumnDefinition Width="Auto" />
         <ColumnDefinition Width="138" />
       </Grid.ColumnDefinitions>
 
-      <StackPanel x:Name="AppTitleBar" Grid.Column="0" Orientation="Horizontal" Spacing="8" Padding="14,0,0,0" Background="Transparent">
+      <Button x:Name="BackButton" Grid.Column="0" Visibility="Collapsed" Margin="6,0,0,0" Style="{StaticResource ToolbarIconButtonStyle}"
+              AutomationProperties.Name="Back to the session" ToolTipService.ToolTip="Back to the session" Click="OnBackClick">
+        <Button.KeyboardAccelerators>
+          <KeyboardAccelerator Key="Escape" />
+        </Button.KeyboardAccelerators>
+        <FontIcon Glyph="&#xE72B;" FontSize="14" />
+      </Button>
+
+      <StackPanel x:Name="AppTitleBar" Grid.Column="1" Orientation="Horizontal" Spacing="8" Padding="14,0,0,0" Background="Transparent">
         <!-- The app mark, as in the icon -->
         <Canvas Width="18" Height="18" VerticalAlignment="Center">
           <Rectangle Canvas.Left="1" Canvas.Top="1" Width="11" Height="11" RadiusX="3" RadiusY="3" Fill="#3B3550" Stroke="#BEB4F0" StrokeThickness="1" />
@@ -43,7 +53,7 @@
       </StackPanel>
 
       <!-- Toolbar: take or give back control, stop, settings -->
-      <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+      <StackPanel x:Name="Toolbar" Grid.Column="2" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
         <Button x:Name="TakeControlButton" IsEnabled="False" AutomationProperties.Name="Take control" Style="{StaticResource ToolbarButtonStyle}" Click="OnTakeControlClick" ToolTipService.ToolTip="Use the session with your own mouse and keyboard; the agent waits">
           <StackPanel Orientation="Horizontal" Spacing="7">
             <PathIcon Data="M2.5,1.5 L2.5,10.5 L5.1,8.1 L7,12.5 L8.7,11.8 L6.8,7.5 L10.4,7.5 Z" Foreground="{StaticResource UserBrush}" VerticalAlignment="Center" />
@@ -89,7 +99,7 @@
 
         <Rectangle Width="1" Height="18" Margin="2,0" Fill="{StaticResource SeparatorBrush}" VerticalAlignment="Center" />
 
-        <Button x:Name="SettingsButton" Style="{StaticResource ToolbarIconButtonStyle}" IsEnabled="False" AutomationProperties.Name="Settings">
+        <Button x:Name="SettingsButton" Style="{StaticResource ToolbarIconButtonStyle}" AutomationProperties.Name="Settings" ToolTipService.ToolTip="Settings" Click="OnSettingsClick">
           <FontIcon Glyph="&#xE713;" FontSize="16" />
         </Button>
       </StackPanel>
@@ -143,5 +153,8 @@
     </Grid>
 
     <local:StatusBar x:Name="StatusBar" Grid.Row="2" />
+
+    <!-- In place of the session view and the status bar while open; the session goes on underneath -->
+    <local:SettingsView x:Name="SettingsPanel" Grid.Row="1" Grid.RowSpan="2" Visibility="Collapsed" />
   </Grid>
 </Window>

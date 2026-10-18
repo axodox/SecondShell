@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Settings (docs/UIDesign.md, Settings): the pages on the left, the selected one on the right -->
+<UserControl
+  x:Class="SecondShell.SettingsView"
+  xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:local="using:SecondShell">
+  <UserControl.Resources>
+    <SolidColorBrush x:Key="NavigationViewContentBackground" Color="#202024" />
+    <SolidColorBrush x:Key="NavigationViewContentGridBorderBrush" Color="#0DFFFFFF" />
+    <SolidColorBrush x:Key="NavigationViewExpandedPaneBackground" Color="Transparent" />
+    <SolidColorBrush x:Key="NavigationViewDefaultPaneBackground" Color="Transparent" />
+  </UserControl.Resources>
+
+  <!-- Opaque: the session view and the status bar are underneath -->
+  <Grid Background="{StaticResource GroundBrush}">
+    <NavigationView x:Name="Navigation" PaneDisplayMode="Left" IsBackButtonVisible="Collapsed" IsSettingsVisible="False"
+                    IsPaneToggleButtonVisible="False" OpenPaneLength="240" SelectionChanged="OnPageSelected">
+      <NavigationView.MenuItems>
+        <NavigationViewItem x:Name="GeneralItem" Content="General" Tag="General" IsSelected="True" />
+        <NavigationViewItem Content="About" Tag="About" />
+      </NavigationView.MenuItems>
+
+      <ScrollViewer x:Name="PageScroller" Padding="32,18,32,32">
+        <!-- Stretched up to its widest, then centred, as Windows settings pages are -->
+        <Grid MaxWidth="860">
+          <local:GeneralSettings x:Name="GeneralPage" />
+          <local:AboutSettings x:Name="AboutPage" Visibility="Collapsed" />
+        </Grid>
+      </ScrollViewer>
+    </NavigationView>
+  </Grid>
+</UserControl>

@@ -33,10 +33,10 @@ namespace SecondShell::Protocol
   json_object_descriptor<InitializeSessionRequest> InitializeSessionRequest::json_description = describe_json_object<InitializeSessionRequest>(
     { .name = "session/initialize", .description = "Starts the session, a second desktop of the same user, and waits until it is ready." },
     {
-      { &InitializeSessionRequest::Display, "display", { .is_required = false, .schema = { .description = "Display settings; default: 1920x1080 at 100%." } } },
+      { &InitializeSessionRequest::Display, "display", { .is_required = false, .schema = { .description = "Display settings; default: the user's setting in SecondShell, 1920x1080 at 100% unless they changed it." } } },
       { &InitializeSessionRequest::Capture, "capture", { .is_required = false, .schema = { .description = "Capture defaults, as Configure-Capture sets them." } } },
       { &InitializeSessionRequest::ExistingSession, "existingSession", { .is_required = false, .schema = { .description = "Required when a child session exists already, e.g. from before a restart: Reset logs it off, closing its applications, and starts a new one. Resume is not supported yet." } } },
-      { &InitializeSessionRequest::Timeout, "timeout", { .is_required = false, .schema = { .description = "Milliseconds to wait for the session, default 180000.", .minimum = 0 } } }
+      { &InitializeSessionRequest::Timeout, "timeout", { .is_required = false, .schema = { .description = "Milliseconds to wait for the session; default: the user's sign-in timeout setting, 3 minutes unless they changed it.", .minimum = 0 } } }
     });
 
   json_object_descriptor<CheckSessionRequest> CheckSessionRequest::json_description = describe_json_object<CheckSessionRequest>(

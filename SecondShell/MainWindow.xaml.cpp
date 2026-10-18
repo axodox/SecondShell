@@ -7,6 +7,7 @@
 #include "SequenceRunner.h"
 #include "SessionDialogs.h"
 #include "SessionManager.h"
+#include "SettingsView.xaml.h"
 #include "SetupChecker.h"
 #include "StatusBar.xaml.h"
 
@@ -98,6 +99,7 @@ namespace winrt::SecondShell::implementation
     _inputForwarder = container->resolve<InteractiveInputForwarder>();
     _renderer = container->resolve<SessionRenderer>();
     get_self<implementation::StatusBar>(StatusBar())->UseServices(container);
+    get_self<implementation::SettingsView>(SettingsPanel())->UseServices(container);
     _activityCards = make_unique<ActivityCards>(container, ActivityCardsPanel());
 
     auto queue = DispatcherQueue();
@@ -191,6 +193,31 @@ namespace winrt::SecondShell::implementation
   void MainWindow::OnSetUpClick(const IInspectable& /*sender*/, const RoutedEventArgs& /*eventArgs*/)
   {
     OfferSetup();
+  }
+
+  void MainWindow::OnSettingsClick(const IInspectable& /*sender*/, const RoutedEventArgs& /*eventArgs*/)
+  {
+    ShowSettings(true);
+  }
+
+  void MainWindow::OnBackClick(const IInspectable& /*sender*/, const RoutedEventArgs& /*eventArgs*/)
+  {
+    ShowSettings(false);
+  }
+
+  void MainWindow::ShowSettings(bool isShown)
+  {
+    //The user's input stays with the settings: what they held in the session is released
+    if (isShown)
+    {
+      _inputForwarder->ReleaseAll();
+      get_self<implementation::SettingsView>(SettingsPanel())->Refresh();
+    }
+
+    SettingsPanel().Visibility(isShown ? Visibility::Visible : Visibility::Collapsed);
+    BackButton().Visibility(isShown ? Visibility::Visible : Visibility::Collapsed);
+    Toolbar().Visibility(isShown ? Visibility::Collapsed : Visibility::Visible);
+    if (!isShown) ShowControlMode(_agentControl->Mode());
   }
 
   fire_and_forget MainWindow::OfferSetup()
