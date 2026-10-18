@@ -3,6 +3,8 @@
 #include "KeyboardActionHandler.h"
 #include "MotionAnimator.h"
 #include "MouseActionHandler.h"
+#include "PenActionHandler.h"
+#include "TouchActionHandler.h"
 
 using namespace Axodox::Infrastructure;
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
@@ -58,6 +60,48 @@ namespace SecondShell::Tests
     private:
       InputRecord& _record;
     };
+
+    //"touch 1 down 10,20 | 2 moved 30,40"
+    class FakeTouchInjector : public ITouchInjector
+    {
+    public:
+      explicit FakeTouchInjector(InputRecord& record) : _record(record) { }
+
+      virtual void Inject(span<const TouchContact> frame) override
+      {
+        string event = "touch";
+        for (auto& contact : frame)
+        {
+          auto phase = contact.Phase == TouchPhase::Down ? "down" : contact.Phase == TouchPhase::Up ? "up" : "moved";
+          event += format("{} {} {} {},{}", event == "touch" ? "" : " |", contact.Id, phase, contact.Position.X, contact.Position.Y);
+        }
+        _record.Events.push_back(event);
+      }
+
+    private:
+      InputRecord& _record;
+    };
+
+    //"pen out", "pen hover 10,20", "pen contact 10,20 pressure 0.50 barrel eraser"
+    class FakePenInjector : public IPenInjector
+    {
+    public:
+      explicit FakePenInjector(InputRecord& record) : _record(record) { }
+
+      virtual void Inject(const PenState& state) override
+      {
+        if (!state.IsInRange) return _record.Events.push_back("pen out");
+
+        auto event = format("pen {} {},{}", state.IsInContact ? "contact" : "hover", state.Position.X, state.Position.Y);
+        if (state.IsInContact) event += format(" pressure {:.2f}", state.Pressure);
+        if (state.IsBarrelPressed) event += " barrel";
+        if (state.IsEraser) event += " eraser";
+        _record.Events.push_back(event);
+      }
+
+    private:
+      InputRecord& _record;
+    };
   }
 
   TEST_CLASS(DriverInputTests)
@@ -84,11 +128,23 @@ namespace SecondShell::Tests
       return _container.resolve<KeyboardActionHandler>()->Execute(*Parse(text), _noCancellation);
     }
 
+    value_ptr<ActionResult> Touch(string_view text)
+    {
+      return _container.resolve<TouchActionHandler>()->Execute(*Parse(text), _noCancellation);
+    }
+
+    value_ptr<ActionResult> Pen(string_view text)
+    {
+      return _container.resolve<PenActionHandler>()->Execute(*Parse(text), _noCancellation);
+    }
+
   public:
     DriverInputTests()
     {
       _container.add<IMouseInjector>(make_shared<FakeMouseInjector>(_record));
       _container.add<IKeyboardInjector>(make_shared<FakeKeyboardInjector>(_record));
+      _container.add<ITouchInjector>(make_shared<FakeTouchInjector>(_record));
+      _container.add<IPenInjector>(make_shared<FakePenInjector>(_record));
     }
 
     TEST_METHOD(ClickMovesThenPressesAndReleases)
@@ -164,6 +220,96 @@ namespace SecondShell::Tests
       steps.clear();
       Assert::IsFalse(MotionAnimator::Animate(1000ms, [&](float progress) { steps.push_back(progress); }, cancellation));
       Assert::IsTrue(steps.size() == 1 && steps[0] < 1.f, L"it stops after the first step");
+    }
+
+    TEST_METHOD(TapPutsAFingerDownAndLiftsIt)
+    {
+      Assert::IsTrue(Touch(R"({"action": "Touch.Tap", "id": 1, "x": 10, "y": 20})")->Status == ActionStatus::Succeeded);
+      Assert::IsTrue(_record.Events == vector<string>{ "touch 1 down 10,20", "touch 1 up 10,20" });
+    }
+
+    TEST_METHOD(EveryTouchFrameHasAllFingers)
+    {
+      Touch(R"({"action": "Touch.Press", "id": 1, "x": 10, "y": 20})");
+      Touch(R"({"action": "Touch.Press", "id": 2, "x": 30, "y": 40})");
+      Touch(R"({"action": "Touch.Move", "id": 1, "x": 15, "y": 25})");
+      Touch(R"({"action": "Touch.Release", "id": 2})");
+      Assert::IsTrue(_record.Events == vector<string>{
+        "touch 1 down 10,20",
+        "touch 1 moved 10,20 | 2 down 30,40",
+        "touch 1 moved 15,25 | 2 moved 30,40",
+        "touch 1 moved 15,25 | 2 up 30,40" });
+    }
+
+    TEST_METHOD(TouchPointsMustBeDownOnlyOnce)
+    {
+      Touch(R"({"action": "Touch.Press", "id": 1, "x": 10, "y": 20})");
+      Assert::IsTrue(Touch(R"({"action": "Touch.Press", "id": 1, "x": 30, "y": 40})")->Error == ErrorCode::InvalidArgument, L"the id is in use");
+      Assert::IsTrue(Touch(R"({"action": "Touch.Tap", "id": 1, "x": 30, "y": 40})")->Error == ErrorCode::InvalidArgument, L"a tap too");
+      Assert::IsTrue(Touch(R"({"action": "Touch.Move", "id": 2, "x": 30, "y": 40})")->Error == ErrorCode::InvalidArgument, L"2 is not down");
+      Assert::IsTrue(Touch(R"({"action": "Touch.Release", "id": 2})")->Error == ErrorCode::InvalidArgument, L"nor can it be lifted");
+      Assert::IsTrue(Touch(R"({"action": "Touch.Press", "id": 3, "x": 1920, "y": 40})")->Error == ErrorCode::InvalidArgument, L"off the screen");
+      Assert::AreEqual(size_t(1), _record.Events.size(), L"only the first press is injected");
+    }
+
+    TEST_METHOD(TouchMovesAreAnimated)
+    {
+      Touch(R"({"action": "Touch.Press", "id": 1, "x": 0, "y": 0})");
+      Touch(R"({"action": "Touch.Move", "id": 1, "x": 100, "y": 50, "duration": 50})");
+      Assert::IsTrue(_record.Events.size() > 3, L"the move takes several steps");
+      Assert::AreEqual(string("touch 1 moved 100,50"), _record.Events.back());
+    }
+
+    TEST_METHOD(ThePenHoversThenTouches)
+    {
+      Assert::IsTrue(Pen(R"({"action": "Pen.Press"})")->Error == ErrorCode::InvalidArgument, L"out of range, the pen needs a position");
+
+      Pen(R"({"action": "Pen.Move", "x": 10, "y": 20})");
+      Pen(R"({"action": "Pen.Press", "pressure": 0.3})");
+      Pen(R"({"action": "Pen.Release"})");
+      Pen(R"({"action": "Pen.Reset"})");
+      Assert::IsTrue(_record.Events == vector<string>{
+        "pen hover 10,20",
+        "pen contact 10,20 pressure 0.30",
+        "pen hover 10,20",
+        "pen out" });
+    }
+
+    TEST_METHOD(PenStrokesChangePressureGradually)
+    {
+      Pen(R"({"action": "Pen.Press", "x": 0, "y": 0, "pressure": 0.2})");
+      Pen(R"({"action": "Pen.Move", "x": 100, "y": 0, "pressure": 0.8, "duration": 50})");
+      Assert::AreEqual(string("pen contact 100,0 pressure 0.80"), _record.Events.back());
+      Assert::IsTrue(ranges::any_of(_record.Events, [](const string& event) {
+        return event.find("contact") != string::npos && event.find("pressure 0.20") == string::npos && event.find("pressure 0.80") == string::npos;
+        }), L"with pressures in between");
+    }
+
+    TEST_METHOD(TheEraserAndBarrelAreHeldFromHoverToContact)
+    {
+      Pen(R"({"action": "Pen.Tap", "x": 5, "y": 6, "eraser": true, "barrel": true})");
+      Assert::IsTrue(_record.Events == vector<string>{
+        "pen hover 5,6 barrel eraser",
+        "pen contact 5,6 pressure 0.50 barrel eraser",
+        "pen hover 5,6 eraser" });
+
+      Assert::IsTrue(Pen(R"({"action": "Pen.Release"})")->Error == ErrorCode::InvalidArgument, L"it no longer touches the screen");
+    }
+
+    TEST_METHOD(FingersAndThePenAreReleasedAndReported)
+    {
+      Touch(R"({"action": "Touch.Press", "id": 2, "x": 10, "y": 20})");
+      Touch(R"({"action": "Touch.Press", "id": 1, "x": 30, "y": 40})");
+      Pen(R"({"action": "Pen.Press", "x": 50, "y": 60})");
+      _record.Events.clear();
+
+      auto released = _container.resolve<InputStateTracker>()->ReleaseAll();
+      Assert::IsTrue(released.TouchPoints == vector<uint32_t>{ 2, 1 });
+      Assert::IsTrue(released.Pen == optional<bool>{ true });
+      Assert::IsTrue(_record.Events == vector<string>{ "touch 2 up 10,20 | 1 up 30,40", "pen hover 50,60", "pen out" }, L"lifted, then out of range");
+
+      released = _container.resolve<InputStateTracker>()->ReleaseAll();
+      Assert::IsTrue(released.TouchPoints.empty() && !released.Pen, L"nothing is held any more");
     }
   };
 }

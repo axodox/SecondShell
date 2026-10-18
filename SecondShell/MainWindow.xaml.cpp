@@ -277,6 +277,18 @@ namespace winrt::SecondShell::implementation
     _inputForwarder->OnWheel(float(properties.MouseWheelDelta()) / WHEEL_DELTA, properties.IsHorizontalMouseWheel() ? WheelAxis::Horizontal : WheelAxis::Vertical);
   }
 
+  void MainWindow::OnSessionPointerGone(const IInspectable& /*sender*/, const PointerRoutedEventArgs& eventArgs)
+  {
+    //A mouse leaving the view keeps its buttons; a finger or the pen is gone (cancelled, or the pen out of range)
+    if (!_inputForwarder->IsActive() || eventArgs.Pointer().PointerDeviceType() == PointerDeviceType::Mouse) return;
+
+    auto point = eventArgs.GetCurrentPoint(SessionArea());
+    if (eventArgs.Pointer().PointerDeviceType() == PointerDeviceType::Pen && point.IsInContact()) return;
+
+    _inputForwarder->OnPointerGone(eventArgs.Pointer().PointerId());
+    eventArgs.Handled(true);
+  }
+
   void MainWindow::OnSessionKeyDown(const IInspectable& /*sender*/, const KeyRoutedEventArgs& eventArgs)
   {
     ForwardKey(eventArgs, true);
@@ -300,8 +312,18 @@ namespace winrt::SecondShell::implementation
     if (!transform) return false;
 
     auto point = eventArgs.GetCurrentPoint(SessionArea());
-    _inputForwarder->OnPointerMoved({ point.Position().X, point.Position().Y }, *transform);
-    if (auto change = ButtonChangeOf(point.Properties().PointerUpdateKind())) _inputForwarder->OnButton(change->Button, change->IsPressed);
+    switch (eventArgs.Pointer().PointerDeviceType())
+    {
+    case PointerDeviceType::Touch:
+      _inputForwarder->OnTouch(point, *transform);
+      break;
+    case PointerDeviceType::Pen:
+      _inputForwarder->OnPen(point, *transform);
+      break;
+    default:
+      _inputForwarder->OnPointerMoved({ point.Position().X, point.Position().Y }, *transform);
+      if (auto change = ButtonChangeOf(point.Properties().PointerUpdateKind())) _inputForwarder->OnButton(change->Button, change->IsPressed);
+    }
 
     eventArgs.Handled(true);
     return true;

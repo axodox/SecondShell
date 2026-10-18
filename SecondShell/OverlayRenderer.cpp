@@ -2,6 +2,8 @@
 #include "OverlayRenderer.h"
 #include "CaptureFlashOverlay.h"
 #include "CursorOverlay.h"
+#include "PenOverlay.h"
+#include "TouchOverlay.h"
 
 using namespace Axodox::Infrastructure;
 using namespace SecondShell::Agent;
@@ -16,6 +18,8 @@ namespace SecondShell::Rendering
   {
     //Bottom to top
     _elements.push_back(make_unique<CaptureFlashOverlay>());
+    _elements.push_back(make_unique<TouchOverlay>());
+    _elements.push_back(make_unique<PenOverlay>());
     _elements.push_back(make_unique<CursorOverlay>());
   }
 

@@ -1,14 +1,9 @@
 #pragma once
 #include "ActionEnums.h"
+#include "Point.h"
 
 namespace SecondShell::Input
 {
-  struct Point
-  {
-    int32_t X = 0;
-    int32_t Y = 0;
-  };
-
   //Mouse input in session pixels.
   class IMouseInjector
   {

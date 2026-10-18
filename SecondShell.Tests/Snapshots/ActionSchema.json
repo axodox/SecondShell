@@ -36,7 +36,7 @@
     },
     {
       "additionalProperties": false,
-      "description": "Cancels pending async actions and releases all held mouse buttons, keys and touch points. Does not move the cursor.",
+      "description": "Cancels pending async actions and releases all held mouse buttons, keys and touch points, and lifts the pen. Does not move the cursor.",
       "properties": {
         "action": {
           "const": "Control.Reset",
@@ -386,6 +386,189 @@
       "properties": {
         "action": {
           "const": "Touch.Reset",
+          "type": "string"
+        }
+      },
+      "required": [
+        "action"
+      ],
+      "type": "object"
+    },
+    {
+      "additionalProperties": false,
+      "description": "Moves the pen to (x, y): touching the screen it draws, otherwise it hovers. A pen out of range comes into range above (x, y). Pressure, tilt and rotation change gradually to the values given; the others stay.",
+      "properties": {
+        "action": {
+          "const": "Pen.Move",
+          "type": "string"
+        },
+        "async": {
+          "description": "Run in parallel with the next actions, until Control.Join.",
+          "type": "boolean"
+        },
+        "duration": {
+          "description": "Milliseconds the input takes; with async it runs in parallel with the next actions.",
+          "minimum": 0,
+          "type": "number"
+        },
+        "pressure": {
+          "description": "How hard the pen presses, 0..1; default 0.5 when it touches the screen.",
+          "maximum": 1,
+          "minimum": 0,
+          "type": "number"
+        },
+        "rotation": {
+          "description": "Degrees the pen is turned clockwise around its axis, 0..359; default 0.",
+          "maximum": 359,
+          "minimum": 0,
+          "type": "number"
+        },
+        "tiltX": {
+          "description": "Degrees the pen leans right (positive) or left, -90..90; default 0.",
+          "maximum": 90,
+          "minimum": -90,
+          "type": "number"
+        },
+        "tiltY": {
+          "description": "Degrees the pen leans toward the user (positive) or away, -90..90; default 0.",
+          "maximum": 90,
+          "minimum": -90,
+          "type": "number"
+        },
+        "x": {
+          "description": "Session pixels from the left edge of the session's desktop.",
+          "minimum": 0,
+          "type": "number"
+        },
+        "y": {
+          "description": "Session pixels from the top edge of the session's desktop.",
+          "minimum": 0,
+          "type": "number"
+        }
+      },
+      "required": [
+        "action",
+        "x",
+        "y"
+      ],
+      "type": "object"
+    },
+    {
+      "additionalProperties": false,
+      "description": "Touches the screen with the pen where it hovers, or at (x, y), and keeps it there until Pen.Release.",
+      "properties": {
+        "action": {
+          "const": "Pen.Press",
+          "type": "string"
+        },
+        "barrel": {
+          "description": "Holds the pen's barrel button, which applications usually treat as a right click.",
+          "type": "boolean"
+        },
+        "eraser": {
+          "description": "Uses the pen's eraser end instead of its tip.",
+          "type": "boolean"
+        },
+        "pressure": {
+          "description": "How hard the pen presses, 0..1; default 0.5 when it touches the screen.",
+          "maximum": 1,
+          "minimum": 0,
+          "type": "number"
+        },
+        "rotation": {
+          "description": "Degrees the pen is turned clockwise around its axis, 0..359; default 0.",
+          "maximum": 359,
+          "minimum": 0,
+          "type": "number"
+        },
+        "tiltX": {
+          "description": "Degrees the pen leans right (positive) or left, -90..90; default 0.",
+          "maximum": 90,
+          "minimum": -90,
+          "type": "number"
+        },
+        "tiltY": {
+          "description": "Degrees the pen leans toward the user (positive) or away, -90..90; default 0.",
+          "maximum": 90,
+          "minimum": -90,
+          "type": "number"
+        },
+        "x": {
+          "description": "Session pixels from the left edge of the session's desktop.",
+          "minimum": 0,
+          "type": "number"
+        },
+        "y": {
+          "description": "Session pixels from the top edge of the session's desktop.",
+          "minimum": 0,
+          "type": "number"
+        }
+      },
+      "required": [
+        "action"
+      ],
+      "type": "object"
+    },
+    {
+      "additionalProperties": false,
+      "description": "Lifts the pen off the screen; it keeps hovering there until Pen.Reset.",
+      "properties": {
+        "action": {
+          "const": "Pen.Release",
+          "type": "string"
+        }
+      },
+      "required": [
+        "action"
+      ],
+      "type": "object"
+    },
+    {
+      "additionalProperties": false,
+      "description": "Taps with the pen at (x, y); it keeps hovering there until Pen.Reset.",
+      "properties": {
+        "action": {
+          "const": "Pen.Tap",
+          "type": "string"
+        },
+        "barrel": {
+          "description": "Holds the pen's barrel button, which applications usually treat as a right click.",
+          "type": "boolean"
+        },
+        "eraser": {
+          "description": "Uses the pen's eraser end instead of its tip.",
+          "type": "boolean"
+        },
+        "pressure": {
+          "description": "How hard the pen presses, 0..1; default 0.5 when it touches the screen.",
+          "maximum": 1,
+          "minimum": 0,
+          "type": "number"
+        },
+        "x": {
+          "description": "Session pixels from the left edge of the session's desktop.",
+          "minimum": 0,
+          "type": "number"
+        },
+        "y": {
+          "description": "Session pixels from the top edge of the session's desktop.",
+          "minimum": 0,
+          "type": "number"
+        }
+      },
+      "required": [
+        "action",
+        "x",
+        "y"
+      ],
+      "type": "object"
+    },
+    {
+      "additionalProperties": false,
+      "description": "Lifts the pen and takes it out of range.",
+      "properties": {
+        "action": {
+          "const": "Pen.Reset",
           "type": "string"
         }
       },

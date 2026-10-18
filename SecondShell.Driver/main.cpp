@@ -7,7 +7,9 @@
 #include "UserInputHandler.h"
 #include "KeyboardInjector.h"
 #include "MouseInjector.h"
+#include "PenInjector.h"
 #include "ProductInfo.h"
+#include "TouchInjector.h"
 #include "WindowsTextRecognizer.h"
 
 using namespace Axodox::Infrastructure;
@@ -47,6 +49,8 @@ int WINAPI wWinMain(HINSTANCE /*instance*/, HINSTANCE /*previousInstance*/, PWST
     //The handlers are added before the peer starts, but run only after the host has accepted this driver
     container.add<IMouseInjector, MouseInjector>();
     container.add<IKeyboardInjector, KeyboardInjector>();
+    container.add<ITouchInjector, TouchInjector>();
+    container.add<IPenInjector, PenInjector>();
     container.resolve<ActionExecutor>();
     container.resolve<FramePublisher>();
     container.resolve<UserInputHandler>();

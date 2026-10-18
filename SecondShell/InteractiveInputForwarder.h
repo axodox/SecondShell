@@ -5,8 +5,8 @@
 
 namespace SecondShell::Agent
 {
-  //The user's mouse and keyboard in the session view, while they have control (Design.md, Visualization): positions
-  //mapped to session pixels, sent to the driver at once. The Windows keys stay with the host, whose shell takes their
+  //The user's mouse, keyboard, touch and pen in the session view, while they have control (Design.md, Visualization):
+  //positions mapped to session pixels, sent to the driver at once. The Windows keys stay with the host, whose shell takes their
   //release. Giving control back, or the view losing the focus, releases whatever they still hold.
   class InteractiveInputForwarder
   {
@@ -21,6 +21,12 @@ namespace SecondShell::Agent
     void OnWheel(float notches, Actions::WheelAxis axis);
     void OnKey(uint16_t virtualKey, bool isPressed);
 
+    //A finger or the pen as the view sees it, relative to the view: they go down, move and lift as it says.
+    void OnTouch(const winrt::Microsoft::UI::Input::PointerPoint& point, const Rendering::ViewTransform& transform);
+    void OnPen(const winrt::Microsoft::UI::Input::PointerPoint& point, const Rendering::ViewTransform& transform);
+    //A finger or the pen gone, by a cancel or out of range.
+    void OnPointerGone(uint32_t pointerId);
+
     //When the view loses the focus: the releases would go to the host.
     void ReleaseAll();
 
@@ -29,7 +35,12 @@ namespace SecondShell::Agent
     std::shared_ptr<AgentControl> _agentControl;
     Axodox::Infrastructure::event_subscription _modeChangedSubscription;
 
+    std::unordered_set<uint32_t> _touchesDown;
+    std::optional<uint32_t> _penInRange;
+    bool _isPenInContact = false;
+
     void Send(Axodox::Infrastructure::value_ptr<Actions::Action>&& input);
     void OnModeChanged(AgentControl* sender, ControlMode mode);
+    void ForgetHeldInput();
   };
 }

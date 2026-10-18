@@ -156,7 +156,7 @@ All coordinates, sizes and regions in actions and results are in **session pixel
 - **Description**: `Run-Sequence` takes an optional `"description"`, what the sequence does in a few words ("Opening the settings"), which the status bar and the log show to the user.
 - **Run until failure**: `Run-Sequence` executes actions in order until one fails, then stops. The result contains the results of all completed actions (including captures already taken), the index of the failed action, an error code and a message.
 
-- **Input state after failure**: when a sequence stops early, all inputs are released as by `Control.Reset` (held mouse buttons, keys, touch points and gamepad buttons; gamepad sticks and triggers return to rest), and the result reports what was held, so the agent knows the state it left the session in.
+- **Input state after failure**: when a sequence stops early, all inputs are released as by `Control.Reset` (held mouse buttons, keys, touch points, the pen and gamepad buttons; gamepad sticks and triggers return to rest), and the result reports what was held, so the agent knows the state it left the session in.
 
 - **User interruption**: if the user presses "Stop" or switches the window to interactive mode, the running sequence stops with a `UserInterrupted` error. Until the user gives control back, all further sequences fail immediately with `AgentInputDisabled`.
 
@@ -174,7 +174,7 @@ All coordinates, sizes and regions in actions and results are in **session pixel
 
 - `{ "action": "Control.Join" }`: **Join**: waits for all asynchronous actions to complete before executing the next action.
 
-- `{ "action": "Control.Reset" }`: **Reset**: cancels any pending asynchronous actions and releases all inputs on all devices: mouse buttons, keys, touch points, gamepad buttons, and gamepad sticks and triggers back to their rest positions. It does not move the mouse cursor. Equivalent to running every device's `Reset` action.
+- `{ "action": "Control.Reset" }`: **Reset**: cancels any pending asynchronous actions and releases all inputs on all devices: mouse buttons, keys, touch points, the pen (lifted and out of range), gamepad buttons, and gamepad sticks and triggers back to their rest positions. It does not move the mouse cursor. Equivalent to running every device's `Reset` action.
 
 ### Process management
 
@@ -261,6 +261,24 @@ Actions:
 - `{ "action": "Touch.Move", "id": touchId, "x": x, "y": y, "duration": durationMS }`: **Move touch**: simulates a touch move event for the specified touch identifier to the new screen coordinates.
 
 - `{ "action": "Touch.Reset" }`: **Reset**: lifts all active touch points.
+
+A finger held still stays down: Windows drops injected touch and pen input that is not updated at least every 100 ms, so the driver repeats the last frame while a finger is down or the pen is in range.
+
+### Pen input
+
+One pen, which is out of range, hovering over the screen, or touching it. Its pressure is 0..1, its tilts are degrees from upright (-90..90; `tiltX` positive leans right, `tiltY` positive toward the user), and its rotation is degrees clockwise around its axis (0..359).
+
+- `{ "action": "Pen.Move", "x": x, "y": y, "duration": durationMS, "pressure": pressure, "tiltX": degrees, "tiltY": degrees, "rotation": degrees }`: **Move pen**: moves the pen to the coordinates; touching the screen it draws, otherwise it hovers. A pen out of range comes into range above the coordinates. The pressure, tilts and rotation given change gradually over the move; the others stay as they are. With `"async": true` it runs in parallel with the next actions.
+
+- `{ "action": "Pen.Press", "x": x, "y": y, "pressure": pressure, "tiltX": degrees, "tiltY": degrees, "rotation": degrees, "barrel": true, "eraser": true }`: **Pen down**: touches the screen with the pen where it hovers, or at the coordinates, and keeps it there until `Pen.Release`. Pressure defaults to 0.5, tilts and rotation to 0. `barrel` holds the barrel button (applications usually treat it as a right click); `eraser` uses the eraser end.
+
+- `{ "action": "Pen.Release" }`: **Pen up**: lifts the pen off the screen; it keeps hovering there.
+
+- `{ "action": "Pen.Tap", "x": x, "y": y, "pressure": pressure, "barrel": true, "eraser": true }`: **Tap**: a quick press and release at the coordinates; the pen keeps hovering there.
+
+- `{ "action": "Pen.Reset" }`: **Reset**: lifts the pen and takes it out of range.
+
+A hand-drawn stroke is a `Pen.Press` at its start, a `Pen.Move` (with a duration) for each part of it, and a `Pen.Release`.
 
 ### Keyboard input
 
@@ -351,7 +369,7 @@ This includes:
 
 - The agents input is visualized on the screen:
 
-  - Mouse/touch input is visualized with a cursor and click animations. For the mouse the buttons and scroll wheel are also visualized. For touch input, the touch points are visualized with circles that expand and fade out when released.
+  - Mouse/touch input is visualized with a cursor and click animations. For the mouse the buttons and scroll wheel are also visualized. For touch input, the touch points are visualized with circles that expand and fade out when released. The pen is a ring where it hovers, with a dot when it touches the screen and a short fading trail behind it while it draws.
 
   - Keyboard input is visualized with on-screen keys that highlight when pressed. Keystrokes are shown for a short duration in the bottom left corner of the screen, then they scroll up and fade out, as more input is added.
 

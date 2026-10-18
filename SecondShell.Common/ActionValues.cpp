@@ -21,7 +21,8 @@ namespace SecondShell::Actions
   json_object_descriptor<InputState> InputState::json_description = describe_json_object<InputState>({
     { &InputState::MouseButtons, "mouseButtons", { .is_required = false } },
     { &InputState::Keys, "keys", { .is_required = false } },
-    { &InputState::TouchPoints, "touchPoints", { .is_required = false } }
+    { &InputState::TouchPoints, "touchPoints", { .is_required = false } },
+    { &InputState::Pen, "pen", { .is_required = false, .schema = { .description = "True if the pen was touching the screen." } } }
     });
 
   json_object_descriptor<CapturedImage> CapturedImage::json_description = describe_json_object<CapturedImage>({

@@ -48,6 +48,11 @@ namespace SecondShell::Tests
       { ActionType::TouchTap, R"({"action": "Touch.Tap", "id": 2, "x": 10, "y": 20})" },
       { ActionType::TouchMove, R"({"action": "Touch.Move", "id": 1, "x": 30, "y": 40, "duration": 200})" },
       { ActionType::TouchReset, R"({"action": "Touch.Reset"})" },
+      { ActionType::PenMove, R"({"action": "Pen.Move", "x": 30, "y": 40, "duration": 200, "pressure": 0.7, "tiltX": 15, "tiltY": -10, "rotation": 30})" },
+      { ActionType::PenPress, R"({"action": "Pen.Press", "x": 10, "y": 20, "pressure": 0.3, "barrel": true, "eraser": false})" },
+      { ActionType::PenRelease, R"({"action": "Pen.Release"})" },
+      { ActionType::PenTap, R"({"action": "Pen.Tap", "x": 10, "y": 20, "barrel": true})" },
+      { ActionType::PenReset, R"({"action": "Pen.Reset"})" },
       { ActionType::KeyboardType, R"({"action": "Keyboard.Type", "text": "Hello\nWorld", "pause": 20, "sensitive": true})" },
       { ActionType::KeyboardTap, R"({"action": "Keyboard.Tap", "key": "S", "modifiers": ["Ctrl"]})" },
       { ActionType::KeyboardPress, R"({"action": "Keyboard.Press", "key": "LWin"})" },
@@ -140,15 +145,15 @@ namespace SecondShell::Tests
       Assert::AreEqual(-2.5f, wheel.Delta);
       Assert::IsTrue(wheel.Axis == WheelAxis::Horizontal);
 
-      auto tap = ParseAs<KeyboardTapAction>(_examples[26].second);
+      auto tap = ParseAs<KeyboardTapAction>(_examples[31].second);
       Assert::AreEqual(uint16_t('S'), tap.Key);
       Assert::AreEqual(size_t(1), tap.Modifiers.size());
       Assert::IsTrue(tap.Modifiers[0] == KeyModifier::Ctrl);
 
-      auto type = ParseAs<KeyboardTypeAction>(_examples[25].second);
+      auto type = ParseAs<KeyboardTypeAction>(_examples[30].second);
       Assert::AreEqual(string("Hello\nWorld"), type.Text);
 
-      auto write = ParseAs<ClipboardWriteAction>(_examples[39].second);
+      auto write = ParseAs<ClipboardWriteAction>(_examples[44].second);
       Assert::AreEqual(size_t(2), write.Content.size());
       Assert::IsTrue(write.Content[1].Format == ClipboardFormat::Html);
       Assert::AreEqual(string("<b>hello</b>"), write.Content[1].Data->as<json_string>().value);

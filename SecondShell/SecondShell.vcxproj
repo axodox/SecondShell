@@ -91,6 +91,8 @@
     <ClInclude Include="Credentials.h" />
     <ClInclude Include="CredentialStore.h" />
     <ClInclude Include="CursorOverlay.h" />
+    <ClInclude Include="TouchOverlay.h" />
+    <ClInclude Include="PenOverlay.h" />
     <ClInclude Include="DriverLauncher.h" />
     <ClInclude Include="DriverLink.h" />
     <ClInclude Include="ClipboardSync.h" />
@@ -164,6 +166,8 @@
     <ClCompile Include="Credentials.cpp" />
     <ClCompile Include="CredentialStore.cpp" />
     <ClCompile Include="CursorOverlay.cpp" />
+    <ClCompile Include="TouchOverlay.cpp" />
+    <ClCompile Include="PenOverlay.cpp" />
     <ClCompile Include="DriverLauncher.cpp" />
     <ClCompile Include="DriverLink.cpp" />
     <ClCompile Include="ClipboardSync.cpp" />

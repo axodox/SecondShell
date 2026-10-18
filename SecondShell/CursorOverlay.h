@@ -14,15 +14,6 @@ namespace SecondShell::Rendering
     virtual bool Draw(ID2D1DeviceContext* context, const ViewTransform& transform, time_point now) override;
 
   private:
-    //In session pixels
-    struct Motion
-    {
-      D2D1_POINT_2F From;
-      D2D1_POINT_2F To;
-      time_point Start;
-      std::chrono::milliseconds Duration;
-    };
-
     struct Press
     {
       Actions::MouseButton Button;

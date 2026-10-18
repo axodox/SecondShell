@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "MouseActionHandler.h"
 #include "MotionAnimator.h"
+#include "ScreenPosition.h"
 
 using namespace Axodox::Infrastructure;
 using namespace SecondShell::Actions;
@@ -114,10 +115,7 @@ namespace SecondShell::Driver
 
   value_ptr<ActionResult> MouseActionHandler::CheckPosition(Point position) const
   {
-    auto size = _mouse->ScreenSize();
-    if (position.X >= 0 && position.Y >= 0 && position.X < size.X && position.Y < size.Y) return nullptr;
-
-    return ActionResult::Failed(ErrorCode::InvalidArgument, format("({}, {}) is outside the screen, which is {}x{} pixels.", position.X, position.Y, size.X, size.Y));
+    return CheckOnScreen(position, _mouse->ScreenSize());
   }
 
   bool MouseActionHandler::PressAndRelease(MouseButton button, milliseconds duration, const CancellationToken& cancellation)

@@ -65,6 +65,40 @@ namespace SecondShell::Tests
       return object.at(name)->as<json_number>().value;
     }
 
+    bool BooleanOf(const json_object& object, const char* name)
+    {
+      return object.at(name)->as<json_boolean>().value;
+    }
+
+    //The pointer input the recorder received, one object per message (SecondShell.PointerRecorder)
+    vector<json_object> ReadPointerRecord(const filesystem::path& file)
+    {
+      vector<json_object> events;
+      ifstream record{ file };
+      for (string line; getline(record, line);)
+      {
+        string_view text{ line };
+        if (auto event = json_value::from_string(text)) events.push_back(event->as<json_object>());
+      }
+      return events;
+    }
+
+    //Events of the type given, and the event name given ("down", "update", "up"), or all
+    vector<json_object> EventsOf(const vector<json_object>& events, string_view type, string_view name = {})
+    {
+      vector<json_object> result;
+      for (auto& event : events)
+      {
+        if (StringOf(event, "type") == type && (name.empty() || StringOf(event, "event") == name)) result.push_back(event);
+      }
+      return result;
+    }
+
+    bool IsAt(const json_object& event, double x, double y)
+    {
+      return abs(NumberOf(event, "x") - x) <= 2 && abs(NumberOf(event, "y") - y) <= 2;
+    }
+
     //The text with each %name% replaced by its value
     string With(string text, initializer_list<pair<string_view, string>> values)
     {
@@ -222,6 +256,29 @@ namespace SecondShell::Tests
       } while (chrono::steady_clock::now() < deadline);
 
       Assert::Fail(L"a new window should open");
+    }
+
+    //Runs the steps over the pointer recorder, which covers the session's screen, and returns what it received.
+    static vector<json_object> RecordPointerInput(const string& steps)
+    {
+      auto folder = AppEnvironment().DriverExecutable().parent_path();
+      auto record = folder / "PointerRecords" / format("{}.jsonl", chrono::system_clock::now().time_since_epoch().count());
+      filesystem::create_directories(record.parent_path());
+
+      //Paths with forward slashes need no escaping in JSON
+      auto before = WindowIds();
+      RunSucceeding(With(R"([{ "action": "Process.Run", "command": "%recorder%", "shell": "None", "args": ["%record%"], "async": true }])", {
+        { "recorder", (folder / "SecondShell.PointerRecorder.exe").generic_string() },
+        { "record", record.generic_string() } }));
+      auto [window, pid] = WaitForNewWindow(before);
+
+      auto result = Run(With(R"([{ "action": "Window.Focus", "window": "%window%" }, { "action": "Control.Wait", "duration": 300 }, )", { { "window", window } }) + steps.substr(1));
+      RunSucceeding(With(R"([{ "action": "Control.Wait", "duration": 300 }, { "action": "Process.Kill", "pid": %pid% }])", { { "pid", to_string(pid) } }));
+      Assert::IsFalse(IsError(result) || Structured(result).value.contains("error"), to_wstring(result->to_string().substr(0, 2000)).c_str());
+
+      auto events = ReadPointerRecord(record);
+      filesystem::remove(record);
+      return events;
     }
 
     //That the session's screen keeps changing: a console opened by the agent shows in the next capture. Without OCR,
@@ -508,6 +565,93 @@ namespace SecondShell::Tests
         Assert::AreEqual(1920.0, NumberOf(settings, "width"), L"what the change leaves out stays as it was");
         Assert::AreEqual(1080.0, NumberOf(settings, "height"));
       }
+    }
+
+    TEST_METHOD(TouchReachesApplicationsAsTouch)
+    {
+      auto events = RecordPointerInput(R"([
+        { "action": "Touch.Tap", "id": 1, "x": 200, "y": 200 },
+        { "action": "Touch.Press", "id": 2, "x": 400, "y": 300 },
+        { "action": "Touch.Move", "id": 2, "x": 600, "y": 300, "duration": 200 },
+        { "action": "Control.Wait", "duration": 600 },
+        { "action": "Touch.Move", "id": 2, "x": 650, "y": 320 },
+        { "action": "Touch.Release", "id": 2 },
+        { "action": "Touch.Press", "id": 3, "x": 300, "y": 500 },
+        { "action": "Touch.Press", "id": 4, "x": 500, "y": 500 },
+        { "action": "Touch.Move", "id": 3, "x": 250, "y": 500, "duration": 200, "async": true },
+        { "action": "Touch.Move", "id": 4, "x": 550, "y": 500, "duration": 200, "async": true },
+        { "action": "Control.Join" },
+        { "action": "Touch.Release", "id": 3 },
+        { "action": "Touch.Release", "id": 4 }
+      ])");
+
+      auto downs = EventsOf(events, "touch", "down");
+      auto ups = EventsOf(events, "touch", "up");
+      Assert::AreEqual(size_t(4), downs.size(), L"four fingers went down");
+      Assert::AreEqual(size_t(4), ups.size(), L"and four were lifted");
+      Assert::IsTrue(IsAt(downs[0], 200, 200) && IsAt(downs[1], 400, 300) && IsAt(downs[2], 300, 500) && IsAt(downs[3], 500, 500), L"where they were put");
+      Assert::IsTrue(IsAt(ups[0], 200, 200) && IsAt(ups[1], 650, 320), L"and lifted where they were");
+      Assert::IsTrue(ranges::none_of(events, [](auto& event) { return BooleanOf(event, "canceled"); }), L"a finger held still is not dropped");
+
+      //Both fingers in contact at once, with their own pointer IDs, moving apart
+      Assert::IsTrue(NumberOf(downs[2], "id") != NumberOf(downs[3], "id"));
+      Assert::IsTrue(IsAt(ups[2], 250, 500) || IsAt(ups[3], 250, 500), L"the left finger moved left");
+      Assert::IsTrue(IsAt(ups[2], 550, 500) || IsAt(ups[3], 550, 500), L"the right finger moved right");
+    }
+
+    TEST_METHOD(ThePenReachesApplicationsWithPressureAndTilt)
+    {
+      auto events = RecordPointerInput(R"([
+        { "action": "Pen.Move", "x": 300, "y": 300 },
+        { "action": "Pen.Move", "x": 320, "y": 300, "duration": 100 },
+        { "action": "Pen.Press", "pressure": 0.3, "tiltX": 15, "tiltY": -10, "rotation": 30 },
+        { "action": "Pen.Move", "x": 500, "y": 300, "duration": 200, "pressure": 0.9 },
+        { "action": "Control.Wait", "duration": 600 },
+        { "action": "Pen.Release" },
+        { "action": "Pen.Tap", "x": 600, "y": 400, "barrel": true },
+        { "action": "Pen.Tap", "x": 700, "y": 400, "eraser": true },
+        { "action": "Pen.Reset" }
+      ])");
+
+      auto pen = EventsOf(events, "pen");
+      auto downs = EventsOf(events, "pen", "down");
+      Assert::AreEqual(size_t(3), downs.size(), L"a stroke and two taps");
+      Assert::AreEqual(size_t(3), EventsOf(events, "pen", "up").size());
+      Assert::IsTrue(ranges::none_of(events, [](auto& event) { return BooleanOf(event, "canceled"); }), L"a pen held still is not dropped");
+
+      //Hovering before the stroke; pressure arrives as 0..1024
+      Assert::IsFalse(BooleanOf(pen.front(), "inContact"), L"the pen hovers first");
+      auto& stroke = downs[0];
+      Assert::IsTrue(IsAt(stroke, 320, 300), L"it touches where it hovered");
+      Assert::IsTrue(abs(NumberOf(stroke, "pressure") - 307) <= 2, to_wstring(stroke.to_string()).c_str());
+      Assert::AreEqual(15.0, NumberOf(stroke, "tiltX"));
+      Assert::AreEqual(-10.0, NumberOf(stroke, "tiltY"));
+      Assert::AreEqual(30.0, NumberOf(stroke, "rotation"));
+
+      //The last of the stroke: the pen held still at its end
+      auto strokeEnd = pen | views::reverse;
+      auto pressed = ranges::find_if(strokeEnd, [](auto& event) { return BooleanOf(event, "inContact") && IsAt(event, 500, 300); });
+      Assert::IsTrue(pressed != strokeEnd.end(), L"the stroke reached its end");
+      Assert::IsTrue(abs(NumberOf(*pressed, "pressure") - 922) <= 2, L"pressing harder");
+
+      Assert::IsTrue(IsAt(downs[1], 600, 400) && BooleanOf(downs[1], "barrel"), L"the barrel button");
+      Assert::IsTrue(IsAt(downs[2], 700, 400) && BooleanOf(downs[2], "eraser") && BooleanOf(downs[2], "inverted"), L"the eraser");
+    }
+
+    TEST_METHOD(AFailedSequenceLiftsFingersAndThePen)
+    {
+      auto result = Run(R"([
+        { "action": "Touch.Press", "id": 7, "x": 100, "y": 100 },
+        { "action": "Pen.Press", "x": 200, "y": 100 },
+        { "action": "Window.Focus", "window": "0x00000001" }
+      ])");
+
+      auto& released = Structured(result).at("releasedInput")->as<json_object>();
+      auto& touchPoints = released.at("touchPoints")->as<json_array>().value;
+      Assert::IsTrue(touchPoints.size() == 1 && touchPoints[0]->as<json_number>().value == 7, to_wstring(released.to_string()).c_str());
+      Assert::IsTrue(BooleanOf(released, "pen"));
+
+      RunSucceeding(R"([{ "action": "Touch.Tap", "id": 7, "x": 100, "y": 100 }, { "action": "Pen.Press", "x": 200, "y": 100 }, { "action": "Pen.Reset" }])");
     }
   };
 }

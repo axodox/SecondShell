@@ -16,6 +16,7 @@ From stage 5 on, SecondShell can drive its own child session end to end. From th
 | 5 Session and driver core | Done, tested: unit tests (95, x64 + ARM64 build); `SessionProbeTests` end to end (sign-in with the saved password, Win+R console, typing, capture checked by OCR, driver guard, logoff) | branch `stage_1_and_2` (5: 72f83eb, credentials: 523b9c1, end-to-end tests: 37c2f09; reconnecting pipe client: uncommitted); Axodox.Common package `1.0.124-named-pipe-messaging` (`named_pipe_messaging`, 8da2636 + logger exit handler, uncommitted) |
 | 6 Desktop services and waits | Done, tested: unit tests (114, x64 + ARM64 build); `SessionProbeTests` (10 scenarios: windows, processes, clipboard, waits, display changes, guard) | branch `stage_1_and_2` (d876a85) |
 | 7 Host UI and session view | Done, tested: unit tests (176, x64 + ARM64 build); `SessionProbeTests` (12, incl. window states and Stop); text waits rebuilt (two tiers, OcrOptions.md); the user's hands-on check to come; mockup extras deferred (Handover.md) | branch `stage_1_and_2` (809c93d, 0fb8c26, 1f89963, merge 3d49807, 0317ba7) |
+| 8 Touch and pen | Done, tested: unit tests (184, x64 + ARM64 build); `SessionProbeTests` (15, incl. touch, pen and their release, checked by `SecondShell.PointerRecorder`); the pen actions designed (Design.md, Pen input); no Win32 fallback (Architecture.md 4.2); the user's hands-on check with a touch screen or pen to come | branch `stage_1_and_2` (this commit) |
 
 Notes for continuing:
 - Axodox.Common: SecondShell uses the package `1.0.124-named-pipe-messaging`, built locally with `build_nuget.ps1` from the `named_pipe_messaging` branch (8da2636 plus the uncommitted logger change below) and installed into `packages` from `G:\dev\axodox-common\Output`. nuget.org does not have it, so on another machine copy the package into `packages`, until an Axodox.Common release contains the named pipe messaging. To build against the Axodox.Common sources instead, set `AxodoxCommon-Location` in a gitignored `Build\local.props` (here: `local.props.disabled`).
@@ -144,6 +145,7 @@ From here on, the developer can test on their own through the MCP probe.
 ## Stage 8 – Touch and pen
 
 **Builds**: `TouchInjector`, `PenInjector` (`InputInjector`, with the synthetic pointer fallback; Findings.md 2.14), their actions and handlers, and the `TouchOverlay` element.
+  - **As built:** the pen actions were designed first (Design.md, Pen input). No synthetic pointer fallback: mouse and keyboard have none either, so it waits until `InputInjector` needs replacing as a whole (Architecture.md 4.2). Besides `TouchOverlay` there is a `PenOverlay`, and the user's own touch and pen are forwarded as touch and pen in interactive mode. Architecture.md 6.11.
 
 Gamepad support is deferred: an `InputInjector` gamepad is not seen by Windows.Gaming.Input, XInput or GameInput (Findings.md 2.15). Options for later: a packaged build with `inputInjectionBrokered`, or a virtual controller driver.
 

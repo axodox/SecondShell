@@ -33,6 +33,7 @@ namespace winrt::SecondShell::implementation
     void OnSessionPointerPressed(const Windows::Foundation::IInspectable& sender, const Microsoft::UI::Xaml::Input::PointerRoutedEventArgs& eventArgs);
     void OnSessionPointerReleased(const Windows::Foundation::IInspectable& sender, const Microsoft::UI::Xaml::Input::PointerRoutedEventArgs& eventArgs);
     void OnSessionPointerWheelChanged(const Windows::Foundation::IInspectable& sender, const Microsoft::UI::Xaml::Input::PointerRoutedEventArgs& eventArgs);
+    void OnSessionPointerGone(const Windows::Foundation::IInspectable& sender, const Microsoft::UI::Xaml::Input::PointerRoutedEventArgs& eventArgs);
     void OnSessionKeyDown(const Windows::Foundation::IInspectable& sender, const Microsoft::UI::Xaml::Input::KeyRoutedEventArgs& eventArgs);
     void OnSessionKeyUp(const Windows::Foundation::IInspectable& sender, const Microsoft::UI::Xaml::Input::KeyRoutedEventArgs& eventArgs);
     void OnSessionLostFocus(const Windows::Foundation::IInspectable& sender, const Microsoft::UI::Xaml::RoutedEventArgs& eventArgs);

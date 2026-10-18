@@ -33,7 +33,9 @@ namespace SecondShell::Input
 
   InputStateTracker::InputStateTracker(dependency_container* container) :
     _mouse(container->resolve<IMouseInjector>()),
-    _keyboard(container->resolve<IKeyboardInjector>())
+    _keyboard(container->resolve<IKeyboardInjector>()),
+    _touch(container->resolve<ITouchInjector>()),
+    _pen(container->resolve<IPenInjector>())
   { }
 
   void InputStateTracker::Press(MouseButton button)
@@ -64,6 +66,56 @@ namespace SecondShell::Input
     erase(_keys, virtualKey);
   }
 
+  optional<Point> InputStateTracker::TouchPosition(uint32_t id) const
+  {
+    lock_guard lock{ _mutex };
+    return FindTouch(id);
+  }
+
+  void InputStateTracker::Touch(uint32_t id, Point position)
+  {
+    lock_guard lock{ _mutex };
+    if (FindTouch(id)) throw logic_error(format("Touch point {} is already down.", id));
+
+    _touchPoints.emplace_back(id, position);
+    _touch->Inject(TouchFrame(id, TouchPhase::Down));
+  }
+
+  bool InputStateTracker::MoveTouch(uint32_t id, Point position)
+  {
+    lock_guard lock{ _mutex };
+    auto point = ranges::find(_touchPoints, id, &pair<uint32_t, Point>::first);
+    if (point == _touchPoints.end()) return false;
+
+    point->second = position;
+    _touch->Inject(TouchFrame(id, TouchPhase::Moved));
+    return true;
+  }
+
+  void InputStateTracker::Lift(uint32_t id)
+  {
+    lock_guard lock{ _mutex };
+    if (!FindTouch(id)) return;
+
+    _touch->Inject(TouchFrame(id, TouchPhase::Up));
+    erase_if(_touchPoints, [&](auto& point) { return point.first == id; });
+  }
+
+  PenState InputStateTracker::Pen() const
+  {
+    lock_guard lock{ _mutex };
+    return _penState;
+  }
+
+  void InputStateTracker::SetPen(const PenState& state)
+  {
+    lock_guard lock{ _mutex };
+    if (state == _penState) return;
+
+    _pen->Inject(state);
+    _penState = state;
+  }
+
   InputState InputStateTracker::ReleaseMouseButtons()
   {
     lock_guard lock{ _mutex };
@@ -89,10 +141,60 @@ namespace SecondShell::Input
     return released;
   }
 
+  InputState InputStateTracker::ReleaseTouchPoints()
+  {
+    lock_guard lock{ _mutex };
+    InputState released;
+    if (_touchPoints.empty()) return released;
+
+    vector<TouchContact> frame;
+    for (auto& [id, position] : _touchPoints) frame.push_back({ id, position, TouchPhase::Up });
+    _touch->Inject(frame);
+
+    for (auto& [id, position] : exchange(_touchPoints, {})) released.TouchPoints.push_back(id);
+    return released;
+  }
+
+  InputState InputStateTracker::ReleasePen()
+  {
+    lock_guard lock{ _mutex };
+    InputState released;
+    if (!_penState.IsInRange) return released;
+
+    //Lifted, then out of range: Windows takes no other way out of contact
+    if (_penState.IsInContact)
+    {
+      released.Pen = true;
+      _penState.IsInContact = false;
+      _penState.IsBarrelPressed = false;
+      _pen->Inject(_penState);
+    }
+
+    _penState = {};
+    _pen->Inject(_penState);
+    return released;
+  }
+
   InputState InputStateTracker::ReleaseAll()
   {
     auto released = ReleaseMouseButtons();
     released.Keys = ReleaseKeys().Keys;
+    released.TouchPoints = ReleaseTouchPoints().TouchPoints;
+    released.Pen = ReleasePen().Pen;
     return released;
+  }
+
+  optional<Point> InputStateTracker::FindTouch(uint32_t id) const
+  {
+    auto point = ranges::find(_touchPoints, id, &pair<uint32_t, Point>::first);
+    if (point == _touchPoints.end()) return nullopt;
+    return point->second;
+  }
+
+  vector<TouchContact> InputStateTracker::TouchFrame(uint32_t id, TouchPhase phase) const
+  {
+    vector<TouchContact> frame;
+    for (auto& [pointId, position] : _touchPoints) frame.push_back({ pointId, position, pointId == id ? phase : TouchPhase::Moved });
+    return frame;
   }
 }

@@ -13,7 +13,9 @@ namespace SecondShell::Input
   UserInputHandler::UserInputHandler(dependency_container* container) :
     _connection(container->resolve<Driver::HostConnection>()),
     _mouse(container->resolve<IMouseInjector>()),
-    _inputState(container->resolve<InputStateTracker>())
+    _inputState(container->resolve<InputStateTracker>()),
+    _touch(container->resolve<Driver::TouchActionHandler>()),
+    _pen(container->resolve<Driver::PenActionHandler>())
   {
     _connection->Peer().AddNotificationHandler(this, &UserInputHandler::OnForwardUserInput);
   }
@@ -31,6 +33,8 @@ namespace SecondShell::Input
 
   void UserInputHandler::Play(const Action& input)
   {
+    if (input.Kind() == ActionKind::Touch || input.Kind() == ActionKind::Pen) return PlayAction(input);
+
     switch (input.Type())
     {
     case ActionType::MouseMove:
@@ -59,6 +63,19 @@ namespace SecondShell::Input
       break;
     default:
       _logger.log(log_severity::warning, "{} is not user input; ignored.", input.Name());
+    }
+  }
+
+  void UserInputHandler::PlayAction(const Action& input)
+  {
+    try
+    {
+      auto result = input.Kind() == ActionKind::Touch ? _touch->Execute(input, _noCancellation) : _pen->Execute(input, _noCancellation);
+      if (result->Status != ActionStatus::Succeeded) _logger.log(log_severity::warning, "{} failed: {}", input.Name(), result->Message.value_or(""));
+    }
+    catch (const exception& exception)
+    {
+      _logger.log(log_severity::warning, "{} failed: {}", input.Name(), exception.what());
     }
   }
 }

@@ -70,6 +70,7 @@
     <ClInclude Include="KeyboardActions.h" />
     <ClInclude Include="KeyNames.h" />
     <ClInclude Include="MouseActions.h" />
+    <ClInclude Include="PenActions.h" />
     <ClInclude Include="ProcessActions.h" />
     <ClInclude Include="ProtocolErrors.h" />
     <ClInclude Include="ClipboardFormats.h" />

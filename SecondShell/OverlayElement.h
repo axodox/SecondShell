@@ -17,6 +17,18 @@ namespace SecondShell::Rendering
     virtual ~OverlayElement() = default;
 
   protected:
+    //A straight move over a duration, in session pixels; linear, as the driver moves (MotionAnimator).
+    struct Motion
+    {
+      D2D1_POINT_2F From{};
+      D2D1_POINT_2F To{};
+      std::chrono::steady_clock::time_point Start;
+      std::chrono::milliseconds Duration{};
+
+      D2D1_POINT_2F At(std::chrono::steady_clock::time_point now) const;
+      bool IsMoving(std::chrono::steady_clock::time_point now) const;
+    };
+
     //How far an animation is, 0..1.
     static float Progress(std::chrono::steady_clock::time_point start, std::chrono::steady_clock::duration duration, std::chrono::steady_clock::time_point now);
 

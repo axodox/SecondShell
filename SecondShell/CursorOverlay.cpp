@@ -96,7 +96,7 @@ namespace SecondShell::Rendering
     DrawPointer(context, brush.get(), transform.ToView(*position), transform.Ui(_radius));
 
     //Until it has faded out; a held button keeps it as it is
-    auto isMoving = _motion && now < _motion->Start + _motion->Duration;
+    auto isMoving = _motion && _motion->IsMoving(now);
     auto isEnding = ranges::any_of(_presses, [](const Press& press) { return press.Until != time_point::max(); });
     return isMoving || isEnding || !_ripples.empty() || !_wheelTurns.empty() || _presses.empty();
   }
@@ -104,10 +104,7 @@ namespace SecondShell::Rendering
   optional<D2D1_POINT_2F> CursorOverlay::Position(time_point now) const
   {
     if (!_motion) return nullopt;
-
-    //Linear, as the driver moves it (MotionAnimator)
-    auto progress = Progress(_motion->Start, _motion->Duration, now);
-    return D2D1_POINT_2F{ _motion->From.x + (_motion->To.x - _motion->From.x) * progress, _motion->From.y + (_motion->To.y - _motion->From.y) * progress };
+    return _motion->At(now);
   }
 
   void CursorOverlay::MoveTo(optional<int32_t> x, optional<int32_t> y, time_point start, milliseconds duration)

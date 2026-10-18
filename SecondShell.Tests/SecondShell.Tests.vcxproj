@@ -120,6 +120,9 @@
     <ClCompile Include="..\SecondShell.Driver\KeyboardActionHandler.cpp" />
     <ClCompile Include="..\SecondShell.Driver\MotionAnimator.cpp" />
     <ClCompile Include="..\SecondShell.Driver\MouseActionHandler.cpp" />
+    <ClCompile Include="..\SecondShell.Driver\PenActionHandler.cpp" />
+    <ClCompile Include="..\SecondShell.Driver\ScreenPosition.cpp" />
+    <ClCompile Include="..\SecondShell.Driver\TouchActionHandler.cpp" />
     <ClCompile Include="..\SecondShell.Driver\PhraseMatcher.cpp" />
     <ClCompile Include="..\SecondShell.Driver\Pixels.cpp" />
     <ClCompile Include="..\SecondShell.Driver\QuickTextReader.cpp" />

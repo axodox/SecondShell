@@ -14,7 +14,7 @@ namespace SecondShell::Mcp
   const char* const _instructions =
     "SecondShell gives you a second Windows desktop: a separate session of the same user on this machine, where you can "
     "use applications without disturbing the user. Start it with Initialize-Session, then work in it with Run-Sequence "
-    "(mouse, keyboard, touch, screen captures, windows, processes, clipboard). Coordinates are session pixels; captures "
+    "(mouse, keyboard, touch, pen, screen captures, windows, processes, clipboard). Coordinates are session pixels; captures "
     "report the scale of their image. Applications in the session work on the user's real files and settings.";
 
   McpServer::McpServer(dependency_container* container) :

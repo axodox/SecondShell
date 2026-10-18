@@ -189,6 +189,12 @@ The spikes were first run from a terminal inside the Claude desktop app, which i
 
 **Consequence:** `InputInjector` covers mouse, touch and pen for desktop apps; the synthetic pointer fallback works too. Not tested: UWP / WinUI apps and multi-touch with the fallback.
 
+Found in stage 8, with `SecondShell.PointerRecorder` in the child session (`SessionProbeTests`, 2026-10-18):
+
+- **Held input needs repeating**: Windows drops injected touch and pen input that is not updated within about 100 ms (as documented for `InjectTouchInput`; Chromium's remoting does the same). The driver repeats the last frame every 50 ms while a finger is down or the pen is in range; a finger held for 600 ms, and a pen held still in contact, then arrive without `POINTER_FLAG_CANCELED`.
+- **The pen's end cannot change in range**: a pen hovering with the tip and then pressed as the eraser (`Inverted | Eraser`) arrives as the tip, without either flag. Taken out of range first and brought back inverted, it arrives as the eraser, as a real pen turned over does. Each time the pen comes into range, it has a new pointer ID.
+- **Values arrive as injected**: positions to the pixel, pressure 0.3 as 307 and 0.9 as 922 (of 1024), tilt (15, -10) and rotation 30 exactly; two fingers keep their own pointer IDs.
+
 ### 2.15 An injected gamepad is invisible to Windows.Gaming.Input, XInput and GameInput (stage 1, spike 3)
 
 `Spikes/Gamepad --inject` in the child session (foreground window) calls `InitializeGamepadInjection`, injects neutral, A + left stick X 0.5 + right trigger 1.0, B + left stick Y −0.75 and neutral (each re-sent every 100 ms for 2 s), then `UninitializeGamepadInjection`, while polling all three APIs every 50 ms.

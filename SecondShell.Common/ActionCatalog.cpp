@@ -7,6 +7,7 @@
 #include "MouseActions.h"
 #include "ProcessActions.h"
 #include "StrictJson.h"
+#include "PenActions.h"
 #include "TouchActions.h"
 #include "WindowActions.h"
 
@@ -82,6 +83,11 @@ namespace SecondShell::Actions
         Define<TouchTapAction>(),
         Define<TouchMoveAction>(),
         Define<TouchResetAction>(),
+        Define<PenMoveAction>(),
+        Define<PenPressAction>(),
+        Define<PenReleaseAction>(),
+        Define<PenTapAction>(),
+        Define<PenResetAction>(),
         Define<KeyboardTypeAction>(),
         Define<KeyboardTapAction>(),
         Define<KeyboardPressAction>(),

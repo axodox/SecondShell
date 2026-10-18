@@ -99,7 +99,8 @@
          takes the input -->
     <Grid x:Name="SessionArea" Grid.Row="1" Background="{StaticResource SessionAreaBrush}" IsTabStop="True"
           PointerMoved="OnSessionPointerMoved" PointerPressed="OnSessionPointerPressed" PointerReleased="OnSessionPointerReleased"
-          PointerWheelChanged="OnSessionPointerWheelChanged" KeyDown="OnSessionKeyDown" KeyUp="OnSessionKeyUp"
+          PointerWheelChanged="OnSessionPointerWheelChanged" PointerCanceled="OnSessionPointerGone"
+          PointerExited="OnSessionPointerGone" KeyDown="OnSessionKeyDown" KeyUp="OnSessionKeyUp"
           LostFocus="OnSessionLostFocus">
       <SwapChainPanel x:Name="SessionView" />
 

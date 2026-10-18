@@ -6,6 +6,7 @@
 #include "KeyboardActions.h"
 #include "KeyNames.h"
 #include "MouseActions.h"
+#include "PenActions.h"
 #include "ProcessActions.h"
 #include "TouchActions.h"
 #include "WindowActions.h"
@@ -30,7 +31,13 @@ namespace SecondShell::Actions
     const char* const _async = "Run in parallel with the next actions, until Control.Join.";
     const char* const _window = "A window ID from Window.Enumerate, e.g. \"0x0001A2B4\".";
     const char* const _touchId = "Identifies the touch point; it must not be in use by another active touch point.";
-    const char* const _key = "A key name of System.Windows.Forms.Keys (e.g. Enter, Tab, F5, A, D1, Left), an alias (Ctrl, Alt, Shift, Win, Esc, Backspace, 0-9), or a virtual key code number.";
+    const char* const _pressure = "How hard the pen presses, 0..1; default 0.5 when it touches the screen.";
+    const char* const _tiltX = "Degrees the pen leans right (positive) or left, -90..90; default 0.";
+    const char* const _tiltY = "Degrees the pen leans toward the user (positive) or away, -90..90; default 0.";
+    const char* const _rotation = "Degrees the pen is turned clockwise around its axis, 0..359; default 0.";
+    const char* const _barrel = "Holds the pen's barrel button, which applications usually treat as a right click.";
+    const char* const _eraser = "Uses the pen's eraser end instead of its tip.";
+    const char* const _key ="A key name of System.Windows.Forms.Keys (e.g. Enter, Tab, F5, A, D1, Left), an alias (Ctrl, Alt, Shift, Win, Esc, Backspace, 0-9), or a virtual key code number.";
     const char* const _modifiers = "Modifier keys held during the key: Shift, Ctrl, Alt, Win.";
     const char* const _timeout = "Milliseconds to wait at most, default 10000; when it expires the sequence stops with a Timeout error.";
     const char* const _processId = "The process ID, e.g. from Process.Run or Process.Enumerate.";
@@ -92,7 +99,7 @@ namespace SecondShell::Actions
     { .name = "Control.Join", .description = "Waits for all async actions to complete." }, {});
 
   json_object_descriptor<ControlResetAction> ControlResetAction::json_description = describe_json_object<ControlResetAction, Action>(
-    { .name = "Control.Reset", .description = "Cancels pending async actions and releases all held mouse buttons, keys and touch points. Does not move the cursor." }, {});
+    { .name = "Control.Reset", .description = "Cancels pending async actions and releases all held mouse buttons, keys and touch points, and lifts the pen. Does not move the cursor." }, {});
 #pragma endregion
 
 #pragma region Mouse
@@ -198,6 +205,55 @@ namespace SecondShell::Actions
 
   json_object_descriptor<TouchResetAction> TouchResetAction::json_description = describe_json_object<TouchResetAction, Action>(
     { .name = "Touch.Reset", .description = "Lifts all touch points." }, {});
+#pragma endregion
+
+#pragma region Pen
+  json_object_descriptor<PenMoveAction> PenMoveAction::json_description = describe_json_object<PenMoveAction, Action>(
+    { .name = "Pen.Move", .description = "Moves the pen to (x, y): touching the screen it draws, otherwise it hovers. A pen out of range comes into range above (x, y). Pressure, tilt and rotation change gradually to the values given; the others stay." },
+    {
+      { &PenMoveAction::X, "x", { .is_required = true, .schema = { .description = _x, .minimum = 0 } } },
+      { &PenMoveAction::Y, "y", { .is_required = true, .schema = { .description = _y, .minimum = 0 } } },
+      { &PenMoveAction::Duration, "duration", { .is_required = false, .schema = { .description = _duration, .minimum = 0 } } },
+      { &PenMoveAction::Async, "async", { .is_required = false, .schema = { .description = _async } } },
+      { &PenMoveAction::Pressure, "pressure", { .is_required = false, .schema = { .description = _pressure, .minimum = 0, .maximum = 1 } } },
+      { &PenMoveAction::TiltX, "tiltX", { .is_required = false, .schema = { .description = _tiltX, .minimum = -90, .maximum = 90 } } },
+      { &PenMoveAction::TiltY, "tiltY", { .is_required = false, .schema = { .description = _tiltY, .minimum = -90, .maximum = 90 } } },
+      { &PenMoveAction::Rotation, "rotation", { .is_required = false, .schema = { .description = _rotation, .minimum = 0, .maximum = 359 } } }
+    });
+
+  bool PenMoveAction::IsAsync() const
+  {
+    return Async.value_or(false);
+  }
+
+  json_object_descriptor<PenPressAction> PenPressAction::json_description = describe_json_object<PenPressAction, Action>(
+    { .name = "Pen.Press", .description = "Touches the screen with the pen where it hovers, or at (x, y), and keeps it there until Pen.Release." },
+    {
+      { &PenPressAction::X, "x", { .is_required = false, .schema = { .description = _x, .minimum = 0 } } },
+      { &PenPressAction::Y, "y", { .is_required = false, .schema = { .description = _y, .minimum = 0 } } },
+      { &PenPressAction::Pressure, "pressure", { .is_required = false, .schema = { .description = _pressure, .minimum = 0, .maximum = 1 } } },
+      { &PenPressAction::TiltX, "tiltX", { .is_required = false, .schema = { .description = _tiltX, .minimum = -90, .maximum = 90 } } },
+      { &PenPressAction::TiltY, "tiltY", { .is_required = false, .schema = { .description = _tiltY, .minimum = -90, .maximum = 90 } } },
+      { &PenPressAction::Rotation, "rotation", { .is_required = false, .schema = { .description = _rotation, .minimum = 0, .maximum = 359 } } },
+      { &PenPressAction::Barrel, "barrel", { .is_required = false, .schema = { .description = _barrel } } },
+      { &PenPressAction::Eraser, "eraser", { .is_required = false, .schema = { .description = _eraser } } }
+    });
+
+  json_object_descriptor<PenReleaseAction> PenReleaseAction::json_description = describe_json_object<PenReleaseAction, Action>(
+    { .name = "Pen.Release", .description = "Lifts the pen off the screen; it keeps hovering there until Pen.Reset." }, {});
+
+  json_object_descriptor<PenTapAction> PenTapAction::json_description = describe_json_object<PenTapAction, Action>(
+    { .name = "Pen.Tap", .description = "Taps with the pen at (x, y); it keeps hovering there until Pen.Reset." },
+    {
+      { &PenTapAction::X, "x", { .is_required = true, .schema = { .description = _x, .minimum = 0 } } },
+      { &PenTapAction::Y, "y", { .is_required = true, .schema = { .description = _y, .minimum = 0 } } },
+      { &PenTapAction::Pressure, "pressure", { .is_required = false, .schema = { .description = _pressure, .minimum = 0, .maximum = 1 } } },
+      { &PenTapAction::Barrel, "barrel", { .is_required = false, .schema = { .description = _barrel } } },
+      { &PenTapAction::Eraser, "eraser", { .is_required = false, .schema = { .description = _eraser } } }
+    });
+
+  json_object_descriptor<PenResetAction> PenResetAction::json_description = describe_json_object<PenResetAction, Action>(
+    { .name = "Pen.Reset", .description = "Lifts the pen and takes it out of range." }, {});
 #pragma endregion
 
 #pragma region Keyboard

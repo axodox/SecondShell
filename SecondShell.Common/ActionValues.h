@@ -33,6 +33,7 @@ namespace SecondShell::Actions
     std::vector<MouseButton> MouseButtons;
     std::vector<std::string> Keys;
     std::vector<uint32_t> TouchPoints;
+    std::optional<bool> Pen;  //true if the pen was touching the screen
   };
 
   //An image of a capture or of the clipboard.

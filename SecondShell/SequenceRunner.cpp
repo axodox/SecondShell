@@ -39,7 +39,7 @@ namespace SecondShell::Agent
 
     bool IsHeld(const InputState& state)
     {
-      return !state.MouseButtons.empty() || !state.Keys.empty() || !state.TouchPoints.empty();
+      return !state.MouseButtons.empty() || !state.Keys.empty() || !state.TouchPoints.empty() || state.Pen.value_or(false);
     }
   }
 

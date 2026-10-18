@@ -56,6 +56,15 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="ActionExecutor.h" />
+    <ClInclude Include="TouchInjector.h" />
+    <ClInclude Include="TouchActionHandler.h" />
+    <ClInclude Include="ScreenPosition.h" />
+    <ClInclude Include="Point.h" />
+    <ClInclude Include="PenInjector.h" />
+    <ClInclude Include="PenActionHandler.h" />
+    <ClInclude Include="InjectionHeartbeat.h" />
+    <ClInclude Include="ITouchInjector.h" />
+    <ClInclude Include="IPenInjector.h" />
     <ClInclude Include="AreaTextReader.h" />
     <ClInclude Include="AtlasLayout.h" />
     <ClInclude Include="AutomationTextSource.h" />
@@ -113,6 +122,12 @@
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="ActionExecutor.cpp" />
+    <ClCompile Include="TouchInjector.cpp" />
+    <ClCompile Include="TouchActionHandler.cpp" />
+    <ClCompile Include="ScreenPosition.cpp" />
+    <ClCompile Include="PenInjector.cpp" />
+    <ClCompile Include="PenActionHandler.cpp" />
+    <ClCompile Include="InjectionHeartbeat.cpp" />
     <ClCompile Include="AreaTextReader.cpp" />
     <ClCompile Include="AtlasLayout.cpp" />
     <ClCompile Include="AutomationTextSource.cpp" />

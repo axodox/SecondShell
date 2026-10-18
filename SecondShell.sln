@@ -13,6 +13,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SecondShell.Mcp", "SecondSh
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SecondShell.Tests", "SecondShell.Tests\SecondShell.Tests.vcxproj", "{A06BAA3D-EA7F-4227-9377-C34ED1E8872E}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SecondShell.PointerRecorder", "SecondShell.PointerRecorder\SecondShell.PointerRecorder.vcxproj", "{043743BD-ADA7-4B4A-95D2-B3D1203B70CB}"
+EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{556671BA-6AFA-4109-A17E-38629BE9D303}"
 	ProjectSection(SolutionItems) = preProject
 		.editorconfig = .editorconfig
@@ -75,6 +77,14 @@ Global
 		{A06BAA3D-EA7F-4227-9377-C34ED1E8872E}.Release|ARM64.Build.0 = Release|ARM64
 		{A06BAA3D-EA7F-4227-9377-C34ED1E8872E}.Release|x64.ActiveCfg = Release|x64
 		{A06BAA3D-EA7F-4227-9377-C34ED1E8872E}.Release|x64.Build.0 = Release|x64
+		{043743BD-ADA7-4B4A-95D2-B3D1203B70CB}.Debug|ARM64.ActiveCfg = Debug|ARM64
+		{043743BD-ADA7-4B4A-95D2-B3D1203B70CB}.Debug|ARM64.Build.0 = Debug|ARM64
+		{043743BD-ADA7-4B4A-95D2-B3D1203B70CB}.Debug|x64.ActiveCfg = Debug|x64
+		{043743BD-ADA7-4B4A-95D2-B3D1203B70CB}.Debug|x64.Build.0 = Debug|x64
+		{043743BD-ADA7-4B4A-95D2-B3D1203B70CB}.Release|ARM64.ActiveCfg = Release|ARM64
+		{043743BD-ADA7-4B4A-95D2-B3D1203B70CB}.Release|ARM64.Build.0 = Release|ARM64
+		{043743BD-ADA7-4B4A-95D2-B3D1203B70CB}.Release|x64.ActiveCfg = Release|x64
+		{043743BD-ADA7-4B4A-95D2-B3D1203B70CB}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -16,6 +16,8 @@ namespace SecondShell::Driver
     _inputState(container->resolve<InputStateTracker>()),
     _mouse(container->resolve<MouseActionHandler>()),
     _keyboard(container->resolve<KeyboardActionHandler>()),
+    _touch(container->resolve<TouchActionHandler>()),
+    _pen(container->resolve<PenActionHandler>()),
     _capture(container->resolve<CaptureActionHandler>()),
     _windows(container->resolve<WindowActionHandler>()),
     _processes(container->resolve<ProcessActionHandler>()),
@@ -81,6 +83,10 @@ namespace SecondShell::Driver
         return _mouse->Execute(action, cancellation);
       case ActionKind::Keyboard:
         return _keyboard->Execute(action, cancellation);
+      case ActionKind::Touch:
+        return _touch->Execute(action, cancellation);
+      case ActionKind::Pen:
+        return _pen->Execute(action, cancellation);
       case ActionKind::Capture:
         return _capture->Execute(action, cancellation);
       case ActionKind::Window:

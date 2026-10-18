@@ -5,7 +5,9 @@
 #include "HostConnection.h"
 #include "KeyboardActionHandler.h"
 #include "MouseActionHandler.h"
+#include "PenActionHandler.h"
 #include "ProcessActionHandler.h"
+#include "TouchActionHandler.h"
 #include "WindowActionHandler.h"
 
 namespace SecondShell::Driver
@@ -26,6 +28,8 @@ namespace SecondShell::Driver
     std::shared_ptr<Input::InputStateTracker> _inputState;
     std::shared_ptr<MouseActionHandler> _mouse;
     std::shared_ptr<KeyboardActionHandler> _keyboard;
+    std::shared_ptr<TouchActionHandler> _touch;
+    std::shared_ptr<PenActionHandler> _pen;
     std::shared_ptr<CaptureActionHandler> _capture;
     std::shared_ptr<WindowActionHandler> _windows;
     std::shared_ptr<ProcessActionHandler> _processes;

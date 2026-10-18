@@ -4,9 +4,31 @@ Where the work stands, for continuing after a break. The plan and its status tab
 
 ## State
 
-- **Branch** `stage_1_and_2`. Stages 0–7 and the Axodox.Common refactor are committed; nothing is pushed.
-- **Stage 7, host UI and session view: done.** 176 unit tests and 12 session probe tests pass (x64); x64 and ARM64 build. The user's hands-on check is still to come (below).
+- **Branch** `stage_1_and_2`. Stages 0–8 and the Axodox.Common refactor are committed; nothing is pushed.
+- **Stage 8, touch and pen: done.** 184 unit tests and 15 session probe tests pass (x64); x64 and ARM64 build. Next is stage 9 (setup, settings, AI client integrations).
+- **Stage 7, host UI and session view: done.** The user's hands-on check is still to come (below).
 - **Axodox.Common:** SecondShell uses the package `1.0.124-named-pipe-messaging` (in `packages`, built locally from `G:\dev\axodox-common`). Axodox has no uncommitted changes of mine.
+
+## Stage 8
+
+Touch and pen for the agent, and for the user in interactive mode. What each piece does: Architecture.md 6.11; the pen actions: Design.md, Pen input.
+
+| Part | Files | What it does |
+|---|---|---|
+| Actions | `SecondShell.Common/TouchActions.h`, `PenActions.h`, `Actions.cpp`; `InputState::Pen` | `Touch.*` (existed) and the new `Pen.Move` / `Press` / `Release` / `Tap` / `Reset`; `releasedInput.pen` |
+| Driver | `TouchActionHandler`, `PenActionHandler`, `InputStateTracker`, `TouchInjector`, `PenInjector`, `InjectionHeartbeat`, `ScreenPosition` | Handlers check and animate; the tracker holds fingers and the pen, so resets lift them; the injectors repeat the last frame every 50 ms (Windows drops it after ~100 ms) |
+| Host | `TouchOverlay`, `PenOverlay`, `OverlayElement::Motion`; `InteractiveInputForwarder::OnTouch` / `OnPen` / `OnPointerGone`, `MainWindow::ForwardPointer` | Overlay discs, ripples, pen ring, dot and trail; the user's touch and pen forwarded as such |
+| Tests | `DriverInputTests`; `SessionProbeTests` (3 new); `SecondShell.PointerRecorder` | Fakes for frames and pen states; live: taps, a held finger, two fingers, pen pressure, tilt, rotation, barrel, eraser, a failed sequence lifting both |
+
+### Notes
+
+- **Turning the pen over**: Windows ignores a change between tip and eraser while the pen is in range, so `PenInjector` takes it out of range and back (a new pointer ID each time, as with a real pen).
+- **No Win32 fallback**: the plan's synthetic pointer injectors are not built; mouse and keyboard have no fallback either (Architecture.md 4.2).
+- **PointerRecorder** records to the file on its command line; the tests put it in `bin\x64\Debug\PointerRecords` (not under AppData: this terminal's writes there are virtualized) and delete it afterwards.
+
+### Still to do
+
+- **The user's hands-on check**, if a touch screen or pen is at hand: the overlay for the agent's touch and pen, and the own touch and pen in interactive mode (only built, not tried: this machine has neither).
 
 ## Stage 7
 
