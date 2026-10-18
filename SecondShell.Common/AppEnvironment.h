@@ -12,16 +12,19 @@ namespace SecondShell::Environment
 
     bool IsPackaged() const;
 
+    //Packaged, their App Execution Aliases, which survive updates.
     std::filesystem::path HostExecutable() const;
     std::filesystem::path DriverExecutable() const;
-    std::filesystem::path McpExecutable() const;  //the App Execution Alias when packaged, which survives updates
+    std::filesystem::path McpExecutable() const;
 
-    std::filesystem::path DataFolder() const;     //the real path, also when MSIX redirects the writes of the app
+    std::filesystem::path DataFolder() const;
     std::filesystem::path CapturesFolder() const;  //holds a folder per run
     std::filesystem::path CaptureFolder(std::string_view sessionName) const;
     std::filesystem::path LogFolder() const;
 
   private:
+    std::filesystem::path Executable(std::string_view name) const;
+
     bool _isPackaged;
     std::filesystem::path _binaryFolder;
     std::filesystem::path _localAppData;

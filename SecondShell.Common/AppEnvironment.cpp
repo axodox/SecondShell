@@ -35,28 +35,15 @@ namespace SecondShell::Environment
       return result;
     }
 
-    wstring CurrentPackageFamilyName()
-    {
-      UINT32 length = 0;
-      GetCurrentPackageFamilyName(&length, nullptr);
-
-      wstring result(length, L'\0');
-      winrt::check_win32(GetCurrentPackageFamilyName(&length, result.data()));
-      result.resize(length - 1);
-      return result;
-    }
   }
 
   AppEnvironment::AppEnvironment() :
     _isPackaged(has_package_identity()),
     _binaryFolder(ThisModuleFolder()),
-    _localAppData(LocalAppDataFolder())
-  {
-    //A packaged app's new files under %LOCALAPPDATA% are redirected into the package's LocalCache
-    _dataFolder = _isPackaged ?
-      _localAppData / "Packages" / CurrentPackageFamilyName() / "LocalCache" / "Local" / _productFolderName :
-      _localAppData / _productFolderName;
-  }
+    _localAppData(LocalAppDataFolder()),
+    //The package turns write virtualization off (Packaging\AppxManifest.xml), so its files are where the portable build's are
+    _dataFolder(_localAppData / _productFolderName)
+  { }
 
   bool AppEnvironment::IsPackaged() const
   {
@@ -65,19 +52,24 @@ namespace SecondShell::Environment
 
   path AppEnvironment::HostExecutable() const
   {
-    return _binaryFolder / "SecondShell.exe";
+    return Executable("SecondShell.exe");
   }
 
   path AppEnvironment::DriverExecutable() const
   {
-    return _binaryFolder / "SecondShell.Driver.exe";
+    return Executable("SecondShell.Driver.exe");
   }
 
   path AppEnvironment::McpExecutable() const
   {
-    return _isPackaged ?
-      _localAppData / "Microsoft" / "WindowsApps" / "SecondShell.Mcp.exe" :
-      _binaryFolder / "SecondShell.Mcp.exe";
+    return Executable("SecondShell.Mcp.exe");
+  }
+
+  path AppEnvironment::Executable(string_view name) const
+  {
+    //Packaged, the App Execution Alias: it stays the same across updates, unlike the versioned install folder, and
+    //starts the program with the package's identity
+    return _isPackaged ? _localAppData / "Microsoft" / "WindowsApps" / name : _binaryFolder / name;
   }
 
   path AppEnvironment::DataFolder() const

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Installs SecondShell's MSIX bundle from the GitHub releases, and checks for updates on launch; package.ps1 fills in
+     the version and the addresses -->
+<AppInstaller xmlns="http://schemas.microsoft.com/appx/appinstaller/2018" Version="$Version$" Uri="$Self$">
+  <MainBundle Name="Axodox.SecondShell" Publisher="CN=Axodox" Version="$Version$" Uri="$Bundle$" />
+  <UpdateSettings>
+    <OnLaunch HoursBetweenUpdateChecks="24" />
+  </UpdateSettings>
+</AppInstaller>

@@ -5,7 +5,7 @@ Where the work stands, for continuing after a break. The plan and its status tab
 ## State
 
 - **Branch** `stage_1_and_2`. Stages 0–8 and the Axodox.Common refactor are committed; nothing is pushed.
-- **Stage 10, packaging: in progress.** The portable part is done: `package.ps1` makes the signed zips for x64 and ARM64; the x64 zip ran end to end from a fresh folder. Next: the MSIX package (App Execution Aliases, so AI apps run a path that survives updates; the RunOnce check; `.appinstaller` on GitHub releases).
+- **Stage 10, packaging: done here.** `package.ps1` makes the signed zips, MSIX packages, the bundle and the `.appinstaller`; both builds ran end to end on this PC. Left for the user: installing the signed bundle (trust `SecondShell.cer` once), a clean machine, an ARM64 device, publishing a release.
 - **Stage 9, setup, settings and AI client integrations: done.** The user's hands-on check is to come (below).
 - **Stage 8, touch and pen: done.** x64 and ARM64 build.
 - **Stage 7, host UI and session view: done.** The user's hands-on check is still to come (below).
@@ -18,6 +18,15 @@ Where the work stands, for continuing after a break. The plan and its status tab
 - **Manual test (the user)**: on a PC without child sessions (or after `WTSEnableChildSessions(FALSE)`), the dialog at start, Set up with the administrator prompt, declining it, and the smooth view option. Here child sessions are on and `DWMFRAMEINTERVAL` = 15 was set by hand, so SecondShell does not count it as its own.
 - **Checked here**: the dialog and the notice (with a local switch faking the missing setup, not committed); `SecondShell.exe --setup` unelevated with nothing to do exits 0 without a window.
 - `MachineConfiguration` is the only code that writes the machine's settings; tests use a fake (`SetupTests`).
+
+## Stage 10, part 2: MSIX
+
+`Packaging\AppxManifest.xml` (identity `Axodox.SecondShell`, publisher `CN=Axodox`, version from the props with `.0`), `Packaging\Assets` (logos, drawn by `Assets\make_icon.py` with a third argument), `Packaging\SecondShell.appinstaller`. `package.ps1` makes `artifacts\<platform>\msix` from the staged folder (plus the manifest, the logos, and `SecondShell.pri` copied as `resources.pri`), packs and signs `SecondShell-<version>-<platform>.msix`, then `SecondShell-<version>.msixbundle` (51 MB) and `SecondShell.appinstaller` (bundle at `releases/download/v<version>/`, itself at `releases/latest/download/`), and exports `SecondShell.cer`.
+
+- **Aliases**: `SecondShell.exe`, `SecondShell.Mcp.exe` (console), `SecondShell.Driver.exe`; `AppEnvironment` gives their paths when packaged (the user's suggestion, as Asgard does it).
+- **Tested here**: the x64 layout registered in Developer Mode (`obj\register-package.ps1`, through `Breakaway --explorer`; removed again afterwards): the MCP server's alias started the packaged host, the driver started from its alias in the child session through RunOnce, a sequence and a capture worked, the data stayed in the real folder.
+- **Not tested**: installing the signed bundle or the `.appinstaller` (Windows must trust `SecondShell.cer`: as administrator, `Import-Certificate -FilePath artifacts\SecondShell.cer -CertStoreLocation Cert:\LocalMachine\TrustedPeople`); the elevated setup and Add to AI apps from the package; updates through the `.appinstaller`; ARM64.
+- **Publishing a release** (the user): a GitHub release tagged `v<version>` with the zips, the bundle, the `.appinstaller` and `SecondShell.cer`.
 
 ## Stage 10, part 1: portable
 

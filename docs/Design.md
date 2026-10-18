@@ -523,7 +523,9 @@ SecondShell ships in two builds of the same binaries: a **portable** folder and 
 - Must be signed with a trusted certificate (a CA or the Store). A self-signed certificate needs elevation to trust, which defeats the no-elevation goal.
 - On first start (and on every start, see Setup and repair) it detects whether child sessions need enabling, and if so starts its elevated setup child process.
 
-MSIX-specific behaviour to handle:
+- **As built** (`Packaging\AppxManifest.xml`, `package.ps1`): one package per platform made from the portable folder, and a bundle of both, signed with the same certificate (publisher `CN=Axodox`), with an `.appinstaller` file for the GitHub releases (checks for updates on launch). The Windows App SDK stays self-contained inside it. Three applications, each with its alias: `SecondShell.exe` (the window, in the Start menu), `SecondShell.Mcp.exe` (console) and `SecondShell.Driver.exe`; packaged, `AppEnvironment` returns these alias paths, so the AI apps' entries and the driver's `RunOnce` entry outlive updates. Registry and file system write virtualization are turned off (`desktop6`, with the `unvirtualizedResources` capability), so the `RunOnce` entry reaches Explorer and the data folder is the real `%LOCALAPPDATA%\SecondShell`, as in the portable build; no startup task is needed. Verified on this PC (layout registered in Developer Mode): the MCP server's alias started the packaged host, the `RunOnce` entry with the driver's alias started the driver in the child session, and a sequence ran. `unvirtualizedResources` is a restricted capability: the Store would have to approve it.
+
+MSIX-specific behaviour to handle (as designed; settled by the above):
 
 - **File redirection**: new files that a packaged app writes under `%LOCALAPPDATA%` are redirected into the package's own folder (`...\Packages\<package>\LocalCache\...`). Paths returned to the AI client (captures, logs) must be the real paths, or its file tools won't find them.
 - **Registry redirection**: HKCU writes are redirected as well, so a `RunOnce` entry written from inside the package may be invisible to Explorer (see Starting the driver).
@@ -535,8 +537,8 @@ The differences are kept behind one abstraction in `SecondShell.Common.dll`, sel
 
 | | Portable | MSIX |
 |---|---|---|
-| Driver startup | `RunOnce` entry (HKCU) with the absolute path of `SecondShell.Driver.exe` | `RunOnce` entry if not redirected, otherwise startup task in the manifest (to verify) |
-| Data and capture folder | `%LOCALAPPDATA%\SecondShell` | Real path of the package's redirected folder |
+| Driver startup | `RunOnce` entry (HKCU) with the absolute path of `SecondShell.Driver.exe` | `RunOnce` entry with the `SecondShell.Driver.exe` alias (registry virtualization off) |
+| Data and capture folder | `%LOCALAPPDATA%\SecondShell` | The same (file system virtualization off) |
 | MCP server path written into AI client configs | Absolute path of `SecondShell.Mcp.exe` | Full path of the `SecondShell.Mcp.exe` alias |
 | Start menu entry | None (users can create a shortcut themselves) | Provided by the package |
 

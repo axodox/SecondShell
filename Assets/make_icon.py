@@ -1,4 +1,5 @@
-#Draws the SecondShell mark (UIDesign.md) at each icon size, supersampled: python make_icon.py SecondShell.ico <preview prefix>.
+#Draws the SecondShell mark (UIDesign.md) at each icon size, supersampled: python make_icon.py SecondShell.ico <preview prefix>
+#[<package logo folder>]; the logos are the MSIX package's (Packaging\Assets).
 #has an outline of the opposite lightness, so the mark reads on light and dark backgrounds alike.
 import sys
 from PIL import Image, ImageDraw
@@ -30,3 +31,14 @@ for name, background in (("light", (243, 243, 243, 255)), ("dark", (32, 32, 36, 
         preview = Image.new("RGBA", (size, size), background)
         preview.alpha_composite(mark(size))
         preview.resize((256, 256), Image.NEAREST if size < 256 else Image.LANCZOS).save(sys.argv[2] + f"-{name}-{size}.png")
+
+#The package's logos: the mark alone, the tile's with room around it as Start draws tiles
+if len(sys.argv) > 3:
+    import os
+    folder = sys.argv[3]
+    os.makedirs(folder, exist_ok=True)
+    mark(44).save(os.path.join(folder, "Square44x44Logo.png"))
+    mark(50).save(os.path.join(folder, "StoreLogo.png"))
+    tile = Image.new("RGBA", (150, 150), (0, 0, 0, 0))
+    tile.alpha_composite(mark(90), (30, 30))
+    tile.save(os.path.join(folder, "Square150x150Logo.png"))
