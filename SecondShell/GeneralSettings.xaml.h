@@ -4,6 +4,7 @@
 #include "ElevatedSetupLauncher.h"
 #include "SettingsStore.h"
 #include "SetupChecker.h"
+#include "Uninstaller.h"
 
 namespace winrt::SecondShell::implementation
 {
@@ -24,6 +25,7 @@ namespace winrt::SecondShell::implementation
     void OnForgetPasswordClick(const Windows::Foundation::IInspectable& sender, const Microsoft::UI::Xaml::RoutedEventArgs& eventArgs);
     void OnSetupClick(const Windows::Foundation::IInspectable& sender, const Microsoft::UI::Xaml::RoutedEventArgs& eventArgs);
     void OnSmoothViewToggled(const Windows::Foundation::IInspectable& sender, const Microsoft::UI::Xaml::RoutedEventArgs& eventArgs);
+    void OnUninstallClick(const Windows::Foundation::IInspectable& sender, const Microsoft::UI::Xaml::RoutedEventArgs& eventArgs);
 
   private:
     std::shared_ptr<::SecondShell::Session::SettingsStore> _settings;
@@ -31,6 +33,7 @@ namespace winrt::SecondShell::implementation
     std::shared_ptr<::SecondShell::Setup::SetupChecker> _setupChecker;
     std::shared_ptr<::SecondShell::Setup::ElevatedSetupLauncher> _setupLauncher;
     std::shared_ptr<::SecondShell::Environment::AppEnvironment> _environment;
+    std::shared_ptr<::SecondShell::Setup::Uninstaller> _uninstaller;
 
     std::vector<::SecondShell::Protocol::DisplaySettings> _resolutions;
     std::vector<uint32_t> _scales;
@@ -46,6 +49,9 @@ namespace winrt::SecondShell::implementation
 
     //The elevated setup, then the setup shown as it is.
     fire_and_forget RunSetup(::SecondShell::Setup::SetupRequest request);
+
+    //Asks what to remove, removes it, and says what it did (Design.md, Uninstall).
+    fire_and_forget Uninstall();
   };
 }
 

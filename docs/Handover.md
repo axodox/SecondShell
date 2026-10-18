@@ -5,7 +5,7 @@ Where the work stands, for continuing after a break. The plan and its status tab
 ## State
 
 - **Branch** `stage_1_and_2`. Stages 0–8 and the Axodox.Common refactor are committed; nothing is pushed.
-- **Stage 9, setup, settings and AI client integrations: in progress.** Parts 1 (setup and repair), 2 (settings) and 3 (Add to AI apps) are done (207 unit tests, 15 session probe tests). Next: part 4, uninstall (`--uninstall`, and the same in Settings).
+- **Stage 9, setup, settings and AI client integrations: done.** Four parts: setup and repair, settings, Add to AI apps, uninstall (210 unit tests, 15 session probe tests; x64 and ARM64 build). The user's hands-on check is to come (below). Next is stage 10, packaging (portable zip, code signing, MSIX).
 - **Stage 8, touch and pen: done.** x64 and ARM64 build.
 - **Stage 7, host UI and session view: done.** The user's hands-on check is still to come (below).
 - **Axodox.Common:** SecondShell uses the package `1.0.124-named-pipe-messaging` (in `packages`, built locally from `G:\dev\axodox-common`). Axodox has no uncommitted changes of mine.
@@ -17,6 +17,20 @@ Where the work stands, for continuing after a break. The plan and its status tab
 - **Manual test (the user)**: on a PC without child sessions (or after `WTSEnableChildSessions(FALSE)`), the dialog at start, Set up with the administrator prompt, declining it, and the smooth view option. Here child sessions are on and `DWMFRAMEINTERVAL` = 15 was set by hand, so SecondShell does not count it as its own.
 - **Checked here**: the dialog and the notice (with a local switch faking the missing setup, not committed); `SecondShell.exe --setup` unelevated with nothing to do exits 0 without a window.
 - `MachineConfiguration` is the only code that writes the machine's settings; tests use a fake (`SetupTests`).
+
+## Stage 9, part 4: uninstall
+
+`SecondShell.exe --uninstall [--forget-password] [--delete-data]`, and Settings, General, "Remove SecondShell from this PC" (both choices offered). Architecture.md 6.12.
+
+- **Checked here**: the dialog (cancelled); `UninstallerTests` with a test credential and temporary folders.
+- **Not tried**: a real uninstall (it would take SecondShell out of the AI apps here, and the smooth view step asks for administrator rights).
+
+### Stage 9: the user's hands-on check
+
+1. One-time setup on a PC without child sessions (or with them turned off): the dialog, the administrator prompt, declining it.
+2. Settings: a change of each kind, then a new session (display, sign-in timeout) and a sequence (shell, captures); Forget saved password; the smooth view switch.
+3. Add to AI apps: add, update and remove for the apps used here, and check each app sees SecondShell; `--integrate` / `--unintegrate` from PowerShell (`Start-Process -Wait`).
+4. Uninstall, last.
 
 ## Stage 9, part 3: Add to AI apps
 

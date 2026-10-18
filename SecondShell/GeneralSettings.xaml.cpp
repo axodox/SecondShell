@@ -4,6 +4,7 @@
 #include "GeneralSettings.g.cpp"
 #endif
 #include <winrt/Microsoft.UI.Content.h>
+#include "SessionDialogs.h"
 
 using namespace ::SecondShell::Actions;
 using namespace ::SecondShell::Environment;
@@ -80,6 +81,7 @@ namespace winrt::SecondShell::implementation
     _setupChecker = container->resolve<SetupChecker>();
     _setupLauncher = container->resolve<ElevatedSetupLauncher>();
     _environment = container->resolve<AppEnvironment>();
+    _uninstaller = container->resolve<Uninstaller>();
     Refresh();
   }
 
@@ -201,13 +203,44 @@ namespace winrt::SecondShell::implementation
       return;
     }
 
-    RunSetup({});
+    RunSetup({ .EnableChildSessions = true });
   }
 
   void GeneralSettings::OnSmoothViewToggled(const IInspectable& /*sender*/, const RoutedEventArgs& /*eventArgs*/)
   {
     if (_isShowing || _isSettingUp || SmoothViewSwitch().IsOn() == _setupChecker->Status().IsSmoothSessionViewOn) return;
-    RunSetup({ SmoothViewSwitch().IsOn() });
+    RunSetup({ .SmoothSessionView = SmoothViewSwitch().IsOn() });
+  }
+
+  void GeneralSettings::OnUninstallClick(const IInspectable& /*sender*/, const RoutedEventArgs& /*eventArgs*/)
+  {
+    Uninstall();
+  }
+
+  fire_and_forget GeneralSettings::Uninstall()
+  {
+    auto self = get_strong();
+    auto options = co_await ::SecondShell::Ui::SessionDialogs::AskToUninstall(XamlRoot());
+    if (!options) co_return;
+
+    UninstallButton().IsEnabled(false);
+    auto request = UninstallOptions{ .ForgetPassword = (options.Value() & 1) != 0, .DeleteData = (options.Value() & 2) != 0 };
+    auto owner = Microsoft::UI::GetWindowFromWindowId(XamlRoot().ContentIslandEnvironment().AppWindowId());
+    auto queue = DispatcherQueue();
+    co_await resume_background();
+
+    auto report = _uninstaller->Run(request);
+    if (report.IsSmoothSessionViewLeft)
+    {
+      if (_setupLauncher->Run(owner, { .SmoothSessionView = false }) == SetupOutcome::Done) report.Done.push_back("Turned the smooth session view off.");
+      else report.Problems.push_back("The smooth session view stays on: turning it off needs administrator rights.");
+      _setupChecker->Check();
+    }
+    co_await wil::resume_foreground(queue);
+
+    co_await ::SecondShell::Ui::SessionDialogs::ShowUninstallReport(XamlRoot(), report);
+    UninstallButton().IsEnabled(true);
+    Refresh();
   }
 
   fire_and_forget GeneralSettings::RunSetup(SetupRequest request)

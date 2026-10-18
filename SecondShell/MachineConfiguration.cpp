@@ -69,5 +69,14 @@ namespace SecondShell::Setup
   void MachineConfiguration::IsFrameIntervalOurs(bool value)
   {
     WriteDword(_setupKey, _frameIntervalOursValue, value ? optional<uint32_t>{ 1 } : nullopt);
+
+    //Its key goes with its last value (deleting a key would take any other values with it)
+    HKEY key = nullptr;
+    if (value || RegOpenKeyExW(HKEY_LOCAL_MACHINE, _setupKey, 0, KEY_READ, &key) != ERROR_SUCCESS) return;
+
+    DWORD values = 0, subkeys = 0;
+    auto isEmpty = RegQueryInfoKeyW(key, nullptr, nullptr, nullptr, &subkeys, nullptr, nullptr, &values, nullptr, nullptr, nullptr, nullptr) == ERROR_SUCCESS && values == 0 && subkeys == 0;
+    RegCloseKey(key);
+    if (isEmpty) RegDeleteKeyW(HKEY_LOCAL_MACHINE, _setupKey);
   }
 }

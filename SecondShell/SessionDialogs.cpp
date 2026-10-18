@@ -222,4 +222,49 @@ namespace SecondShell::Ui
     dialog.DefaultButton(ContentDialogButton::Primary);
     co_return co_await dialog.ShowAsync() == ContentDialogResult::Primary;
   }
+
+  IAsyncOperation<IReference<int32_t>> SessionDialogs::AskToUninstall(XamlRoot root)
+  {
+    auto content = Content();
+    content.Children().Append(Paragraph("SecondShell takes itself out of the AI apps it was added to, and removes its startup entry. Child sessions stay enabled: other tools may use them."));
+
+    CheckBox password;
+    password.IsChecked(true);
+    password.Content(box_value(L"Forget the saved password"));
+    content.Children().Append(password);
+
+    CheckBox data;
+    data.IsChecked(true);
+    data.Content(box_value(L"Delete captures, logs and settings"));
+    content.Children().Append(data);
+
+    content.Children().Append(Paragraph("If SecondShell turned on the smooth session view, turning it off asks for administrator rights.", L"MutedTextBrush"));
+
+    auto dialog = Dialog(root, L"Remove SecondShell from this PC?", content, L"Remove", L"Cancel");
+    if (co_await dialog.ShowAsync() != ContentDialogResult::Primary) co_return nullptr;
+
+    auto choices = (password.IsChecked().Value() ? 1 : 0) | (data.IsChecked().Value() ? 2 : 0);
+    co_return box_value(choices).as<IReference<int32_t>>();
+  }
+
+  IAsyncAction SessionDialogs::ShowUninstallReport(XamlRoot root, Setup::UninstallReport report)
+  {
+    auto content = Content();
+    StackPanel lines;
+    lines.Spacing(6);
+    for (auto& done : report.Done) lines.Children().Append(Check(true, done));
+    for (auto& problem : report.Problems) lines.Children().Append(Check(false, problem));
+    if (report.Done.empty() && report.Problems.empty()) lines.Children().Append(Paragraph("There was nothing to remove."));
+    content.Children().Append(lines);
+
+    content.Children().Append(Paragraph("Close SecondShell now; then delete its folder, or uninstall it.", L"MutedTextBrush"));
+
+    ContentDialog dialog;
+    dialog.XamlRoot(root);
+    dialog.Style(ActionView::Resource<Style>(L"DefaultContentDialogStyle"));
+    dialog.Title(box_value(report.Problems.empty() ? L"SecondShell is removed" : L"SecondShell is mostly removed"));
+    dialog.Content(content);
+    dialog.CloseButtonText(L"OK");
+    co_await dialog.ShowAsync();
+  }
 }

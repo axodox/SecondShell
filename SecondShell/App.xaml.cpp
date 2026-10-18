@@ -8,6 +8,7 @@
 #include "McpRequestHandler.h"
 #include "ProductInfo.h"
 #include "SetupChecker.h"
+#include "Uninstaller.h"
 
 using namespace Axodox::Infrastructure;
 using namespace ::SecondShell::Agent;
@@ -35,12 +36,14 @@ namespace winrt::SecondShell::implementation
 
   void App::OnLaunched(const LaunchActivatedEventArgs& /*eventArgs*/)
   {
-    logger::file(AppEnvironment().LogFolder() / "host.log");
-
     auto argumentCount = 0;
     auto argumentList = CommandLineToArgvW(GetCommandLineW(), &argumentCount);
     vector<wstring> arguments{ argumentList + min(argumentCount, 1), argumentList + argumentCount };
     LocalFree(argumentList);
+
+    //Before the log opens, which would keep a file of the data folder in use
+    if (auto exitCode = RunUninstall(arguments)) exit(*exitCode);
+    logger::file(AppEnvironment().LogFolder() / "host.log");
 
     //Through exit, so the log is written out
     if (auto request = SetupRequest::FromArguments(arguments)) exit(RunSetup(*request));
@@ -69,7 +72,7 @@ namespace winrt::SecondShell::implementation
       container.add<IMachineConfiguration, MachineConfiguration>();
 
       auto setup = container.resolve<MachineSetup>();
-      setup->EnableChildSessions();
+      if (request.EnableChildSessions) setup->EnableChildSessions();
       if (request.SmoothSessionView) setup->SetSmoothSessionView(*request.SmoothSessionView);
       return 0;
     }
@@ -89,12 +92,7 @@ namespace winrt::SecondShell::implementation
     auto command = ranges::find_if(arguments, [](const wstring& argument) { return argument == L"--integrate" || argument == L"--unintegrate"; });
     if (command == arguments.end()) return std::nullopt;
 
-    //A window app has no console of its own: it writes to the one it was started from, if there is one
-    if (AttachConsole(ATTACH_PARENT_PROCESS))
-    {
-      FILE* stream = nullptr;
-      freopen_s(&stream, "CONOUT$", "w", stdout);
-    }
+    UseParentConsole();
 
     dependency_container container;
     auto integrations = container.resolve<IntegrationManager>();
@@ -129,6 +127,53 @@ namespace winrt::SecondShell::implementation
       printf("%s\n", exception.what());
     }
     return 1;
+  }
+
+  std::optional<int> App::RunUninstall(span<const wstring> arguments)
+  {
+    auto has = [&](const wchar_t* argument) { return ranges::find(arguments, argument) != arguments.end(); };
+    if (!has(L"--uninstall")) return std::nullopt;
+
+    UseParentConsole();
+    dependency_container container;
+    container.add<IMachineConfiguration, MachineConfiguration>();
+
+    try
+    {
+      auto report = container.resolve<Uninstaller>()->Run({ .ForgetPassword = has(L"--forget-password"), .DeleteData = has(L"--delete-data") });
+      for (auto& done : report.Done) printf("%s\n", done.c_str());
+
+      //Machine-wide: the elevated setup turns it off
+      if (report.IsSmoothSessionViewLeft)
+      {
+        auto outcome = container.resolve<ElevatedSetupLauncher>()->Run(nullptr, { .SmoothSessionView = false });
+        if (outcome == SetupOutcome::Done) printf("Turned the smooth session view off.\n");
+        else report.Problems.push_back("The smooth session view stays on: it needs administrator rights to turn off.");
+      }
+
+      for (auto& problem : report.Problems) printf("%s\n", problem.c_str());
+      if (!has(L"--forget-password") || !has(L"--delete-data")) printf("Kept the saved password and the data folder unless asked: --forget-password, --delete-data.\n");
+      printf("Child sessions stay enabled; other tools may use them. The SecondShell folder can be deleted now.\n");
+      return report.Problems.empty() ? 0 : 1;
+    }
+    catch (const winrt::hresult_error& error)
+    {
+      printf("The uninstall failed: %s\n", to_string(error.message()).c_str());
+    }
+    catch (const exception& exception)
+    {
+      printf("The uninstall failed: %s\n", exception.what());
+    }
+    return 1;
+  }
+
+  void App::UseParentConsole()
+  {
+    //A window app has no console of its own: it writes to the one it was started from, if there is one
+    if (!AttachConsole(ATTACH_PARENT_PROCESS)) return;
+
+    FILE* stream = nullptr;
+    freopen_s(&stream, "CONOUT$", "w", stdout);
   }
 
   void App::RegisterServices()

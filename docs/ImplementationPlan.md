@@ -17,7 +17,7 @@ From stage 5 on, SecondShell can drive its own child session end to end. From th
 | 6 Desktop services and waits | Done, tested: unit tests (114, x64 + ARM64 build); `SessionProbeTests` (10 scenarios: windows, processes, clipboard, waits, display changes, guard) | branch `stage_1_and_2` (d876a85) |
 | 7 Host UI and session view | Done, tested: unit tests (176, x64 + ARM64 build); `SessionProbeTests` (12, incl. window states and Stop); text waits rebuilt (two tiers, OcrOptions.md); the user's hands-on check to come; mockup extras deferred (Handover.md) | branch `stage_1_and_2` (809c93d, 0fb8c26, 1f89963, merge 3d49807, 0317ba7) |
 | 8 Touch and pen | Done, tested: unit tests (184, x64 + ARM64 build); `SessionProbeTests` (15, incl. touch, pen and their release, checked by `SecondShell.PointerRecorder`); the pen actions designed (Design.md, Pen input); no Win32 fallback (Architecture.md 4.2); the user's hands-on check with a touch screen or pen to come | branch `stage_1_and_2` (this commit) |
-| 9 Setup, settings, integrations | In progress: setup and repair, settings, AI apps done (unit tests 207, `SessionProbeTests` 15; the elevated setup and adding to real AI apps are manual tests); uninstall to come | branch `stage_1_and_2` (part 1 ef860ba, part 2 8b2fa7f) |
+| 9 Setup, settings, integrations | Done, tested: unit tests (210, x64 + ARM64 build), `SessionProbeTests` (15); setup and repair, settings, Add to AI apps, uninstall; the user's manual tests to come: the elevated setup, adding to real AI apps, uninstall | branch `stage_1_and_2` (ef860ba, 8b2fa7f, 45d0ab8, this commit) |
 
 Notes for continuing:
 - Axodox.Common: SecondShell uses the package `1.0.124-named-pipe-messaging`, built locally with `build_nuget.ps1` from the `named_pipe_messaging` branch (8da2636 plus the uncommitted logger change below) and installed into `packages` from `G:\dev\axodox-common\Output`. nuget.org does not have it, so on another machine copy the package into `packages`, until an Axodox.Common release contains the named pipe messaging. To build against the Axodox.Common sources instead, set `AxodoxCommon-Location` in a gitignored `Build\local.props` (here: `local.props.disabled`).
@@ -158,6 +158,7 @@ Gamepad support is deferred: an `InputInjector` gamepad is not seen by Windows.G
 
 **Builds**:
 - **Setup:** the full `SetupChecker`, `MachineSetup` (child sessions, and the optional smooth session view), `ElevatedSetupLauncher`, `RepairDialog`, `Uninstaller`.
+  - **As built:** in four parts (Handover.md); no pages or view models, user controls as in stage 7; the repair dialog is the one-time setup dialog, with Set up in the session view; the integrations edit config files as text and use Claude Code's own command line (Architecture.md 6.12).
 - **Settings:** `SettingsPage`.
 - **Integrations:** `JsonConfigEditor`, `TomlConfigEditor`, `CliRunner`, the integrations, `IntegrationManager`, `IntegrationsPage`, `IntegrationPreviewDialog`, and `--integrate` / `--unintegrate`.
 

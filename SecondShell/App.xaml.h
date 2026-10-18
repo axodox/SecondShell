@@ -25,6 +25,13 @@ namespace winrt::SecondShell::implementation
     //window (Design.md, AI client integration); writes what it did to the console it was started from.
     static std::optional<int> RunIntegrationCommand(std::span<const std::wstring> arguments);
 
+    //SecondShell.exe --uninstall [--forget-password] [--delete-data]: removes what SecondShell added (Design.md,
+    //Uninstall); turning the smooth session view off asks for administrator rights.
+    static std::optional<int> RunUninstall(std::span<const std::wstring> arguments);
+
+    //Writes to the console the command line was started from, if there is one.
+    static void UseParentConsole();
+
     void RegisterServices();
     bool StartServices();
     void ShowWindow();

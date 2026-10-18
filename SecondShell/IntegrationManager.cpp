@@ -58,6 +58,11 @@ namespace SecondShell::Integrations
     _integrations(Create(UserFolders::Current(), _mcpExecutable))
   { }
 
+  IntegrationManager::IntegrationManager(vector<shared_ptr<AiClientIntegration>> integrations, path mcpExecutable) :
+    _mcpExecutable(move(mcpExecutable)),
+    _integrations(move(integrations))
+  { }
+
   vector<shared_ptr<AiClientIntegration>> IntegrationManager::Create(const UserFolders& folders, const path& mcpExecutable)
   {
     //Locations as of October 2026 (Design.md, Supported clients)

@@ -91,6 +91,7 @@
     <ClInclude Include="Credentials.h" />
     <ClInclude Include="CredentialStore.h" />
     <ClInclude Include="CursorOverlay.h" />
+    <ClInclude Include="Uninstaller.h" />
     <ClInclude Include="TextDiff.h" />
     <ClInclude Include="JsonFileIntegration.h" />
     <ClInclude Include="IntegrationManager.h" />
@@ -208,6 +209,7 @@
     <ClCompile Include="Credentials.cpp" />
     <ClCompile Include="CredentialStore.cpp" />
     <ClCompile Include="CursorOverlay.cpp" />
+    <ClCompile Include="Uninstaller.cpp" />
     <ClCompile Include="TextDiff.cpp" />
     <ClCompile Include="JsonFileIntegration.cpp" />
     <ClCompile Include="IntegrationManager.cpp" />

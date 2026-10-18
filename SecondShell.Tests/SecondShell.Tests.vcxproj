@@ -64,6 +64,7 @@
     <ClInclude Include="McpTestClient.h" />
     <ClInclude Include="TestPipeName.h" />
     <ClInclude Include="TestSettings.h" />
+    <ClInclude Include="FakeMachineConfiguration.h" />
     <ClInclude Include="MemoryTransport.h" />
   </ItemGroup>
   <ItemGroup>
@@ -110,6 +111,7 @@
     <ClCompile Include="ShelfPackerTests.cpp" />
     <ClCompile Include="ShellCommandBuilderTests.cpp" />
     <ClCompile Include="TextLinesTests.cpp" />
+    <ClCompile Include="UninstallerTests.cpp" />
     <ClCompile Include="TextTierTests.cpp" />
     <ClCompile Include="WindowsTextRecognizerTests.cpp" />
   </ItemGroup>
@@ -163,6 +165,8 @@
     <ClCompile Include="..\SecondShell\SequenceRunner.cpp" />
     <ClCompile Include="..\SecondShell\SettingsStore.cpp" />
     <ClCompile Include="..\SecondShell\TextDiff.cpp" />
+    <ClCompile Include="..\SecondShell\Uninstaller.cpp" />
+    <ClCompile Include="..\SecondShell\DriverLauncher.cpp" />
     <ClCompile Include="..\SecondShell\TomlConfigEditor.cpp" />
     <ClCompile Include="..\SecondShell\VisualizationFeed.cpp" />
   </ItemGroup>

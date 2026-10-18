@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "ElevatedSetupLauncher.h"
+#include "FakeMachineConfiguration.h"
 #include "MachineSetup.h"
 
 using namespace Axodox::Infrastructure;
@@ -9,28 +10,6 @@ using namespace std;
 
 namespace SecondShell::Tests
 {
-  namespace
-  {
-    //The machine's settings in memory
-    class FakeMachineConfiguration : public IMachineConfiguration
-    {
-    public:
-      bool ChildSessions = false;
-      optional<uint32_t> Interval;
-      bool IsOurs = false;
-      uint32_t ChildSessionsEnabled = 0;
-
-      virtual bool AreChildSessionsEnabled() const override { return ChildSessions; }
-      virtual void EnableChildSessions() override { ChildSessions = true; ChildSessionsEnabled++; }
-
-      virtual optional<uint32_t> FrameInterval() const override { return Interval; }
-      virtual void FrameInterval(optional<uint32_t> value) override { Interval = value; }
-
-      virtual bool IsFrameIntervalOurs() const override { return IsOurs; }
-      virtual void IsFrameIntervalOurs(bool value) override { IsOurs = value; }
-    };
-  }
-
   TEST_CLASS(SetupTests)
   {
     shared_ptr<FakeMachineConfiguration> _machine = make_shared<FakeMachineConfiguration>();
@@ -84,15 +63,18 @@ namespace SecondShell::Tests
 
     TEST_METHOD(SetupArgumentsRoundTrip)
     {
-      for (auto smoothView : { optional<bool>{}, optional<bool>{ true }, optional<bool>{ false } })
+      for (auto childSessions : { true, false })
       {
-        auto text = SetupRequest{ smoothView }.ToArguments();
-        vector<wstring> arguments;
-        for (auto part : views::split(text, L' ')) arguments.emplace_back(part.begin(), part.end());
+        for (auto smoothView : { optional<bool>{}, optional<bool>{ true }, optional<bool>{ false } })
+        {
+          auto text = SetupRequest{ childSessions, smoothView }.ToArguments();
+          vector<wstring> arguments;
+          for (auto part : views::split(text, L' ')) arguments.emplace_back(part.begin(), part.end());
 
-        auto request = SetupRequest::FromArguments(arguments);
-        Assert::IsTrue(request.has_value(), text.c_str());
-        Assert::IsTrue(request->SmoothSessionView == smoothView, text.c_str());
+          auto request = SetupRequest::FromArguments(arguments);
+          Assert::IsTrue(request.has_value(), text.c_str());
+          Assert::IsTrue(request->EnableChildSessions == childSessions && request->SmoothSessionView == smoothView, text.c_str());
+        }
       }
 
       Assert::IsFalse(SetupRequest::FromArguments(vector<wstring>{ L"--smooth-view=on" }).has_value(), L"without --setup it is a normal start");

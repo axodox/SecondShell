@@ -127,5 +127,18 @@
       </StackPanel>
       <ToggleSwitch x:Name="SmoothViewSwitch" Grid.Column="1" VerticalAlignment="Center" MinWidth="0" OnContent="On" OffContent="Off" AutomationProperties.Name="Smooth session view" Toggled="OnSmoothViewToggled" />
     </Grid>
+
+    <TextBlock Text="Uninstall" Style="{StaticResource SettingsSectionTitleStyle}" />
+    <Grid Style="{StaticResource SettingsCardStyle}">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="*" />
+        <ColumnDefinition Width="Auto" />
+      </Grid.ColumnDefinitions>
+      <StackPanel VerticalAlignment="Center" Spacing="2">
+        <TextBlock Text="Remove SecondShell from this PC" Style="{StaticResource SettingsNameStyle}" />
+        <TextBlock Text="Takes it out of your AI apps, and can forget the password and delete its files; then the app can be deleted or uninstalled" Style="{StaticResource SettingsDescriptionStyle}" />
+      </StackPanel>
+      <Button x:Name="UninstallButton" Grid.Column="1" Content="Remove&#x2026;" VerticalAlignment="Center" AutomationProperties.Name="Remove SecondShell" Click="OnUninstallClick" />
+    </Grid>
   </StackPanel>
 </UserControl>

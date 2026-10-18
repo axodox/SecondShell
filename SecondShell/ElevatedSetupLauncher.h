@@ -3,9 +3,10 @@
 
 namespace SecondShell::Setup
 {
-  //What the elevated setup is to do: it always enables child sessions; the smooth session view only if given.
+  //What the elevated setup is to do: enable child sessions, and turn the smooth session view on or off if given.
   struct SetupRequest
   {
+    bool EnableChildSessions = false;
     std::optional<bool> SmoothSessionView;
 
     std::wstring ToArguments() const;

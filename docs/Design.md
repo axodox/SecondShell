@@ -455,7 +455,7 @@ A child session is a Remote Desktop session, which Windows composes at about 30 
 
 ### Uninstall
 
-`SecondShell.exe --uninstall` removes any leftover driver `RunOnce` entry and the AI client integrations, removes the smooth session view setting if SecondShell set it (elevated), and offers to delete the saved password and the data folder. It leaves child sessions enabled, since other tools (e.g. the Windows Simulator) rely on them. The MSIX build offers the same cleanup in its settings, to run before the user uninstalls the package.
+`SecondShell.exe --uninstall` removes any leftover driver `RunOnce` entry and the AI client integrations, and removes the smooth session view setting if SecondShell set it (elevated: one administrator prompt). The saved password and the data folder go only when asked, with `--forget-password` and `--delete-data`. It leaves child sessions enabled, since other tools (e.g. the Windows Simulator) rely on them. Settings, General has the same as "Remove SecondShell from this PC", with both choices offered (on), for the portable build before its folder is deleted and the MSIX build before the package is uninstalled. Files in use by the running SecondShell (its own log) stay, and the result says so.
 
 ## Implementation
 

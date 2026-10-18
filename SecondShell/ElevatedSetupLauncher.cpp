@@ -8,12 +8,14 @@ using namespace std;
 namespace SecondShell::Setup
 {
   const wchar_t* const _setupSwitch = L"--setup";
+  const wchar_t* const _childSessions = L"--child-sessions";
   const wchar_t* const _smoothViewOn = L"--smooth-view=on";
   const wchar_t* const _smoothViewOff = L"--smooth-view=off";
 
   wstring SetupRequest::ToArguments() const
   {
     wstring arguments = _setupSwitch;
+    if (EnableChildSessions) arguments += format(L" {}", _childSessions);
     if (SmoothSessionView) arguments += format(L" {}", *SmoothSessionView ? _smoothViewOn : _smoothViewOff);
     return arguments;
   }
@@ -23,6 +25,7 @@ namespace SecondShell::Setup
     if (ranges::find(arguments, _setupSwitch) == arguments.end()) return nullopt;
 
     SetupRequest request;
+    request.EnableChildSessions = ranges::find(arguments, _childSessions) != arguments.end();
     if (ranges::find(arguments, _smoothViewOn) != arguments.end()) request.SmoothSessionView = true;
     if (ranges::find(arguments, _smoothViewOff) != arguments.end()) request.SmoothSessionView = false;
     return request;

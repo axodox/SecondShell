@@ -232,7 +232,7 @@ namespace winrt::SecondShell::implementation
     ShowSessionState(_sessionState);
 
     //The launcher waits for the elevated process; not on the UI thread
-    SetupRequest request{ smoothView.Value() ? std::optional<bool>{ true } : std::nullopt };
+    SetupRequest request{ true, smoothView.Value() ? std::optional<bool>{ true } : std::nullopt };
     auto owner = Microsoft::UI::GetWindowFromWindowId(AppWindow().Id());
     auto queue = DispatcherQueue();
     co_await resume_background();
