@@ -7,17 +7,14 @@ using namespace std;
 namespace SecondShell::Capture
 {
   ThoroughTextReader::ThoroughTextReader(shared_ptr<ITextRecognizer> recognizer) :
-    _recognizer(move(recognizer))
+    _bandTexts(move(recognizer))
   { }
 
-  vector<ScreenWord> ThoroughTextReader::Read(const Pixels& screen, stop_token stop)
+  vector<ScreenWord> ThoroughTextReader::Read(const shared_ptr<const ScreenFrame>& frame, const ScreenChanges& changes, stop_token stop)
   {
     vector<ScreenWord> words;
-    for (auto& band : ScreenBands::Layout(screen.Bounds()))
+    for (auto& bandWords : _bandTexts.Read(frame, ScreenBands::Layout(frame->Bounds()), changes, stop))
     {
-      if (stop.stop_requested()) break;
-
-      auto bandWords = _bandTexts.Read(band, screen.Fingerprint(band), [&] { return _recognizer->Recognize(screen.Crop(band), band); });
       ranges::move(bandWords, back_inserter(words));
     }
     return ScreenBands::Merge(move(words));

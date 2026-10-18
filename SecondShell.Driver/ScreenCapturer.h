@@ -1,6 +1,6 @@
 #pragma once
 #include "FrameRateMeter.h"
-#include "Pixels.h"
+#include "ScreenFrame.h"
 
 namespace SecondShell::Capture
 {
@@ -11,6 +11,7 @@ namespace SecondShell::Capture
     ID3D11Texture2D* Texture;
     uint32_t Width;
     uint32_t Height;
+    uint64_t Number;
     std::span<const Rect> DirtyRegions;  //what changed since the previous frame, if Windows reports it (11 24H2 and later)
   };
 
@@ -32,6 +33,8 @@ namespace SecondShell::Capture
 
     //A region of the newest frame; waits for the first frame. Throws if the region is not inside the screen.
     Pixels Read(const Rect& region, std::chrono::milliseconds timeout);
+    //A copy of the newest frame on the GPU, read back only when asked; waits for the first frame.
+    std::shared_ptr<ScreenFrame> Snapshot(std::chrono::milliseconds timeout);
     //The screen as the newest frame shows it, so captures and their regions agree, also while a resolution change
     //reaches the frames.
     Rect Screen() const;
@@ -59,6 +62,11 @@ namespace SecondShell::Capture
     mutable std::mutex _mutex;
     std::condition_variable _frameArrived;
     winrt::com_ptr<ID3D11Texture2D> _frame;
+    uint64_t _frameNumber = 0;
+
+    //With the lock held
+    void WaitForFrame(std::unique_lock<std::mutex>& lock, std::chrono::milliseconds timeout);
+    Pixels ReadBack(ID3D11Texture2D* texture, const Rect& region) const;
 
     void OnFrameArrived(const winrt::Windows::Graphics::Capture::Direct3D11CaptureFramePool& sender, const winrt::Windows::Foundation::IInspectable& args);
     static std::vector<Rect> DirtyRegionsOf(const winrt::Windows::Graphics::Capture::Direct3D11CaptureFrame& frame);

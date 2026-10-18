@@ -7,13 +7,16 @@ namespace SecondShell::Capture
   class DirtyRegion
   {
   public:
-    static const uint32_t TileSize = 32;
+    static constexpr uint32_t TileSize = 32;
 
     explicit DirtyRegion(const Rect& screen = {});
 
     const Rect& Screen() const;
     bool IsEmpty() const;
     bool Intersects(const Rect& rect) const;
+
+    //The runs of tile rows which changed within the area, each as wide as the area and clipped to it.
+    std::vector<Rect> RowsWithin(const Rect& area) const;
 
     //Clipped to the screen.
     void Add(const Rect& rect);

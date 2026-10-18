@@ -1,10 +1,16 @@
 #pragma once
-#include "ITextRecognizer.h"
+#include "AreaTextReader.h"
 #include "IWindowTextSource.h"
-#include "ScreenTextCache.h"
 
 namespace SecondShell::Capture
 {
+  //A window, and the part of the screen it shows.
+  struct WindowArea
+  {
+    Actions::WindowId Window;
+    Rect Area;
+  };
+
   //A window's text, once from each source.
   struct WindowText
   {
@@ -12,21 +18,22 @@ namespace SecondShell::Capture
     std::vector<ScreenWord> Recognized;
   };
 
-  //The quick tier of the text waits, one window at a time: the text the window exposes (UI Automation), and what the
-  //quick recognizer reads in the window's crop. Both are cached with the fingerprint of the window's pixels, so an
-  //unchanged window costs only that.
+  //The quick tier of the text waits: for each window, the text it exposes (UI Automation), and what the quick
+  //recognizer reads in the window's area, all windows in one go. Both are kept with the fingerprint of the window's
+  //pixels, so an unchanged window costs only that.
   class QuickTextReader
   {
   public:
     QuickTextReader(std::shared_ptr<IWindowTextSource> exposedText, std::shared_ptr<ITextRecognizer> recognizer);
 
-    //The text of the window, which shows the area of the screen.
-    WindowText Read(const Pixels& screen, Actions::WindowId window, const Rect& area);
+    //The text of each window, in their order.
+    std::vector<WindowText> Read(const std::shared_ptr<const ScreenFrame>& frame, std::span<const WindowArea> windows, const ScreenChanges& changes);
 
   private:
     std::shared_ptr<IWindowTextSource> _exposedText;
-    std::shared_ptr<ITextRecognizer> _recognizer;
     ScreenTextCache _exposedTexts;
-    ScreenTextCache _recognizedTexts;
+    AreaTextReader _recognizedTexts;
+
+    std::vector<ScreenWord> ReadExposed(const Pixels& screen, const WindowArea& window);
   };
 }

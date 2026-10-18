@@ -9,27 +9,17 @@ namespace SecondShell::Capture
     _capacity(capacity)
   { }
 
-  vector<ScreenWord> ScreenTextCache::Read(const Rect& area, uint64_t fingerprint, const function<vector<ScreenWord>()>& read)
-  {
-    if (auto words = Find(area, fingerprint)) return *words;
-
-    //Not locked while reading, which takes long
-    auto words = read();
-    Store(area, fingerprint, words);
-    return words;
-  }
-
-  optional<vector<ScreenWord>> ScreenTextCache::Find(const Rect& area, uint64_t fingerprint)
+  optional<AreaText> ScreenTextCache::Find(const Rect& area)
   {
     lock_guard lock{ _mutex };
     auto entry = ranges::find(_entries, area, &Entry::Area);
-    if (entry == _entries.end() || entry->Fingerprint != fingerprint) return nullopt;
+    if (entry == _entries.end()) return nullopt;
 
     entry->LastUse = ++_uses;
-    return entry->Words;
+    return entry->Text;
   }
 
-  void ScreenTextCache::Store(const Rect& area, uint64_t fingerprint, const vector<ScreenWord>& words)
+  void ScreenTextCache::Store(const Rect& area, AreaText text)
   {
     lock_guard lock{ _mutex };
     auto entry = ranges::find(_entries, area, &Entry::Area);
@@ -39,8 +29,7 @@ namespace SecondShell::Capture
       entry = _entries.insert(_entries.end(), { area });
     }
 
-    entry->Fingerprint = fingerprint;
-    entry->Words = words;
+    entry->Text = move(text);
     entry->LastUse = ++_uses;
   }
 }

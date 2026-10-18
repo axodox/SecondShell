@@ -25,8 +25,6 @@ Two tiers, so the expensive work is rare and never repeated for areas that did n
 4. **A screen text cache** of what each area read, kept between waits, so a wait for text already on an unchanged screen answers at once.
 5. **Every recognizer behind one interface** (an image region in, words with their boxes out), used by both tiers, so engines can be swapped or mixed per tier: Windows OCR first; PP-OCRv6 tiny (or its detector feeding another recognizer) on ONNX Runtime later if the quick tier misses too often in use. UI Automation sits behind a matching text source interface (a window in, words with boxes out), so the wait logic sees only words, whatever produced them. The thorough tier runs on a low-priority thread, on one core.
 
-Built on 2026-10-18 (Architecture.md 6.10): checks every 250 ms, thorough passes at most every 1.5 s, fuzzy matching up to (length − 1) / 5 edits. Not yet checked live in the child session.
-
 ## What PowerToys Text Extractor does
 
 PowerToys' screen OCR (based on Joe Finney's Text Grab; `src/modules/PowerOCR/PowerOCR.Core` in microsoft/PowerToys) uses the same engine, `Windows.Media.Ocr`, with the OCR language the user picks (it recognizes only installed OCR language packs):

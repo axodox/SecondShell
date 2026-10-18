@@ -50,7 +50,7 @@ namespace SecondShell::Capture
   Pixels ScreenCapturer::Read(const Rect& region, milliseconds timeout)
   {
     unique_lock lock{ _mutex };
-    if (!_frameArrived.wait_for(lock, timeout, [this] { return _frame != nullptr; })) throw runtime_error("The screen could not be captured.");
+    WaitForFrame(lock, timeout);
 
     D3D11_TEXTURE2D_DESC description;
     _frame->GetDesc(&description);
@@ -59,32 +59,25 @@ namespace SecondShell::Capture
       throw invalid_argument(format("The region is not inside the screen, which is {}x{} pixels.", description.Width, description.Height));
     }
 
-    //Copy the region to a texture the CPU can read
-    description.Width = region.Width;
-    description.Height = region.Height;
-    description.Usage = D3D11_USAGE_STAGING;
-    description.BindFlags = 0;
-    description.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
-    description.MiscFlags = 0;
+    return ReadBack(_frame.get(), region);
+  }
 
-    winrt::com_ptr<ID3D11Texture2D> staging;
-    winrt::check_hresult(_device->CreateTexture2D(&description, nullptr, staging.put()));
+  shared_ptr<ScreenFrame> ScreenCapturer::Snapshot(milliseconds timeout)
+  {
+    unique_lock lock{ _mutex };
+    WaitForFrame(lock, timeout);
 
-    D3D11_BOX box{ UINT(region.X), UINT(region.Y), 0, UINT(region.X) + region.Width, UINT(region.Y) + region.Height, 1 };
-    _context->CopySubresourceRegion(staging.get(), 0, 0, 0, 0, _frame.get(), 0, &box);
+    D3D11_TEXTURE2D_DESC description;
+    _frame->GetDesc(&description);
+    winrt::com_ptr<ID3D11Texture2D> texture;
+    winrt::check_hresult(_device->CreateTexture2D(&description, nullptr, texture.put()));
+    _context->CopyResource(texture.get(), _frame.get());
 
-    D3D11_MAPPED_SUBRESOURCE mapped;
-    winrt::check_hresult(_context->Map(staging.get(), 0, D3D11_MAP_READ, 0, &mapped));
-
-    Pixels result{ region.Width, region.Height, vector<uint8_t>(size_t(region.Width) * region.Height * 4) };
-    auto rowSize = size_t(region.Width) * 4;
-    for (uint32_t row = 0; row < region.Height; row++)
-    {
-      memcpy(result.Bgra.data() + row * rowSize, static_cast<uint8_t*>(mapped.pData) + row * mapped.RowPitch, rowSize);
-    }
-
-    _context->Unmap(staging.get(), 0);
-    return result;
+    Rect bounds{ 0, 0, description.Width, description.Height };
+    return make_shared<ScreenFrame>(_frameNumber, texture, bounds, [this, texture, bounds] {
+      lock_guard lock{ _mutex };
+      return ReadBack(texture.get(), bounds);
+      });
   }
 
   Rect ScreenCapturer::Screen() const
@@ -115,6 +108,43 @@ namespace SecondShell::Capture
     DXGI_ADAPTER_DESC description;
     winrt::check_hresult(adapter->GetDesc(&description));
     return (uint64_t(uint32_t(description.AdapterLuid.HighPart)) << 32) | description.AdapterLuid.LowPart;
+  }
+
+  void ScreenCapturer::WaitForFrame(unique_lock<mutex>& lock, milliseconds timeout)
+  {
+    if (!_frameArrived.wait_for(lock, timeout, [this] { return _frame != nullptr; })) throw runtime_error("The screen could not be captured.");
+  }
+
+  Pixels ScreenCapturer::ReadBack(ID3D11Texture2D* texture, const Rect& region) const
+  {
+    //Copy the region to a texture the CPU can read
+    D3D11_TEXTURE2D_DESC description;
+    texture->GetDesc(&description);
+    description.Width = region.Width;
+    description.Height = region.Height;
+    description.Usage = D3D11_USAGE_STAGING;
+    description.BindFlags = 0;
+    description.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+    description.MiscFlags = 0;
+
+    winrt::com_ptr<ID3D11Texture2D> staging;
+    winrt::check_hresult(_device->CreateTexture2D(&description, nullptr, staging.put()));
+
+    D3D11_BOX box{ UINT(region.X), UINT(region.Y), 0, UINT(region.X) + region.Width, UINT(region.Y) + region.Height, 1 };
+    _context->CopySubresourceRegion(staging.get(), 0, 0, 0, 0, texture, 0, &box);
+
+    D3D11_MAPPED_SUBRESOURCE mapped;
+    winrt::check_hresult(_context->Map(staging.get(), 0, D3D11_MAP_READ, 0, &mapped));
+
+    Pixels result{ region.Width, region.Height, vector<uint8_t>(size_t(region.Width) * region.Height * 4) };
+    auto rowSize = size_t(region.Width) * 4;
+    for (uint32_t row = 0; row < region.Height; row++)
+    {
+      memcpy(result.Bgra.data() + row * rowSize, static_cast<uint8_t*>(mapped.pData) + row * mapped.RowPitch, rowSize);
+    }
+
+    _context->Unmap(staging.get(), 0);
+    return result;
   }
 
   void ScreenCapturer::OnFrameArrived(const Direct3D11CaptureFramePool& sender, const winrt::Windows::Foundation::IInspectable& /*args*/)
@@ -162,7 +192,8 @@ namespace SecondShell::Capture
       D3D11_BOX content{ 0, 0, 0, description.Width, description.Height, 1 };
       _context->CopySubresourceRegion(_frame.get(), 0, 0, 0, 0, texture.get(), 0, &content);
 
-      _events.raise(FrameArrived, this, CapturedFrame{ _context.get(), _frame.get(), description.Width, description.Height, dirtyRegions });
+      _frameNumber++;
+      _events.raise(FrameArrived, this, CapturedFrame{ _context.get(), _frame.get(), description.Width, description.Height, _frameNumber, dirtyRegions });
     }
     _frameArrived.notify_all();
   }

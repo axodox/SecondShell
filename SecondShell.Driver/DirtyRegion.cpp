@@ -35,6 +35,29 @@ namespace SecondShell::Capture
     return false;
   }
 
+  vector<Rect> DirtyRegion::RowsWithin(const Rect& area) const
+  {
+    vector<Rect> rows;
+    auto tiles = TilesOf(area);
+    for (auto row = tiles.Top; row < tiles.Bottom; row++)
+    {
+      auto isChanged = false;
+      for (auto column = tiles.Left; column < tiles.Right && !isChanged; column++) isChanged = _tiles[size_t(row) * _columns + column];
+      if (!isChanged) continue;
+
+      auto tileRow = Rect{ area.X, _screen.Y + int32_t(row * TileSize), area.Width, TileSize }.Intersection(area);
+      if (!rows.empty() && rows.back().Bottom() == tileRow.Y)
+      {
+        rows.back().Height += tileRow.Height;
+      }
+      else
+      {
+        rows.push_back(tileRow);
+      }
+    }
+    return rows;
+  }
+
   void DirtyRegion::Add(const Rect& rect)
   {
     auto tiles = TilesOf(rect);

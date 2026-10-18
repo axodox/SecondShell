@@ -70,7 +70,9 @@
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="ActionTests.cpp" />
+    <ClCompile Include="AreaTextReaderTests.cpp" />
     <ClCompile Include="CancellationTokenTests.cpp" />
+    <ClCompile Include="ChangedLinesTests.cpp" />
     <ClCompile Include="ClipboardFormatConverterTests.cpp" />
     <ClCompile Include="CredentialStoreTests.cpp" />
     <ClCompile Include="CaptureEncoderTests.cpp" />
@@ -80,6 +82,7 @@
     <ClCompile Include="DriverInputTests.cpp" />
     <ClCompile Include="DriverLinkTests.cpp" />
     <ClCompile Include="EnvironmentTests.cpp" />
+    <ClCompile Include="FrameChangeLogTests.cpp" />
     <ClCompile Include="JsonRpcMessageTests.cpp" />
     <ClCompile Include="JsonRpcPeerTests.cpp" />
     <ClCompile Include="JsonSnapshot.cpp" />
@@ -99,15 +102,20 @@
     <ClCompile Include="HostWindow.cpp" />
     <ClCompile Include="SessionProbeTests.cpp" />
     <ClCompile Include="SessionToolSourceTests.cpp" />
+    <ClCompile Include="ShelfPackerTests.cpp" />
     <ClCompile Include="ShellCommandBuilderTests.cpp" />
     <ClCompile Include="TextLinesTests.cpp" />
     <ClCompile Include="TextTierTests.cpp" />
     <ClCompile Include="WindowsTextRecognizerTests.cpp" />
   </ItemGroup>
   <ItemGroup Label="SecondShell.Driver">
+    <ClCompile Include="..\SecondShell.Driver\AreaTextReader.cpp" />
+    <ClCompile Include="..\SecondShell.Driver\AtlasLayout.cpp" />
     <ClCompile Include="..\SecondShell.Driver\CaptureEncoder.cpp" />
+    <ClCompile Include="..\SecondShell.Driver\ChangedLines.cpp" />
     <ClCompile Include="..\SecondShell.Driver\ClipboardFormatConverter.cpp" />
     <ClCompile Include="..\SecondShell.Driver\DirtyRegion.cpp" />
+    <ClCompile Include="..\SecondShell.Driver\FrameChangeLog.cpp" />
     <ClCompile Include="..\SecondShell.Driver\InputStateTracker.cpp" />
     <ClCompile Include="..\SecondShell.Driver\KeyboardActionHandler.cpp" />
     <ClCompile Include="..\SecondShell.Driver\MotionAnimator.cpp" />
@@ -116,8 +124,11 @@
     <ClCompile Include="..\SecondShell.Driver\Pixels.cpp" />
     <ClCompile Include="..\SecondShell.Driver\QuickTextReader.cpp" />
     <ClCompile Include="..\SecondShell.Driver\ScreenBands.cpp" />
+    <ClCompile Include="..\SecondShell.Driver\ScreenFrame.cpp" />
     <ClCompile Include="..\SecondShell.Driver\ScreenTextCache.cpp" />
+    <ClCompile Include="..\SecondShell.Driver\ShelfPacker.cpp" />
     <ClCompile Include="..\SecondShell.Driver\ShellCommandBuilder.cpp" />
+    <ClCompile Include="..\SecondShell.Driver\TextAtlas.cpp" />
     <ClCompile Include="..\SecondShell.Driver\TextLines.cpp" />
     <ClCompile Include="..\SecondShell.Driver\ThoroughTextReader.cpp" />
     <ClCompile Include="..\SecondShell.Driver\TileChangeDetector.cpp" />

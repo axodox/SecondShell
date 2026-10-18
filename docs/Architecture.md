@@ -589,10 +589,30 @@ public:
 //an IWindowTextSource, so the wait logic sees only words with their screen boxes, whatever produced them.
 struct ScreenWord { std::string Text; Rect Box; };
 
+//A snapshot of the capture (ScreenCapturer::Snapshot): a GPU texture, read back to the CPU on the first request.
+class ScreenFrame
+{
+public:
+  uint64_t Number() const;
+  const Pixels& CpuPixels() const;
+  ID3D11Texture2D* Texture() const;
+};
+
+//What a recognizer reads: rectangles of a frame packed into one image (ShelfPacker, AtlasLayout) with flat gutters.
+class TextAtlas
+{
+public:
+  const ScreenFrame& Frame() const;
+  const AtlasLayout& Layout() const;  //Locate maps a box back to the screen through its cell
+  Pixels CpuPixels() const;           //composed only when an engine on the CPU asks
+};
+
+//The device is chosen when an engine is created; recognition is asynchronous.
 class ITextRecognizer
 {
 public:
-  virtual std::vector<ScreenWord> Recognize(const Pixels& pixels, const Rect& region) const = 0;  //boxes on the screen
+  virtual uint32_t MaxAtlasSide() const = 0;  //screen pixels, at the engine's scale
+  virtual std::future<std::vector<AtlasWord>> RecognizeAsync(std::shared_ptr<const TextAtlas> atlas) const = 0;  //boxes in the atlas
 };
 
 class IWindowTextSource
@@ -601,27 +621,36 @@ public:
   virtual std::vector<ScreenWord> Read(Actions::WindowId window) const = 0;
 };
 
-class WindowsTextRecognizer : public ITextRecognizer;  //Windows.Media.Ocr, upscaled (1.5x) within its maximum size
+class WindowsTextRecognizer : public ITextRecognizer;  //Windows.Media.Ocr on the CPU, upscaled (1.5x) within its maximum size
 class AutomationTextSource : public IWindowTextSource;  //TextPattern, else cached Name / Value; FindAll with a CacheRequest, IUIAutomation2 timeouts
 
-//The tiers. Each caches what an area read with the fingerprint of its pixels (ScreenTextCache), between waits too.
-class QuickTextReader  //per window: UI Automation and the quick recognizer on the window's crop
+//Reads areas (windows, bands) with one recognizer: unchanged areas from its ScreenTextCache (fingerprints), changed
+//ones in the lines which changed (ChangedLines) when the changes since their reading are known, else whole; all of it
+//packed into as few atlases as the recognizer takes.
+class AreaTextReader
+{
+public:
+  std::vector<std::vector<ScreenWord>> Read(const std::shared_ptr<const ScreenFrame>& frame, std::span<const Rect> areas, const ScreenChanges& changes, std::stop_token stop = {});
+};
+
+class QuickTextReader  //per window: UI Automation, and an AreaTextReader with the quick recognizer over the windows' areas
 {
 public:
   QuickTextReader(std::shared_ptr<IWindowTextSource> exposedText, std::shared_ptr<ITextRecognizer> recognizer);
-  WindowText Read(const Pixels& screen, Actions::WindowId window, const Rect& area);
+  std::vector<WindowText> Read(const std::shared_ptr<const ScreenFrame>& frame, std::span<const WindowArea> windows, const ScreenChanges& changes);
 };
 
-class ThoroughTextReader  //the whole screen in overlapping bands (ScreenBands), duplicates from the overlaps merged
+class ThoroughTextReader  //an AreaTextReader with the thorough recognizer over the bands (ScreenBands), overlaps merged
 {
 public:
   explicit ThoroughTextReader(std::shared_ptr<ITextRecognizer> recognizer);
-  std::vector<ScreenWord> Read(const Pixels& screen, std::stop_token stop);
+  std::vector<ScreenWord> Read(const std::shared_ptr<const ScreenFrame>& frame, const ScreenChanges& changes, std::stop_token stop);
 };
 
 //One Capture.WaitForText: the quick tier on all windows, the thorough tier in the background (LowPriorityTask), then
-//both again over what changed (ScreenChangeTracker: the capture's dirty regions, or tile fingerprints, as a
-//DirtyRegion). Matching is PhraseMatcher's: normalized, lines rebuilt from the boxes (TextLines), bounded fuzzy.
+//both again over what changed (ScreenChangeTracker: a snapshot and its changes since the previous one, from the
+//capture's dirty regions by frame number, or tile fingerprints). Matching is PhraseMatcher's: normalized, lines
+//rebuilt from the boxes (TextLines), bounded fuzzy.
 class TextSearch
 {
 public:
@@ -1264,7 +1293,7 @@ Where the code differs from the sketches above, and why (Findings.md 2.16):
 - **Activity cards** (`ActivityCards`): what the agent types, presses, runs and copies, as cards over the session view in its bottom left corner, drawn by `ActionView` as in the status bar. A WinUI panel over the `SwapChainPanel`, anchored to the letterboxed session (`SessionRenderer::Transform`), fed by `ActionLog`; cards slide in, move up (`RepositionThemeTransition`) and fade out after 4 s; a pressed key's card stays, highlighted, until the key is released. It replaced the Direct2D `ActivityOverlay`; the cursor, ripples and capture flash stay in Direct2D.
 - **Dialogs** (`SessionDialogs`): closing while a sequence runs asks first (`AppWindow::Closing`), and closing stops the agent; a child session from before is asked about through `ExistingSessionPrompt` when `Initialize-Session` gives no policy (only Reset or Cancel: resuming needs the driver restarted in that session).
 - **Frame rate**: the session view is paced by `DisplayClock` (waits for the vertical blank of the window's monitor), so it keeps up with any refresh rate. The child session composes at ~30 fps unless `DWMFRAMEINTERVAL` is set (Findings.md 3); the capture sets `MinUpdateInterval` to 1 ms, which does not change that.
-- **Text waits** (`TextSearch`, `QuickTextReader`, `ThoroughTextReader`, `ScreenChangeTracker`, `PhraseMatcher`; OcrOptions.md, Decided design for text waits): `Capture.WaitForText` searches every window first (`AutomationTextSource`, then `WindowsTextRecognizer` at 1x on the window's crop), then starts a thorough pass over the screen (`ScreenBands`: 300 px bands overlapping by 48 px, `WindowsTextRecognizer` at 1.5x, high-quality cubic via WIC) on a `LowPriorityTask` (a `jthread` in background mode). Each check (default every 250 ms) searches the windows which changed, and every 1.5 s, if anything changed since the last pass, starts another pass; a pass re-reads only the bands whose fingerprints changed. Changes come from `Direct3D11CaptureFrame::DirtyRegions` (the session's `DirtyRegionMode` set to `ReportOnly`), collected into a 32 px tile grid (`DirtyRegion`) between checks; a frame without dirty regions makes the next check compare tile fingerprints of the screen (`TileChangeDetector`), so it works before Windows 11 24H2 too. Each tier keeps a `ScreenTextCache` (64 areas, least recently used dropped) keyed by area and pixel fingerprint, for the life of the driver. Matching: NFKC (`NormalizeString`), `CharLowerBuffW`, no whitespace, i/1/|/l and 0/o and rn/m as one; lines rebuilt from the boxes as in `F:\AI\ocr-test\score.py`; Sellers' substring edit distance, at most (length − 1) / 5 edits. UI Automation: one `ElementFromHandleBuildCache` and `FindAllBuildCache` per window (control view, not off screen) with Name, Value, bounds and TextPattern cached; text controls give their visible ranges, one run per range with the union of its line boxes; 0.5 s connection and 1 s transaction timeouts; errors (timeouts, UIPI) give no text, and OCR still reads the window. Measured on this machine: Windows OCR does about 70 % of its CPU work on its own threads, at their own priority, but one at a time (process CPU time equals the wall time), so the background mode covers only the calling thread's share; a pass still uses about one core.
+- **Text waits** (`TextSearch`, `QuickTextReader`, `ThoroughTextReader`, `AreaTextReader`, `ScreenChangeTracker`, `PhraseMatcher`; OcrOptions.md, Decided design for text waits): `Capture.WaitForText` searches every window first (`AutomationTextSource`, then `WindowsTextRecognizer` at 1x on the windows' areas), then starts a thorough pass over the screen (`ScreenBands`: 300 px bands overlapping by 48 px, `WindowsTextRecognizer` at 1.5x, high-quality cubic via WIC) on a `LowPriorityTask` (a `jthread` in background mode). Each check (default every 250 ms) searches the windows which changed, and every 1.5 s, if anything changed since the last pass, starts another pass on the newest snapshot. Changes: each check takes a `ScreenFrame` snapshot (a GPU copy of the newest frame, numbered) and, from a `FrameChangeLog`, the dirty regions of exactly the frames up to that number (`Direct3D11CaptureFrame::DirtyRegions`, the session's `DirtyRegionMode` set to `ReportOnly`), as a 32 px tile grid (`DirtyRegion`); if a frame reported none, tile fingerprints of consecutive snapshots are compared (`TileChangeDetector`), so it works before Windows 11 24H2 too. `AreaTextReader` keeps per area (window or band) its words and pixel fingerprint (`ScreenTextCache`, 64 areas, least recently used dropped, for the life of the driver). An area whose fingerprint changed is read again only in strips (`ChangedLines`: changed tile rows, as wide as the area, 24 px above and below, merged when they meet), if what it knew was read from the frame the changes start from (same fingerprint there); else whole. Words with their centre in a strip's changed rows replace the old ones. All strips go into atlases (`ShelfPacker`: tallest first, in rows, 20 px gutters of white, within `MaxAtlasSide`, an oversized rectangle in an atlas of its own; written in-house, no packing library), recognized one atlas after the other; `AtlasLayout::Locate` maps each word back through the cell holding its centre and drops words reaching over its edge (3 px slack). Recognizers are asynchronous (`std::future`) and take a `TextAtlas`; Windows OCR asks for its pixels, so the readback happens then, and it completes through `IAsyncOperation::Completed`. Fingerprints and tile comparison still read each snapshot back on the CPU; fingerprints on the GPU would remove that for a GPU engine. Matching: NFKC (`NormalizeString`), `CharLowerBuffW`, no whitespace, i/1/|/l and 0/o and rn/m as one; lines rebuilt from the boxes as in `F:\AI\ocr-test\score.py`; Sellers' substring edit distance, at most (length − 1) / 5 edits. UI Automation: one `ElementFromHandleBuildCache` and `FindAllBuildCache` per window (control view, not off screen) with Name, Value, bounds and TextPattern cached; text controls give their visible ranges, one run per range with the union of its line boxes; 0.5 s connection and 1 s transaction timeouts; errors (timeouts, UIPI) give no text, and OCR still reads the window. Measured on this machine: Windows OCR does about 70 % of its CPU work on its own threads, at their own priority, but one at a time (process CPU time equals the wall time), so the background mode covers only the calling thread's share; a pass still uses about one core.
 
 ## 7. Key flows
 

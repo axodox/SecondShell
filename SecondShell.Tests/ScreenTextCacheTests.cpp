@@ -10,27 +10,22 @@ namespace SecondShell::Tests
 {
   TEST_CLASS(ScreenTextCacheTests)
   {
-    int _reads = 0;
-
-    vector<ScreenWord> Read(ScreenTextCache& cache, const Rect& area, uint64_t fingerprint)
-    {
-      return cache.Read(area, fingerprint, [&] {
-        _reads++;
-        return vector<ScreenWord>{ { format("read {}", _reads), area } };
-        });
-    }
-
   public:
-    TEST_METHOD(AnAreaIsReadAgainOnlyOnceItsPixelsChange)
+    TEST_METHOD(AreasKeepWhatTheyRead)
     {
       ScreenTextCache cache;
       Rect area{ 10, 10, 100, 50 };
+      Assert::IsFalse(cache.Find(area).has_value());
 
-      Assert::AreEqual(string("read 1"), Read(cache, area, 1)[0].Text);
-      Assert::AreEqual(string("read 1"), Read(cache, area, 1)[0].Text, L"from the cache");
-      Assert::AreEqual(string("read 2"), Read(cache, area, 2)[0].Text, L"other pixels");
-      Assert::AreEqual(string("read 3"), Read(cache, { 10, 10, 100, 51 }, 2)[0].Text, L"another area");
-      Assert::AreEqual(3, _reads);
+      cache.Store(area, { 1, { { "read", area } } });
+      auto known = cache.Find(area);
+      Assert::IsTrue(known.has_value());
+      Assert::AreEqual(uint64_t(1), known->Fingerprint);
+      Assert::AreEqual(string("read"), known->Words[0].Text);
+
+      cache.Store(area, { 2, {} });
+      Assert::AreEqual(uint64_t(2), cache.Find(area)->Fingerprint, L"replaced");
+      Assert::IsFalse(cache.Find({ 10, 10, 100, 51 }).has_value(), L"another area");
     }
 
     TEST_METHOD(TheLeastRecentlyUsedAreaIsDropped)
@@ -38,16 +33,14 @@ namespace SecondShell::Tests
       ScreenTextCache cache{ 2 };
       Rect first{ 0, 0, 10, 10 }, second{ 0, 10, 10, 10 }, third{ 0, 20, 10, 10 };
 
-      Read(cache, first, 1);
-      Read(cache, second, 1);
-      Read(cache, first, 1);
-      Read(cache, third, 1);
-      Assert::AreEqual(3, _reads);
+      cache.Store(first, {});
+      cache.Store(second, {});
+      cache.Find(first);
+      cache.Store(third, {});
 
-      Read(cache, first, 1);
-      Assert::AreEqual(3, _reads, L"used recently, so kept");
-      Read(cache, second, 1);
-      Assert::AreEqual(4, _reads, L"dropped for the third");
+      Assert::IsTrue(cache.Find(first).has_value(), L"used recently, so kept");
+      Assert::IsFalse(cache.Find(second).has_value(), L"dropped for the third");
+      Assert::IsTrue(cache.Find(third).has_value());
     }
 
     TEST_METHOD(FingerprintsTellChangedPixels)

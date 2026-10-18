@@ -2,45 +2,44 @@
 #include "ScreenChangeTracker.h"
 
 using namespace std;
+using namespace std::chrono;
 
 namespace SecondShell::Capture
 {
+  const milliseconds _frameTimeout{ 2000 };
+
   ScreenChangeTracker::ScreenChangeTracker(ScreenCapturer& capturer) :
-    _reported(capturer.Screen()),
+    _capturer(capturer),
     _frameArrivedSubscription(capturer.FrameArrived({ this, &ScreenChangeTracker::OnFrameArrived }))
   { }
 
   bool ScreenChangeTracker::HasChanges() const
   {
     lock_guard lock{ _mutex };
-    return _hasUnreportedChanges || !_reported.IsEmpty();
+    return !_frames.IsEmpty();
   }
 
-  DirtyRegion ScreenChangeTracker::Take(const Pixels& screen)
+  ScreenReading ScreenChangeTracker::Take()
   {
-    DirtyRegion changes;
-    bool isComparing;
+    auto frame = _capturer.Snapshot(_frameTimeout);
+
+    FrameChangeLog::Changes changes;
     {
       lock_guard lock{ _mutex };
-      changes = exchange(_reported, DirtyRegion{ _reported.Screen() });
-      isComparing = exchange(_hasUnreportedChanges, false);
+      changes = _frames.Take(frame->Number(), frame->Bounds());
     }
 
-    if (isComparing) changes.Add(_tiles.Compare(screen));
-    return changes;
+    //Compared at every call, so the tiles always compare consecutive snapshots
+    auto changedTiles = _tiles.Compare(frame->CpuPixels());
+    if (changes.HasUnreported) changes.Region.Add(changedTiles);
+
+    if (!_previous) changes.Region.AddAll();
+    return { frame, { move(changes.Region), exchange(_previous, frame) } };
   }
 
   void ScreenChangeTracker::OnFrameArrived(ScreenCapturer* /*sender*/, const CapturedFrame& frame)
   {
     lock_guard lock{ _mutex };
-    Rect screen{ 0, 0, frame.Width, frame.Height };
-    if (_reported.Screen() != screen)
-    {
-      _reported = DirtyRegion{ screen };
-      _reported.AddAll();
-    }
-
-    if (frame.DirtyRegions.empty()) _hasUnreportedChanges = true;
-    for (auto& region : frame.DirtyRegions) _reported.Add(region);
+    _frames.Add(frame.Number, { 0, 0, frame.Width, frame.Height }, frame.DirtyRegions);
   }
 }

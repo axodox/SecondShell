@@ -2,6 +2,7 @@
 #include "WindowsTextRecognizer.h"
 
 using namespace std;
+using namespace winrt::Windows::Foundation;
 using namespace winrt::Windows::Globalization;
 using namespace winrt::Windows::Graphics::Imaging;
 using namespace winrt::Windows::Media::Ocr;
@@ -11,14 +12,24 @@ namespace SecondShell::Capture
 {
   namespace
   {
-    //Outwards to whole screen pixels
-    Rect ToScreen(const winrt::Windows::Foundation::Rect& box, const Rect& region, double scale)
+    //Outwards to whole atlas pixels
+    Capture::Rect Unscaled(const winrt::Windows::Foundation::Rect& box, double scale)
     {
       auto left = int32_t(floor(box.X / scale));
       auto top = int32_t(floor(box.Y / scale));
       auto right = int32_t(ceil((box.X + box.Width) / scale));
       auto bottom = int32_t(ceil((box.Y + box.Height) / scale));
-      return { region.X + left, region.Y + top, uint32_t(right - left), uint32_t(bottom - top) };
+      return { left, top, uint32_t(right - left), uint32_t(bottom - top) };
+    }
+
+    vector<AtlasWord> WordsOf(const OcrResult& result, double scale)
+    {
+      vector<AtlasWord> words;
+      for (auto line : result.Lines())
+      {
+        for (auto word : line.Words()) words.push_back({ winrt::to_string(word.Text()), Unscaled(word.BoundingRect(), scale) });
+      }
+      return words;
     }
   }
 
@@ -30,19 +41,31 @@ namespace SecondShell::Capture
     if (!_engine) _engine = OcrEngine::TryCreateFromLanguage(Language{ L"en-US" });
   }
 
-  vector<ScreenWord> WindowsTextRecognizer::Recognize(const Pixels& pixels, const Rect& region) const
+  uint32_t WindowsTextRecognizer::MaxAtlasSide() const
+  {
+    return uint32_t(OcrEngine::MaxImageDimension() / _scale);
+  }
+
+  future<vector<AtlasWord>> WindowsTextRecognizer::RecognizeAsync(shared_ptr<const TextAtlas> atlas) const
   {
     if (!_engine) throw runtime_error("No OCR language is installed; add one under Settings, Time & language, Language.");
 
+    auto pixels = atlas->CpuPixels();
     auto scale = ScaleFor(pixels);
-    auto result = _engine.RecognizeAsync(ToBitmap(pixels, scale)).get();
+    auto operation = _engine.RecognizeAsync(ToBitmap(pixels, scale));
 
-    vector<ScreenWord> words;
-    for (auto line : result.Lines())
-    {
-      for (auto word : line.Words()) words.push_back({ winrt::to_string(word.Text()), ToScreen(word.BoundingRect(), region, scale) });
-    }
-    return words;
+    auto words = make_shared<promise<vector<AtlasWord>>>();
+    operation.Completed([words, scale](const IAsyncOperation<OcrResult>& completed, winrt::Windows::Foundation::AsyncStatus /*status*/) {
+      try
+      {
+        words->set_value(WordsOf(completed.GetResults(), scale));
+      }
+      catch (...)
+      {
+        words->set_exception(current_exception());
+      }
+      });
+    return words->get_future();
   }
 
   double WindowsTextRecognizer::ScaleFor(const Pixels& pixels) const

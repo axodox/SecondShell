@@ -9,7 +9,6 @@ using namespace std::chrono;
 
 namespace SecondShell::Capture
 {
-  const milliseconds _frameTimeout{ 2000 };
   const milliseconds _thoroughPassInterval{ 1500 };
 
   namespace
@@ -30,7 +29,6 @@ namespace SecondShell::Capture
 
   TextSearch::TextSearch(string_view phrase, ScreenCapturer& capturer, const WindowManager& windows, QuickTextReader& quick, ThoroughTextReader& thorough) :
     _phrase(phrase),
-    _capturer(capturer),
     _windows(windows),
     _quick(quick),
     _thorough(thorough),
@@ -39,11 +37,12 @@ namespace SecondShell::Capture
 
   void TextSearch::Start()
   {
-    auto screen = ReadScreen();
-    _changes.Take(screen);
-    _changedSinceThoroughPass = DirtyRegion{ screen.Bounds() };
+    //The first reading's changes are not known, so everything is searched
+    auto reading = _changes.Take();
+    _frame = reading.Frame;
+    _changedSinceThoroughPass = reading.Changes;
 
-    SearchWindows(screen, nullptr);
+    SearchWindows(reading.Changes);
     if (!_isFound) StartThoroughPass();
   }
 
@@ -64,32 +63,29 @@ namespace SecondShell::Capture
     return _shown;
   }
 
-  Pixels TextSearch::ReadScreen() const
-  {
-    return _capturer.Read(_capturer.Screen(), _frameTimeout);
-  }
-
   void TextSearch::SearchChanges()
   {
     if (!_changes.HasChanges()) return;
 
-    auto screen = ReadScreen();
-    auto changes = _changes.Take(screen);
-    _changedSinceThoroughPass.Add(changes);
-    if (!changes.IsEmpty()) SearchWindows(screen, &changes);
+    auto reading = _changes.Take();
+    _frame = reading.Frame;
+    _changedSinceThoroughPass.Region.Add(reading.Changes.Region);
+    if (!reading.Changes.Region.IsEmpty()) SearchWindows(reading.Changes);
   }
 
-  void TextSearch::SearchWindows(const Pixels& screen, const DirtyRegion* changes)
+  void TextSearch::SearchWindows(const ScreenChanges& changes)
   {
-    string shown;
+    vector<WindowArea> windows;
     for (auto& window : _windows.Enumerate())
     {
-      auto area = VisibleArea(window, screen.Bounds());
-      if (area.IsEmpty() || (changes && !changes->Intersects(area))) continue;
+      auto area = VisibleArea(window, _frame->Bounds());
+      if (!area.IsEmpty() && changes.Region.Intersects(area)) windows.push_back({ window.Window, area });
+    }
 
-      auto text = _quick.Read(screen, window.Window, area);
+    string shown;
+    for (auto& text : _quick.Read(_frame, windows, changes))
+    {
       if (Matches(text)) return;
-
       shown += Text(text.Recognized);
     }
 
@@ -104,15 +100,15 @@ namespace SecondShell::Capture
 
   bool TextSearch::IsThoroughPassDue() const
   {
-    return !_thoroughPass && !_changedSinceThoroughPass.IsEmpty() && steady_clock::now() - _thoroughPassStarted >= _thoroughPassInterval;
+    return !_thoroughPass && !_changedSinceThoroughPass.Region.IsEmpty() && steady_clock::now() - _thoroughPassStarted >= _thoroughPassInterval;
   }
 
   void TextSearch::StartThoroughPass()
   {
-    //Changes from now on are for the next pass
-    _changedSinceThoroughPass.Clear();
+    //Changes from now on are for the next pass, which starts from this one's frame
+    auto changes = exchange(_changedSinceThoroughPass, { DirtyRegion{ _frame->Bounds() }, _frame });
     _thoroughPassStarted = steady_clock::now();
-    _thoroughPass.emplace([this](stop_token stop) { return _thorough.Read(ReadScreen(), stop); });
+    _thoroughPass.emplace([this, frame = _frame, changes = move(changes)](stop_token stop) { return _thorough.Read(frame, changes, stop); });
   }
 
   void TextSearch::CollectThoroughPass()

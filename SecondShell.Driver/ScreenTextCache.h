@@ -3,23 +3,28 @@
 
 namespace SecondShell::Capture
 {
-  //What areas of the screen read, with the fingerprints of their pixels: an area is read again only once its pixels
-  //change. Kept between waits, so a wait for text already on an unchanged screen answers at once. Holds the most
-  //recently used areas only.
+  //What an area of the screen read, and the fingerprint of the pixels it read it from.
+  struct AreaText
+  {
+    uint64_t Fingerprint = 0;
+    std::vector<ScreenWord> Words;
+  };
+
+  //What areas of the screen read, kept between waits, so that an area is read again only once its pixels change, and
+  //a wait for text already on an unchanged screen answers at once. Holds the most recently used areas only.
   class ScreenTextCache
   {
   public:
     explicit ScreenTextCache(size_t capacity = 64);
 
-    //The words the area read with these pixels, reading them if they are not known.
-    std::vector<ScreenWord> Read(const Rect& area, uint64_t fingerprint, const std::function<std::vector<ScreenWord>()>& read);
+    std::optional<AreaText> Find(const Rect& area);
+    void Store(const Rect& area, AreaText text);
 
   private:
     struct Entry
     {
       Rect Area;
-      uint64_t Fingerprint;
-      std::vector<ScreenWord> Words;
+      AreaText Text;
       uint64_t LastUse;
     };
 
@@ -27,8 +32,5 @@ namespace SecondShell::Capture
     std::mutex _mutex;
     std::vector<Entry> _entries;
     uint64_t _uses = 0;
-
-    std::optional<std::vector<ScreenWord>> Find(const Rect& area, uint64_t fingerprint);
-    void Store(const Rect& area, uint64_t fingerprint, const std::vector<ScreenWord>& words);
   };
 }

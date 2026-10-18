@@ -26,7 +26,6 @@ namespace SecondShell::Capture
 
   private:
     PhraseMatcher _phrase;
-    ScreenCapturer& _capturer;
     const Desktop::WindowManager& _windows;
     QuickTextReader& _quick;
     ThoroughTextReader& _thorough;
@@ -36,15 +35,14 @@ namespace SecondShell::Capture
     std::string _shown;
     bool _isShowingThoroughPass = false;
 
-    DirtyRegion _changedSinceThoroughPass;
+    std::shared_ptr<const ScreenFrame> _frame;  //the newest snapshot
+    ScreenChanges _changedSinceThoroughPass;
     std::chrono::steady_clock::time_point _thoroughPassStarted;
     std::optional<LowPriorityTask<std::vector<ScreenWord>>> _thoroughPass;  //last, so it stops first
 
-    Pixels ReadScreen() const;
-
     void SearchChanges();
-    //Only the windows with changes, if any are given.
-    void SearchWindows(const Pixels& screen, const DirtyRegion* changes);
+    //The windows which changed.
+    void SearchWindows(const ScreenChanges& changes);
     bool Matches(const WindowText& text);
 
     bool IsThoroughPassDue() const;
