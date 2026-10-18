@@ -1,6 +1,5 @@
 #include "pch.h"
 #include "OverlayRenderer.h"
-#include "ActivityOverlay.h"
 #include "CaptureFlashOverlay.h"
 #include "CursorOverlay.h"
 
@@ -17,7 +16,6 @@ namespace SecondShell::Rendering
   {
     //Bottom to top
     _elements.push_back(make_unique<CaptureFlashOverlay>());
-    _elements.push_back(make_unique<ActivityOverlay>());
     _elements.push_back(make_unique<CursorOverlay>());
   }
 

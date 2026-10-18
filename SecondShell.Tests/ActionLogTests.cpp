@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "ActionLog.h"
 #include "CaptureActions.h"
+#include "ClipboardActions.h"
 #include "ControlActions.h"
 #include "KeyboardActions.h"
 #include "MouseActions.h"
@@ -84,6 +85,15 @@ namespace SecondShell::Tests
       auto capture = make_value<CaptureScreenAction>();
       capture->Resolution = Size{ 1280, 720 };
       Assert::AreEqual(string("resolution=1280 \xC3\x97 720"), Arguments(Log(move(capture)).Presentation));
+    }
+
+    TEST_METHOD(ClipboardContentReadsByItsFormat)
+    {
+      auto write = make_value<ClipboardWriteAction>();
+      write->Content.push_back({ .Format = ClipboardFormat::Text, .Data = make_value<Axodox::Json::json_string>("copied") });
+      write->Content.push_back({ .Format = ClipboardFormat::Image, .Path = "C:\\a.png" });
+
+      Assert::AreEqual(string(R"(text="copied" image="C:\a.png")"), Arguments(Log(move(write)).Presentation));
     }
 
     TEST_METHOD(KeysAreKeycaps)

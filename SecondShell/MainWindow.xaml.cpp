@@ -96,6 +96,7 @@ namespace winrt::SecondShell::implementation
     _inputForwarder = container->resolve<InteractiveInputForwarder>();
     _renderer = container->resolve<SessionRenderer>();
     get_self<implementation::StatusBar>(StatusBar())->UseServices(container);
+    _activityCards = make_unique<ActivityCards>(container, ActivityCardsPanel());
 
     auto queue = DispatcherQueue();
     _modeChangedSubscription = _agentControl->ModeChanged([this, queue](AgentControl*, ControlMode mode) {

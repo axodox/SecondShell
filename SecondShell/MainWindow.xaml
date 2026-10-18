@@ -103,6 +103,15 @@
           LostFocus="OnSessionLostFocus">
       <SwapChainPanel x:Name="SessionView" />
 
+      <!-- What the agent types, presses, runs and copies, in the session's bottom left corner (ActivityCards) -->
+      <StackPanel x:Name="ActivityCardsPanel" HorizontalAlignment="Left" VerticalAlignment="Bottom" Spacing="4" IsHitTestVisible="False">
+        <StackPanel.ChildrenTransitions>
+          <TransitionCollection>
+            <RepositionThemeTransition />
+          </TransitionCollection>
+        </StackPanel.ChildrenTransitions>
+      </StackPanel>
+
       <!-- Until the session is ready: what is happening, in the middle of the view -->
       <StackPanel x:Name="SessionStatusPanel" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="14" MaxWidth="440">
         <ProgressRing x:Name="SessionProgress" Width="40" Height="40" IsActive="False" HorizontalAlignment="Center" />

@@ -81,7 +81,7 @@
     <ClInclude Include="ActionLogPanel.xaml.h">
       <DependentUpon>ActionLogPanel.xaml</DependentUpon>
     </ClInclude>
-    <ClInclude Include="ActivityOverlay.h" />
+    <ClInclude Include="ActivityCards.h" />
     <ClInclude Include="AgentControl.h" />
     <ClInclude Include="CaptureFlashOverlay.h" />
     <ClInclude Include="CaptureStore.h" />
@@ -154,7 +154,7 @@
     <ClCompile Include="ActionLogPanel.xaml.cpp">
       <DependentUpon>ActionLogPanel.xaml</DependentUpon>
     </ClCompile>
-    <ClCompile Include="ActivityOverlay.cpp" />
+    <ClCompile Include="ActivityCards.cpp" />
     <ClCompile Include="AgentControl.cpp" />
     <ClCompile Include="CaptureFlashOverlay.cpp" />
     <ClCompile Include="CaptureStore.cpp" />

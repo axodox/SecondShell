@@ -62,6 +62,8 @@
   <SolidColorBrush x:Key="FieldBorderBrush" Color="#34343C" />
   <SolidColorBrush x:Key="OutputBrush" Color="#0F0F12" />
   <SolidColorBrush x:Key="LogOpenBrush" Color="#298B7CFF" />
+  <SolidColorBrush x:Key="ActivityCardBrush" Color="#E6202024" />
+  <SolidColorBrush x:Key="HeldActivityCardBrush" Color="#F03A3170" />
   <SolidColorBrush x:Key="LogOpenBorderBrush" Color="#6E5BFF" />
   <Color x:Key="ActionFlashColor">#6B8B7CFF</Color>
   <Color x:Key="ActionRestColor">#0AFFFFFF</Color>
@@ -90,6 +92,15 @@
     <Setter Property="FontSize" Value="11" />
     <Setter Property="TextLineBounds" Value="Tight" />
     <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+
+  <!-- An action over the session view, as the status bar shows it -->
+  <Style x:Key="ActivityCardStyle" TargetType="Border">
+    <Setter Property="Padding" Value="8,4,10,4" />
+    <Setter Property="CornerRadius" Value="6" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="BorderBrush" Value="{StaticResource PanelBorderBrush}" />
+    <Setter Property="HorizontalAlignment" Value="Left" />
   </Style>
 
   <!-- The log button of the status bar, and the filters of the log -->

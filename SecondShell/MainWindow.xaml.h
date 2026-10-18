@@ -1,6 +1,7 @@
 #pragma once
 #include "MainWindow.g.h"
 #include "ActionLog.h"
+#include "ActivityCards.h"
 #include "AgentControl.h"
 #include "ExistingSessionPrompt.h"
 #include "InteractiveInputForwarder.h"
@@ -41,6 +42,7 @@ namespace winrt::SecondShell::implementation
     std::shared_ptr<::SecondShell::Agent::AgentControl> _agentControl;
     std::shared_ptr<::SecondShell::Agent::InteractiveInputForwarder> _inputForwarder;
     std::shared_ptr<::SecondShell::Rendering::SessionRenderer> _renderer;
+    std::unique_ptr<::SecondShell::Ui::ActivityCards> _activityCards;
     Axodox::Infrastructure::event_subscription _modeChangedSubscription;
     Axodox::Infrastructure::event_subscription _stateChangedSubscription;
     bool _isSessionReady = false;

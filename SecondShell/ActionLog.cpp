@@ -112,6 +112,25 @@ namespace SecondShell::Agent
       return { name, Shorten(value.to_string(), _maxValueLength, _ellipsis) };
     }
 
+    //Clipboard content by its format: text and HTML quoted, the rest in short
+    ActionArgument ContentArgument(const json_value& item)
+    {
+      if (item.type() != json_type::object) return { "content", Shorten(item.to_string(), _maxValueLength, _ellipsis) };
+
+      auto& object = item.as<json_object>().value;
+      auto field = [&](const char* name) -> const json_value* { return object.contains(name) ? object.at(name).get() : nullptr; };
+      auto format = field("format") && field("format")->type() == json_type::string ? field("format")->as<json_string>().value : string("content");
+      auto data = field("data");
+
+      auto name = format;
+      ranges::transform(name, name.begin(), [](char character) { return char(tolower(character)); });
+      if (format == "Image") return { name, field("path") ? ToArgument(name, *field("path")).Value : "PNG" };
+      if (format == "Files" && data && data->type() == json_type::array) return { name, std::format("{} file{}", data->as<json_array>().value.size(), data->as<json_array>().value.size() == 1 ? "" : "s") };
+      if (format == "Raw") return { name, field("name") ? ToArgument(name, *field("name")).Value : "data" };
+      if (data && data->type() == json_type::string) return ToArgument(name, *data);
+      return { name, Shorten(item.to_string(), _maxValueLength, _ellipsis) };
+    }
+
     ActionPresentation Present(const Action& action, const json_value& json)
     {
       auto& object = json.as<json_object>();
@@ -126,6 +145,11 @@ namespace SecondShell::Agent
         if (name == "modifiers" && value.type() == json_type::array)
         {
           for (auto& modifier : value.as<json_array>().value) presentation.Keys.push_back(modifier->as<json_string>().value);
+          continue;
+        }
+        if (name == "content" && value.type() == json_type::array)
+        {
+          for (auto& item : value.as<json_array>().value) presentation.Arguments.push_back(ContentArgument(*item));
           continue;
         }
         if (isSensitive && name == "sensitive") continue;
