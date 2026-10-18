@@ -3,9 +3,11 @@
 #include "ActionLog.h"
 #include "ActivityCards.h"
 #include "AgentControl.h"
+#include "ElevatedSetupLauncher.h"
 #include "ExistingSessionPrompt.h"
 #include "InteractiveInputForwarder.h"
 #include "SessionRenderer.h"
+#include "SetupChecker.h"
 
 namespace winrt::SecondShell::implementation
 {
@@ -27,6 +29,7 @@ namespace winrt::SecondShell::implementation
     void OnTakeControlClick(const Windows::Foundation::IInspectable& sender, const Microsoft::UI::Xaml::RoutedEventArgs& eventArgs);
     void OnGiveBackClick(const Windows::Foundation::IInspectable& sender, const Microsoft::UI::Xaml::RoutedEventArgs& eventArgs);
     void OnStopClick(const Windows::Foundation::IInspectable& sender, const Microsoft::UI::Xaml::RoutedEventArgs& eventArgs);
+    void OnSetUpClick(const Windows::Foundation::IInspectable& sender, const Microsoft::UI::Xaml::RoutedEventArgs& eventArgs);
 
     //The user's input in the session view, which goes to the session while they have control.
     void OnSessionPointerMoved(const Windows::Foundation::IInspectable& sender, const Microsoft::UI::Xaml::Input::PointerRoutedEventArgs& eventArgs);
@@ -44,6 +47,12 @@ namespace winrt::SecondShell::implementation
     std::shared_ptr<::SecondShell::Agent::InteractiveInputForwarder> _inputForwarder;
     std::shared_ptr<::SecondShell::Rendering::SessionRenderer> _renderer;
     std::unique_ptr<::SecondShell::Ui::ActivityCards> _activityCards;
+    std::shared_ptr<::SecondShell::Setup::SetupChecker> _setupChecker;
+    std::shared_ptr<::SecondShell::Setup::ElevatedSetupLauncher> _setupLauncher;
+    Axodox::Infrastructure::event_subscription _setupChangedSubscription;
+    ::SecondShell::Protocol::SessionState _sessionState = ::SecondShell::Protocol::SessionState::Stopped;
+    bool _isSettingUp = false;
+    std::wstring _setupProblem;  //why the last setup did not happen
     Axodox::Infrastructure::event_subscription _modeChangedSubscription;
     Axodox::Infrastructure::event_subscription _stateChangedSubscription;
     bool _isSessionReady = false;
@@ -51,6 +60,9 @@ namespace winrt::SecondShell::implementation
     Microsoft::UI::Dispatching::DispatcherQueueTimer _agentIdleTimer{ nullptr };
 
     bool _isCloseConfirmed = false;
+
+    //The one-time setup (Design.md, Repair): asked when the window opens and from Set up; runs elevated.
+    fire_and_forget OfferSetup();
 
     //Closing while the agent works asks first (docs/UIDesign.md, Dialogs).
     void OnClosing(const Microsoft::UI::Windowing::AppWindow& sender, const Microsoft::UI::Windowing::AppWindowClosingEventArgs& eventArgs);

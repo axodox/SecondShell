@@ -57,7 +57,7 @@ namespace SecondShell::Session
     lock_guard startLock{ _startMutex };
     if (Info().State == SessionState::Ready && _driverLink->IsConnected()) return nullopt;
 
-    if (!_childSessions->IsEnabled()) return ProtocolErrors::Make(ErrorCode::SetupRequired, "Child sessions are not enabled on this machine; run SecondShell.exe --setup once, as an administrator.");
+    if (!_childSessions->IsEnabled()) return ProtocolErrors::Make(ErrorCode::SetupRequired, "Child sessions are not enabled on this machine. The user can enable them once in the SecondShell window (Set up), which needs administrator rights.");
 
     auto deadline = steady_clock::now() + (request.Timeout ? milliseconds(*request.Timeout) : InitializeSessionRequest::DefaultTimeout);
     if (auto error = ResetExistingSession(request.ExistingSession)) return error;

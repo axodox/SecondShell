@@ -860,32 +860,36 @@ public:
 ### 6.2 Setup (`SecondShell::Setup`)
 
 ```cpp
-//Checks on every start (Design.md, Setup and repair).
+//Checks on every start (Design.md, Setup and repair): repairs per-user problems at once, reports the machine-wide state.
 class SetupChecker
 {
 public:
   explicit SetupChecker(Axodox::Infrastructure::dependency_container* container);
 
-  SetupStatus Check() const;  //child sessions enabled, leftover RunOnce entry, folders, integrations
-  void RepairPerUser();       //unelevated fixes
+  SetupStatus Check();  //child sessions, smooth view; per-user: leftover RunOnce entry, data folder
+  SetupStatus Status() const;
+  event_publisher<SetupChecker*, const SetupStatus&> StatusChanged;
 };
 
-//The machine-wide steps, run by SecondShell.exe --setup in an elevated process.
+//The machine-wide steps, idempotent; changing anything needs elevation (SecondShell.exe --setup).
 class MachineSetup
 {
 public:
+  explicit MachineSetup(Axodox::Infrastructure::dependency_container* container);  //IMachineConfiguration
+
   void EnableChildSessions();
 
   //DWMFRAMEINTERVAL = 15, about 60 fps in Remote Desktop sessions (Design.md, Smooth session view); off removes it only if
   //SecondShell set it.
-  void SetSmoothSessionView(bool isEnabled);
+  bool IsSmoothSessionViewOn() const;
+  void SetSmoothSessionView(bool isOn);
 };
 
-//Starts SecondShell.exe --setup elevated (UAC) and waits for it.
+//Starts SecondShell.exe --setup [--smooth-view=on|off] elevated (UAC) and waits for it.
 class ElevatedSetupLauncher
 {
 public:
-  bool Run(HWND owner);  //false if the user declined
+  SetupOutcome Run(HWND owner, const SetupRequest& request) const;  //Done, Declined, Failed
 };
 
 //Removes what SecondShell added (Design.md, Uninstall).
@@ -1303,6 +1307,11 @@ Where the code differs from the sketches above, and why (Findings.md 2.16):
 - **User input**: in User mode the host forwards touch and pen from the session area as touch and pen, not as a mouse (`InteractiveInputForwarder::OnTouch` / `OnPen`, from the `PointerPoint`'s contact, pressure, tilts, twist, barrel and eraser), and the driver plays them with the same handlers, without durations. A cancelled pointer, or a pen leaving range, is released (`OnPointerGone`).
 - **Overlay** (`TouchOverlay`, `PenOverlay`): a disc per finger, following its moves (the overlay's `Motion`, shared with `CursorOverlay`), which expands and fades when lifted; the pen is a ring where it hovers, a dot while it touches, and a 0.7 s fading trail of its stroke; it fades out after 3 s idle, like the cursor.
 - **Tests**: `DriverInputTests` with fake touch and pen injectors (frames, IDs, pressure animation, eraser and barrel, release and report). `SessionProbeTests` run `SecondShell.PointerRecorder` (a full-screen Win32 window, built with the solution, which writes each `WM_POINTER*` message as a JSON line to the file on its command line, next to the binaries in `PointerRecords`) and compare what it received with the sequence: taps, a held finger, two fingers moving apart; the pen hovering, pressure, tilt, rotation, barrel and eraser; and a failed sequence lifting both.
+
+### 6.12 Stage 9 implementation notes
+
+- **Setup and repair** (`SetupChecker`, `MachineSetup`, `IMachineConfiguration` / `MachineConfiguration`, `ElevatedSetupLauncher`, `SetupRequest`): `App` runs `SetupChecker::Check` at every start (it disarms a leftover `RunOnce` entry and creates the data folder, then reads the machine-wide state). `SecondShell.exe --setup` (parsed in `App::OnLaunched`, before the single-instance check and without a window) runs `MachineSetup` and exits with 0 or 1 through `exit`, so the log is written out. `MachineConfiguration` is the only place that touches Windows: `WTSIsChildSessionsEnabled` / `WTSEnableChildSessions`, `DWMFRAMEINTERVAL` under `HKLM\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations`, and SecondShell's note that it set that value (`HKLM\SOFTWARE\SecondShell`, `SetFrameInterval`: machine-wide, as the elevated process may run as another account). A frame interval of 15 ms or less counts as smooth; one set by someone else is never changed or removed. `ElevatedSetupLauncher` uses `ShellExecuteEx` with `runas` and waits for the exit code; `ERROR_CANCELLED` means the user declined.
+- **Window**: when child sessions are off, the window asks with the one-time setup dialog once it has loaded (`SessionDialogs::AskToSetUp`: the checklist, and "Smooth session view (60 fps)", on, unless it is on already), and the session view shows "One-time setup needed" with Set up instead of "No session yet"; the status bar says "Setup needed". Set up runs the elevated setup on a background thread and checks again; a declined or failed setup is explained in the view.
 
 ## 7. Key flows
 

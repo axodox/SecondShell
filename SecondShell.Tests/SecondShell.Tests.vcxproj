@@ -99,6 +99,7 @@
     <ClCompile Include="ScreenBandsTests.cpp" />
     <ClCompile Include="ScreenTextCacheTests.cpp" />
     <ClCompile Include="SequenceRunnerTests.cpp" />
+    <ClCompile Include="SetupTests.cpp" />
     <ClCompile Include="HostWindow.cpp" />
     <ClCompile Include="SessionProbeTests.cpp" />
     <ClCompile Include="SessionToolSourceTests.cpp" />
@@ -145,7 +146,9 @@
     <ClCompile Include="..\SecondShell\Credentials.cpp" />
     <ClCompile Include="..\SecondShell\CredentialStore.cpp" />
     <ClCompile Include="..\SecondShell\DriverLink.cpp" />
+    <ClCompile Include="..\SecondShell\ElevatedSetupLauncher.cpp" />
     <ClCompile Include="..\SecondShell\IDriverLink.cpp" />
+    <ClCompile Include="..\SecondShell\MachineSetup.cpp" />
     <ClCompile Include="..\SecondShell\SequenceRunner.cpp" />
     <ClCompile Include="..\SecondShell\VisualizationFeed.cpp" />
   </ItemGroup>

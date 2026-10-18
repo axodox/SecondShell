@@ -119,6 +119,8 @@
         <TextBlock x:Name="SessionStatusTitle" Text="No session yet" FontSize="16" FontWeight="SemiBold" HorizontalAlignment="Center" />
         <TextBlock x:Name="SessionStatusDetail" Text="An AI agent starts one when it needs it." FontSize="13" Foreground="{StaticResource MutedTextBrush}"
                    HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" />
+        <Button x:Name="SetUpButton" Content="Set up&#x2026;" Visibility="Collapsed" HorizontalAlignment="Center" Style="{StaticResource AccentButtonStyle}"
+                AutomationProperties.Name="Set up" Click="OnSetUpClick" />
       </StackPanel>
 
       <!-- While the user has control: what goes where -->

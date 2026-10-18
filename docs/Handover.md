@@ -5,9 +5,18 @@ Where the work stands, for continuing after a break. The plan and its status tab
 ## State
 
 - **Branch** `stage_1_and_2`. Stages 0–8 and the Axodox.Common refactor are committed; nothing is pushed.
-- **Stage 8, touch and pen: done.** 184 unit tests and 15 session probe tests pass (x64); x64 and ARM64 build. Next is stage 9 (setup, settings, AI client integrations).
+- **Stage 9, setup, settings and AI client integrations: in progress.** Part 1, setup and repair, is done (188 unit tests, 15 session probe tests). Next: part 2, settings (`SettingsStore`, General and About pages, navigation, Forget saved password); then part 3, Add to AI apps; then part 4, uninstall.
+- **Stage 8, touch and pen: done.** x64 and ARM64 build.
 - **Stage 7, host UI and session view: done.** The user's hands-on check is still to come (below).
 - **Axodox.Common:** SecondShell uses the package `1.0.124-named-pipe-messaging` (in `packages`, built locally from `G:\dev\axodox-common`). Axodox has no uncommitted changes of mine.
+
+## Stage 9, part 1: setup and repair
+
+`SetupChecker` at every start; `SecondShell.exe --setup [--smooth-view=on|off]` run elevated by `ElevatedSetupLauncher`; the one-time setup dialog, the setup notice with Set up in the session view, "Setup needed" in the status bar. Architecture.md 6.12.
+
+- **Manual test (the user)**: on a PC without child sessions (or after `WTSEnableChildSessions(FALSE)`), the dialog at start, Set up with the administrator prompt, declining it, and the smooth view option. Here child sessions are on and `DWMFRAMEINTERVAL` = 15 was set by hand, so SecondShell does not count it as its own.
+- **Checked here**: the dialog and the notice (with a local switch faking the missing setup, not committed); `SecondShell.exe --setup` unelevated with nothing to do exits 0 without a window.
+- `MachineConfiguration` is the only code that writes the machine's settings; tests use a fake (`SetupTests`).
 
 ## Stage 8
 

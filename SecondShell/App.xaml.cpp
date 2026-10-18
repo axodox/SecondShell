@@ -2,8 +2,10 @@
 #include "App.xaml.h"
 #include "AppEnvironment.h"
 #include "ClipboardSync.h"
+#include "MachineSetup.h"
 #include "McpRequestHandler.h"
 #include "ProductInfo.h"
+#include "SetupChecker.h"
 
 using namespace Axodox::Infrastructure;
 using namespace ::SecondShell::Agent;
@@ -11,6 +13,7 @@ using namespace ::SecondShell::Environment;
 using namespace ::SecondShell::Protocol;
 using namespace ::SecondShell::Rendering;
 using namespace ::SecondShell::Session;
+using namespace ::SecondShell::Setup;
 using namespace std;
 using namespace winrt;
 using namespace winrt::Microsoft::UI::Dispatching;
@@ -30,6 +33,15 @@ namespace winrt::SecondShell::implementation
   void App::OnLaunched(const LaunchActivatedEventArgs& /*eventArgs*/)
   {
     logger::file(AppEnvironment().LogFolder() / "host.log");
+
+    auto argumentCount = 0;
+    auto argumentList = CommandLineToArgvW(GetCommandLineW(), &argumentCount);
+    vector<wstring> arguments{ argumentList + min(argumentCount, 1), argumentList + argumentCount };
+    LocalFree(argumentList);
+
+    //Through exit, so the log is written out
+    if (auto request = SetupRequest::FromArguments(arguments)) exit(RunSetup(*request));
+
     logger{ "App" }.log(log_severity::information, "{} host {} started.", ProductInfo::Name(), ProductInfo::Version());
 
     RegisterServices();
@@ -42,10 +54,37 @@ namespace winrt::SecondShell::implementation
     ShowWindow();
   }
 
+  int App::RunSetup(const SetupRequest& request)
+  {
+    logger log{ "Setup" };
+    log.log(log_severity::information, "{} {} setup started.", ProductInfo::Name(), ProductInfo::Version());
+
+    try
+    {
+      dependency_container container;
+      container.add<IMachineConfiguration, MachineConfiguration>();
+
+      auto setup = container.resolve<MachineSetup>();
+      setup->EnableChildSessions();
+      if (request.SmoothSessionView) setup->SetSmoothSessionView(*request.SmoothSessionView);
+      return 0;
+    }
+    catch (const winrt::hresult_error& error)
+    {
+      log.log(log_severity::error, "The setup failed: {}", winrt::to_string(error.message()));
+    }
+    catch (const exception& exception)
+    {
+      log.log(log_severity::error, "The setup failed: {}", exception.what());
+    }
+    return 1;
+  }
+
   void App::RegisterServices()
   {
     _container = make_unique<dependency_container>();
     _container->add<IDriverLink, DriverLink>();
+    _container->add<IMachineConfiguration, MachineConfiguration>();
   }
 
   bool App::StartServices()
@@ -61,8 +100,8 @@ namespace winrt::SecondShell::implementation
       return false;
     }
 
-    //A RunOnce entry left by a host that crashed would start the driver at the user's next logon
-    _container->resolve<DriverLauncher>()->Disarm();
+    //Per-user problems are fixed here and now; machine-wide ones the window offers to set up
+    _container->resolve<SetupChecker>()->Check();
     _container->resolve<DriverLink>()->Start();
     _container->resolve<ClipboardSync>();
     return true;

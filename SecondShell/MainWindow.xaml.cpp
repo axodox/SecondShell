@@ -7,6 +7,7 @@
 #include "SequenceRunner.h"
 #include "SessionDialogs.h"
 #include "SessionManager.h"
+#include "SetupChecker.h"
 #include "StatusBar.xaml.h"
 
 using namespace ::SecondShell::Actions;
@@ -15,6 +16,7 @@ using namespace ::SecondShell::Environment;
 using namespace ::SecondShell::Protocol;
 using namespace ::SecondShell::Rendering;
 using namespace ::SecondShell::Session;
+using namespace ::SecondShell::Setup;
 using namespace ::SecondShell::Ui;
 using namespace Axodox::Infrastructure;
 using namespace std;
@@ -106,6 +108,18 @@ namespace winrt::SecondShell::implementation
       queue.TryEnqueue([weak = get_weak(), isRunning] { if (auto self = weak.get()) self->ShowAgentRunning(isRunning); });
       });
 
+    _setupChecker = container->resolve<SetupChecker>();
+    _setupLauncher = container->resolve<ElevatedSetupLauncher>();
+    _setupChangedSubscription = _setupChecker->StatusChanged([this, queue](SetupChecker*, const SetupStatus&) {
+      queue.TryEnqueue([weak = get_weak()] { if (auto self = weak.get()) self->ShowSessionState(self->_sessionState); });
+      });
+
+    //Asked once the window is up; until then a dialog has nowhere to show
+    Content().as<FrameworkElement>().Loaded([weak = get_weak()](auto&&, auto&&) {
+      auto self = weak.get();
+      if (self && !self->_setupChecker->Status().IsReady()) self->OfferSetup();
+      });
+
     auto sessions = container->resolve<SessionManager>();
     _stateChangedSubscription = sessions->StateChanged([this, queue](SessionManager*, SessionState state) {
       queue.TryEnqueue([weak = get_weak(), state] { if (auto self = weak.get()) self->ShowSessionState(state); });
@@ -129,8 +143,19 @@ namespace winrt::SecondShell::implementation
       bool IsWorking;
     };
 
+    _sessionState = state;
+    auto isSetupNeeded = !_setupChecker->Status().IsReady() && (state == SessionState::Stopped || state == SessionState::Failed);
+
     Status status;
-    switch (state)
+    if (_isSettingUp)
+    {
+      status = { L"Setting up", L"Approve the administrator prompt to enable child sessions.", true };
+    }
+    else if (isSetupNeeded)
+    {
+      status = { L"One-time setup needed", _setupProblem.empty() ? L"Child sessions are not enabled on this PC yet; the agent's desktop cannot start until they are." : _setupProblem.c_str(), false };
+    }
+    else switch (state)
     {
     case SessionState::Connecting:
       status = { L"Starting the session", L"Connecting to the agent's desktop", true };
@@ -158,8 +183,41 @@ namespace winrt::SecondShell::implementation
     SessionProgress().Visibility(status.IsWorking ? Visibility::Visible : Visibility::Collapsed);
     SessionStatusTitle().Text(status.Title);
     SessionStatusDetail().Text(status.Detail);
+    SetUpButton().Visibility(isSetupNeeded && !_isSettingUp ? Visibility::Visible : Visibility::Collapsed);
 
     ShowControlMode(_agentControl->Mode());
+  }
+
+  void MainWindow::OnSetUpClick(const IInspectable& /*sender*/, const RoutedEventArgs& /*eventArgs*/)
+  {
+    OfferSetup();
+  }
+
+  fire_and_forget MainWindow::OfferSetup()
+  {
+    auto self = get_strong();
+    if (_isSettingUp) co_return;
+
+    auto smoothView = co_await SessionDialogs::AskToSetUp(Content().XamlRoot(), _setupChecker->Status());
+    if (!smoothView) co_return;
+
+    _isSettingUp = true;
+    ShowSessionState(_sessionState);
+
+    //The launcher waits for the elevated process; not on the UI thread
+    SetupRequest request{ smoothView.Value() ? std::optional<bool>{ true } : std::nullopt };
+    auto owner = Microsoft::UI::GetWindowFromWindowId(AppWindow().Id());
+    auto queue = DispatcherQueue();
+    co_await resume_background();
+    auto outcome = _setupLauncher->Run(owner, request);
+    auto status = _setupChecker->Check();
+    co_await wil::resume_foreground(queue);
+
+    _isSettingUp = false;
+    if (status.IsReady()) _setupProblem.clear();
+    else if (outcome == SetupOutcome::Declined) _setupProblem = L"The setup was cancelled. Child sessions need administrator rights once; choose Set up to try again.";
+    else _setupProblem = L"The setup did not enable child sessions; the log has the details.";
+    ShowSessionState(_sessionState);
   }
 
   void MainWindow::OnClosing(const Microsoft::UI::Windowing::AppWindow& /*sender*/, const AppWindowClosingEventArgs& eventArgs)

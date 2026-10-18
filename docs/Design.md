@@ -449,7 +449,7 @@ A child session is a Remote Desktop session, which Windows composes at about 30 
 
 - **Per-user problems are fixed silently, without elevation.** They must be fixed by the unelevated process. If the user is a standard user, approving a UAC prompt runs the elevated process as a *different* (administrator) account, whose HKCU is a different registry hive.
 - **Machine-wide problems** show one dialog explaining what is missing and why. Choosing "Repair" starts `SecondShell.exe --setup` as an elevated child process, which performs only the machine-wide steps and exits. The host waits for it and checks again.
-- **If the user declines**, the window explains that the agent session can't start, and keeps a "Repair" command in its menu. MCP tools return a `SetupRequired` error with the same explanation.
+- **If the user declines**, the session view explains that the agent session can't start, with a "Set up" button in its place. MCP tools return a `SetupRequired` error with the same explanation.
 - **Setup is idempotent**: it is safe to run any number of times, so first-time setup and repair are the same code.
 - The window shows the setup state in a status line, so a broken setup is visible directly, not only as a failed connection.
 

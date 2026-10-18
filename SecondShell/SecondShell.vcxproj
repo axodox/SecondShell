@@ -91,6 +91,10 @@
     <ClInclude Include="Credentials.h" />
     <ClInclude Include="CredentialStore.h" />
     <ClInclude Include="CursorOverlay.h" />
+    <ClInclude Include="SetupChecker.h" />
+    <ClInclude Include="MachineSetup.h" />
+    <ClInclude Include="MachineConfiguration.h" />
+    <ClInclude Include="ElevatedSetupLauncher.h" />
     <ClInclude Include="TouchOverlay.h" />
     <ClInclude Include="PenOverlay.h" />
     <ClInclude Include="DriverLauncher.h" />
@@ -166,6 +170,10 @@
     <ClCompile Include="Credentials.cpp" />
     <ClCompile Include="CredentialStore.cpp" />
     <ClCompile Include="CursorOverlay.cpp" />
+    <ClCompile Include="SetupChecker.cpp" />
+    <ClCompile Include="MachineSetup.cpp" />
+    <ClCompile Include="MachineConfiguration.cpp" />
+    <ClCompile Include="ElevatedSetupLauncher.cpp" />
     <ClCompile Include="TouchOverlay.cpp" />
     <ClCompile Include="PenOverlay.cpp" />
     <ClCompile Include="DriverLauncher.cpp" />

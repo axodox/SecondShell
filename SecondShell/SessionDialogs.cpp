@@ -67,6 +67,22 @@ namespace SecondShell::Ui
       return dialog;
     }
 
+    //A line of a checklist: a tick or a cross, and what it is about
+    StackPanel Check(bool isDone, string_view text)
+    {
+      StackPanel row;
+      row.Orientation(Orientation::Horizontal);
+      row.Spacing(9);
+
+      FontIcon icon;
+      icon.Glyph(isDone ? L"\uE73E" : L"\uE711");
+      icon.FontSize(12);
+      icon.Foreground(ActionView::Resource<Brush>(isDone ? L"SuccessBrush" : L"FailureBrush"));
+      row.Children().Append(icon);
+      row.Children().Append(ActionView::Text(text, {}, 13));
+      return row;
+    }
+
     StackPanel Content()
     {
       StackPanel content;
@@ -108,5 +124,35 @@ namespace SecondShell::Ui
 
     auto dialog = Dialog(root, L"The agent is working", content, L"Close and sign out", L"Keep open");
     co_return co_await dialog.ShowAsync() == ContentDialogResult::Primary;
+  }
+
+  IAsyncOperation<IReference<bool>> SessionDialogs::AskToSetUp(XamlRoot root, Setup::SetupStatus status)
+  {
+    auto content = Content();
+    content.Children().Append(Paragraph("SecondShell runs the agent in a child session, a second desktop of your own account. Child sessions are not enabled on this PC yet."));
+
+    StackPanel checks;
+    checks.Spacing(6);
+    checks.Children().Append(Check(status.AreChildSessionsEnabled, "Child sessions enabled"));
+    content.Children().Append(checks);
+
+    content.Children().Append(Paragraph("Enabling them needs administrator rights once; SecondShell itself keeps running without them.", L"MutedTextBrush"));
+
+    //Offered on, unless it is on already (Design.md, Smooth session view)
+    CheckBox smoothView{ nullptr };
+    if (!status.IsSmoothSessionViewOn)
+    {
+      smoothView = CheckBox();
+      smoothView.IsChecked(true);
+      smoothView.Content(box_value(L"Smooth session view (60 fps)"));
+      content.Children().Append(smoothView);
+      content.Children().Append(Paragraph("Every Remote Desktop session on this PC is then drawn at 60 fps instead of 30, from its next sign-in; incoming connections too.", L"MutedTextBrush"));
+    }
+
+    auto dialog = Dialog(root, L"One-time setup needed", content, L"Set up", L"Not now");
+    dialog.DefaultButton(ContentDialogButton::Primary);
+    if (co_await dialog.ShowAsync() != ContentDialogResult::Primary) co_return nullptr;
+
+    co_return box_value(smoothView && smoothView.IsChecked().Value()).as<IReference<bool>>();
   }
 }

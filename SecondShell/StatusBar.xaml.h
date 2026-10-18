@@ -5,6 +5,7 @@
 #include "AgentControl.h"
 #include "SessionManager.h"
 #include "SessionRenderer.h"
+#include "SetupChecker.h"
 
 namespace winrt::SecondShell::implementation
 {
@@ -25,6 +26,7 @@ namespace winrt::SecondShell::implementation
     std::shared_ptr<::SecondShell::Agent::AgentControl> _agentControl;
     std::shared_ptr<::SecondShell::Session::SessionManager> _sessions;
     std::shared_ptr<::SecondShell::Rendering::SessionRenderer> _renderer;
+    std::shared_ptr<::SecondShell::Setup::SetupChecker> _setupChecker;
     std::vector<Axodox::Infrastructure::event_subscription> _subscriptions;
     Microsoft::UI::Dispatching::DispatcherQueue _queue{ nullptr };
     Microsoft::UI::Dispatching::DispatcherQueueTimer _timer{ nullptr };

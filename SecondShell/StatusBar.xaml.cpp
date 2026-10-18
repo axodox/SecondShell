@@ -11,6 +11,7 @@ using namespace ::SecondShell::Agent;
 using namespace ::SecondShell::Protocol;
 using namespace ::SecondShell::Rendering;
 using namespace ::SecondShell::Session;
+using namespace ::SecondShell::Setup;
 using namespace ::SecondShell::Ui;
 using namespace Axodox::Infrastructure;
 using namespace std;
@@ -57,6 +58,7 @@ namespace winrt::SecondShell::implementation
     _agentControl = container->resolve<AgentControl>();
     _sessions = container->resolve<SessionManager>();
     _renderer = container->resolve<SessionRenderer>();
+    _setupChecker = container->resolve<SetupChecker>();
     _queue = DispatcherQueue();
 
     _subscriptions.push_back(_actionLog->SequenceChanged([this](ActionLog*, const SequenceLogEntry& sequence) { Post([this, sequence] { ShowSequence(sequence); }); }));
@@ -211,7 +213,7 @@ namespace winrt::SecondShell::implementation
         SessionText().Text(L"Session failed to start");
         break;
       default:
-        SessionText().Text(L"No session");
+        SessionText().Text(_setupChecker->Status().IsReady() ? L"No session" : L"Setup needed: child sessions are not enabled");
         break;
       }
       return;

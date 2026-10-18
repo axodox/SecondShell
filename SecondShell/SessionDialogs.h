@@ -1,6 +1,8 @@
 #pragma once
 #include "ActionLog.h"
+#include "ElevatedSetupLauncher.h"
 #include "ExistingSessionPrompt.h"
+#include "SetupChecker.h"
 
 namespace SecondShell::Ui
 {
@@ -13,5 +15,8 @@ namespace SecondShell::Ui
 
     //True: stop the agent, close the window and sign the session out; false: keep it open.
     static winrt::Windows::Foundation::IAsyncOperation<bool> AskToCloseWhileWorking(winrt::Microsoft::UI::Xaml::XamlRoot root, Agent::SequenceLogEntry sequence);
+
+    //The one-time setup: what to set up, or nothing for "Not now".
+    static winrt::Windows::Foundation::IAsyncOperation<winrt::Windows::Foundation::IReference<bool>> AskToSetUp(winrt::Microsoft::UI::Xaml::XamlRoot root, Setup::SetupStatus status);
   };
 }
