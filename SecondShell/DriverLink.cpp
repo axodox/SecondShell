@@ -80,10 +80,12 @@ namespace SecondShell::Session
   {
     //The connections go before the channels they use
     unordered_map<messaging_channel*, shared_ptr<Connection>> connections;
+    vector<shared_ptr<Connection>> closed;
     {
       lock_guard lock{ _mutex };
       _driver.reset();
       connections = move(_connections);
+      closed = move(_closedConnections);
     }
   }
 
@@ -186,28 +188,29 @@ namespace SecondShell::Session
   {
     auto connection = make_shared<Connection>(this, static_cast<named_pipe_messaging_channel*>(channel));
 
+    //The connections closed before go now, outside the lock: their peers wait for their handlers
+    vector<shared_ptr<Connection>> closed;
     lock_guard lock{ _mutex };
     _connections[channel] = move(connection);
+    closed = exchange(_closedConnections, {});
   }
 
   void DriverLink::OnClientDisconnected(messaging_server* /*server*/, messaging_channel* channel)
   {
-    //Destroyed outside the lock: its peer waits for its handlers, which may be waiting for the lock
-    shared_ptr<Connection> connection;
+    //Kept, not destroyed: this runs in the channel's disconnected event, which calls the connection's transport next
+    //(Axodox calls a handler removed during the event all the same)
+    lock_guard lock{ _mutex };
+    auto item = _connections.find(channel);
+    if (item == _connections.end()) return;
+
+    if (_driver == item->second)
     {
-      lock_guard lock{ _mutex };
-      auto item = _connections.find(channel);
-      if (item == _connections.end()) return;
-
-      connection = move(item->second);
-      _connections.erase(item);
-
-      if (_driver == connection)
-      {
-        _driver.reset();
-        _logger.log(log_severity::warning, "The driver disconnected.");
-      }
+      _driver.reset();
+      _logger.log(log_severity::warning, "The driver disconnected.");
     }
+
+    _closedConnections.push_back(move(item->second));
+    _connections.erase(item);
   }
 
   DriverHelloResponse DriverLink::Accept(const shared_ptr<Connection>& connection)

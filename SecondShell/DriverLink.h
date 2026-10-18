@@ -58,6 +58,9 @@ namespace SecondShell::Session
     std::condition_variable _driverChanged;
     std::optional<uint32_t> _expectedSessionId;
     std::unordered_map<Axodox::Networking::messaging_channel*, std::shared_ptr<Connection>> _connections;
+
+    //Disconnected, destroyed later: not in the channel's disconnected event, whose next handler is their transport's
+    std::vector<std::shared_ptr<Connection>> _closedConnections;
     std::shared_ptr<Connection> _driver;
 
     void OnClientConnected(Axodox::Networking::messaging_server* server, Axodox::Networking::messaging_channel* channel);

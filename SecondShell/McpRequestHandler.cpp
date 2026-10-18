@@ -20,9 +20,11 @@ namespace SecondShell::Agent
   {
     //The connections go before the channels they use
     unordered_map<messaging_channel*, unique_ptr<McpConnection>> connections;
+    vector<unique_ptr<McpConnection>> closed;
     {
       lock_guard lock{ _mutex };
       connections = move(_connections);
+      closed = move(_closedConnections);
     }
   }
 
@@ -38,21 +40,22 @@ namespace SecondShell::Agent
 
     auto connection = make_unique<McpConnection>(container.get(), static_cast<named_pipe_messaging_channel*>(channel));
 
+    //The connections closed before go now, outside the lock: their peers wait for their running requests
+    vector<unique_ptr<McpConnection>> closed;
     lock_guard lock{ _mutex };
     _connections[channel] = move(connection);
+    closed = exchange(_closedConnections, {});
   }
 
   void McpRequestHandler::OnClientDisconnected(messaging_server* /*server*/, messaging_channel* channel)
   {
-    //Destroyed outside the lock: its peer waits for its running requests
-    unique_ptr<McpConnection> connection;
-    {
-      lock_guard lock{ _mutex };
-      auto item = _connections.find(channel);
-      if (item == _connections.end()) return;
+    //Kept, not destroyed: this runs in the channel's disconnected event, which calls the connection's transport next
+    //(Axodox calls a handler removed during the event all the same)
+    lock_guard lock{ _mutex };
+    auto item = _connections.find(channel);
+    if (item == _connections.end()) return;
 
-      connection = move(item->second);
-      _connections.erase(item);
-    }
+    _closedConnections.push_back(move(item->second));
+    _connections.erase(item);
   }
 }

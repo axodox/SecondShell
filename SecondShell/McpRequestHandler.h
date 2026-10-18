@@ -23,6 +23,9 @@ namespace SecondShell::Agent
     std::mutex _mutex;
     std::unordered_map<Axodox::Networking::messaging_channel*, std::unique_ptr<McpConnection>> _connections;
 
+    //Disconnected, destroyed later: not in the channel's disconnected event, whose next handler is their transport's
+    std::vector<std::unique_ptr<McpConnection>> _closedConnections;
+
     void OnClientConnected(Axodox::Networking::messaging_server* server, Axodox::Networking::messaging_channel* channel);
     void OnClientDisconnected(Axodox::Networking::messaging_server* server, Axodox::Networking::messaging_channel* channel);
   };
