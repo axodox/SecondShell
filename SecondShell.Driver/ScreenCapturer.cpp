@@ -39,12 +39,17 @@ namespace SecondShell::Capture
     _session = _framePool.CreateCaptureSession(_item);
     _session.IsBorderRequired(false);
     _session.IsCursorCaptureEnabled(true);
-    _session.MinUpdateInterval(milliseconds(1));
+
+    //MinUpdateInterval needs IGraphicsCaptureSession5 (Windows 11 24H2); on older builds capture runs at the default rate
+    auto throttlingSession = _session.try_as<IGraphicsCaptureSession5>();
+    if (throttlingSession) throttlingSession.MinUpdateInterval(milliseconds(1));
+
     auto reportingSession = _session.try_as<IGraphicsCaptureSession4>();
     if (reportingSession) reportingSession.DirtyRegionMode(GraphicsCaptureDirtyRegionMode::ReportOnly);
     _session.StartCapture();
 
-    _logger.log(log_severity::information, "Capturing {}x{}, at most every {} ms, {} dirty regions.", _poolSize.Width, _poolSize.Height, duration_cast<milliseconds>(_session.MinUpdateInterval()).count(), reportingSession ? "with" : "without");
+    auto minInterval = throttlingSession ? duration_cast<milliseconds>(throttlingSession.MinUpdateInterval()).count() : 0;
+    _logger.log(log_severity::information, "Capturing {}x{}, at most every {} ms, {} dirty regions.", _poolSize.Width, _poolSize.Height, minInterval, reportingSession ? "with" : "without");
   }
 
   Pixels ScreenCapturer::Read(const Rect& region, milliseconds timeout)
