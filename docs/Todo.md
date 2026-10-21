@@ -13,3 +13,7 @@ Investigate whether capture/control can be made to work while the machine's scre
 ## Tighter window resize (optional)
 
 Change the host window's resize logic so it leaves no empty space around the display view. This must not interfere with window swapping.
+
+## Idle: show time since last active
+
+While the agent is idle, show how long since it was last active (e.g. "3 h", "1 min", or similar).
