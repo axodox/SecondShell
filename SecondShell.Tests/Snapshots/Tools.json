@@ -94,8 +94,90 @@
       "name": "Initialize-Session",
       "outputSchema": {
         "properties": {
+          "events": {
+            "description": "What changed since your previous call: the user taking or giving back control, the PC being locked and input stopping or coming back, the user leaving or coming back.",
+            "items": {
+              "properties": {
+                "event": {
+                  "enum": [
+                    "ControlTaken",
+                    "AgentStopped",
+                    "ControlReturned",
+                    "InputPaused",
+                    "InputUnavailable",
+                    "InputAvailable",
+                    "UserLeft",
+                    "UserReturned"
+                  ],
+                  "type": "string"
+                },
+                "message": {
+                  "type": "string"
+                },
+                "time": {
+                  "description": "Local time.",
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "newWindows": {
+            "description": "Windows which opened since your previous call, dialogs included: yours, and prompts of other programs which may need an answer.",
+            "items": {
+              "properties": {
+                "height": {
+                  "type": "number"
+                },
+                "isForeground": {
+                  "type": "boolean"
+                },
+                "pid": {
+                  "type": "number"
+                },
+                "processName": {
+                  "type": "string"
+                },
+                "state": {
+                  "enum": [
+                    "Normal",
+                    "Minimized",
+                    "Maximized"
+                  ],
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "width": {
+                  "type": "number"
+                },
+                "window": {
+                  "type": "string"
+                },
+                "x": {
+                  "type": "number"
+                },
+                "y": {
+                  "type": "number"
+                }
+              },
+              "type": "object"
+            },
+            "type": "array"
+          },
           "session": {
             "properties": {
+              "control": {
+                "description": "Who controls the session. Agent: you. User: the user has taken control; Stopped: the user stopped the agent. Either way sequences fail with AgentInputDisabled until the user gives control back; Check-Session with waitForControl waits for that.",
+                "enum": [
+                  "Agent",
+                  "Stopped",
+                  "User"
+                ],
+                "type": "string"
+              },
               "display": {
                 "properties": {
                   "height": {
@@ -170,17 +252,105 @@
       }
     },
     {
-      "description": "Returns the state of the session: whether it is ready, its display settings, the driver's process ID, whether the user is at the PC, and whether input reaches the session.",
+      "description": "Returns the state of the session: whether it is ready, its display settings, the driver's process ID, whether the user is at the PC, whether input reaches the session, and who controls it. With waitForControl it first waits until you may send input again, e.g. after the user took control.",
       "inputSchema": {
         "additionalProperties": false,
-        "properties": {},
+        "properties": {
+          "waitForControl": {
+            "description": "Milliseconds to wait at most until you control the session and input reaches it. Keep it under 50000: AI clients often give up on a tool call after a minute; check again to wait longer.",
+            "minimum": 0,
+            "type": "number"
+          }
+        },
         "type": "object"
       },
       "name": "Check-Session",
       "outputSchema": {
         "properties": {
+          "events": {
+            "description": "What changed since your previous call: the user taking or giving back control, the PC being locked and input stopping or coming back, the user leaving or coming back.",
+            "items": {
+              "properties": {
+                "event": {
+                  "enum": [
+                    "ControlTaken",
+                    "AgentStopped",
+                    "ControlReturned",
+                    "InputPaused",
+                    "InputUnavailable",
+                    "InputAvailable",
+                    "UserLeft",
+                    "UserReturned"
+                  ],
+                  "type": "string"
+                },
+                "message": {
+                  "type": "string"
+                },
+                "time": {
+                  "description": "Local time.",
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "newWindows": {
+            "description": "Windows which opened since your previous call, dialogs included: yours, and prompts of other programs which may need an answer.",
+            "items": {
+              "properties": {
+                "height": {
+                  "type": "number"
+                },
+                "isForeground": {
+                  "type": "boolean"
+                },
+                "pid": {
+                  "type": "number"
+                },
+                "processName": {
+                  "type": "string"
+                },
+                "state": {
+                  "enum": [
+                    "Normal",
+                    "Minimized",
+                    "Maximized"
+                  ],
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "width": {
+                  "type": "number"
+                },
+                "window": {
+                  "type": "string"
+                },
+                "x": {
+                  "type": "number"
+                },
+                "y": {
+                  "type": "number"
+                }
+              },
+              "type": "object"
+            },
+            "type": "array"
+          },
           "session": {
             "properties": {
+              "control": {
+                "description": "Who controls the session. Agent: you. User: the user has taken control; Stopped: the user stopped the agent. Either way sequences fail with AgentInputDisabled until the user gives control back; Check-Session with waitForControl waits for that.",
+                "enum": [
+                  "Agent",
+                  "Stopped",
+                  "User"
+                ],
+                "type": "string"
+              },
               "display": {
                 "properties": {
                   "height": {
@@ -274,7 +444,7 @@
       }
     },
     {
-      "description": "Runs actions in order in the session, until one fails: input, captures, windows, processes, clipboard. Captures are returned as images. When the user locks the PC, input actions wait the few seconds SecondShell takes to keep input working; they fail with InputUnavailable when input does not come back soon (the message, and Check-Session, tell why).",
+      "description": "Runs actions in order in the session, until one fails: input, captures, windows, processes, clipboard. Captures are returned as images. Each step is an object with the action's name in \"action\" and only the properties its schema lists, e.g. {\"action\": \"Mouse.Click\", \"x\": 640, \"y\": 360}, {\"action\": \"Keyboard.Type\", \"text\": \"hello\"}, {\"action\": \"Keyboard.Tap\", \"key\": \"S\", \"modifiers\": [\"Ctrl\"]}, {\"action\": \"Control.Wait\", \"duration\": 500}, {\"action\": \"Capture.Window\", \"title\": \"Notepad\"}. Invalid steps are all reported at once, and then nothing runs. AI clients often give up on a tool call after about a minute, so keep each sequence's waits well below that; for longer work, start it in the background (Process.Run with async) and check on it with short sequences. A sequence the client gives up on is stopped. When the user locks the PC, input actions wait the few seconds SecondShell takes to keep input working; they fail with InputUnavailable when input does not come back soon (the message, and Check-Session, tell why). The response also tells what changed since your previous call (events, newWindows).",
       "inputSchema": {
         "additionalProperties": false,
         "properties": {
@@ -288,7 +458,7 @@
               "anyOf": [
                 {
                   "additionalProperties": false,
-                  "description": "Waits before the next action.",
+                  "description": "Waits a fixed time before the next action, e.g. {\"action\": \"Control.Wait\", \"duration\": 500}. Capture.WaitForStable and Capture.WaitForText wait only as long as needed.",
                   "properties": {
                     "action": {
                       "const": "Control.Wait",
@@ -371,7 +541,7 @@
                 },
                 {
                   "additionalProperties": false,
-                  "description": "Clicks a mouse button; with x and y the cursor first moves there instantly.",
+                  "description": "Clicks a mouse button; with x and y the cursor first moves there instantly. For Ctrl+click and the like, hold the key with Keyboard.Press around it and let go with Keyboard.Release; for a triple click, Mouse.DoubleClick then Mouse.Click.",
                   "properties": {
                     "action": {
                       "const": "Mouse.Click",
@@ -483,7 +653,7 @@
                 },
                 {
                   "additionalProperties": false,
-                  "description": "Presses a mouse button at the cursor and holds it until Mouse.Release.",
+                  "description": "Presses a mouse button where the cursor is, and holds it until Mouse.Release. To drag: Mouse.Move to the start, Mouse.Press, Mouse.Move to the end with a duration, Mouse.Release.",
                   "properties": {
                     "action": {
                       "const": "Mouse.Press",
@@ -909,7 +1079,7 @@
                           "type": "integer"
                         }
                       ],
-                      "description": "A key name of System.Windows.Forms.Keys (e.g. Enter, Tab, F5, A, D1, Left), an alias (Ctrl, Alt, Shift, Win, Esc, Backspace, 0-9), or a virtual key code number."
+                      "description": "One key: a key name of System.Windows.Forms.Keys (e.g. Enter, Tab, F5, A, D1, Left), an alias (Ctrl, Alt, Shift, Win, Esc, Backspace, 0-9), or a virtual key code number. Not a combination: for Ctrl+A, key A with modifiers [\"Ctrl\"]."
                     },
                     "modifiers": {
                       "description": "Modifier keys held during the key: Shift, Ctrl, Alt, Win.",
@@ -950,7 +1120,7 @@
                           "type": "integer"
                         }
                       ],
-                      "description": "A key name of System.Windows.Forms.Keys (e.g. Enter, Tab, F5, A, D1, Left), an alias (Ctrl, Alt, Shift, Win, Esc, Backspace, 0-9), or a virtual key code number."
+                      "description": "One key: a key name of System.Windows.Forms.Keys (e.g. Enter, Tab, F5, A, D1, Left), an alias (Ctrl, Alt, Shift, Win, Esc, Backspace, 0-9), or a virtual key code number. Not a combination: for Ctrl+A, key A with modifiers [\"Ctrl\"]."
                     },
                     "modifiers": {
                       "description": "Modifier keys held during the key: Shift, Ctrl, Alt, Win.",
@@ -991,7 +1161,7 @@
                           "type": "integer"
                         }
                       ],
-                      "description": "A key name of System.Windows.Forms.Keys (e.g. Enter, Tab, F5, A, D1, Left), an alias (Ctrl, Alt, Shift, Win, Esc, Backspace, 0-9), or a virtual key code number."
+                      "description": "One key: a key name of System.Windows.Forms.Keys (e.g. Enter, Tab, F5, A, D1, Left), an alias (Ctrl, Alt, Shift, Win, Esc, Backspace, 0-9), or a virtual key code number. Not a combination: for Ctrl+A, key A with modifiers [\"Ctrl\"]."
                     },
                     "modifiers": {
                       "description": "Modifier keys held during the key: Shift, Ctrl, Alt, Win.",
@@ -1029,7 +1199,7 @@
                 },
                 {
                   "additionalProperties": false,
-                  "description": "Captures the session's whole desktop.",
+                  "description": "Captures the session's whole desktop. For a smaller image, set resolution, e.g. {\"width\": 1280, \"height\": 720}; the result reports the scale.",
                   "properties": {
                     "action": {
                       "const": "Capture.Screen",
@@ -1086,7 +1256,7 @@
                 },
                 {
                   "additionalProperties": false,
-                  "description": "Captures one window; prefer it over Capture.Screen to save context.",
+                  "description": "Captures one window, by default the active one; prefer it over Capture.Screen to save context.",
                   "properties": {
                     "action": {
                       "const": "Capture.Window",
@@ -1113,6 +1283,15 @@
                       "description": "File path for File and Both; default: a file in the session's capture folder.",
                       "type": "string"
                     },
+                    "pid": {
+                      "description": "Instead of window: the topmost window of this process ID, e.g. from Process.Run.",
+                      "minimum": 0,
+                      "type": "number"
+                    },
+                    "processName": {
+                      "description": "Instead of window: the topmost window of this process, e.g. \"notepad.exe\" or \"notepad\". With title or pid, all must match.",
+                      "type": "string"
+                    },
                     "resolution": {
                       "description": "Largest image size: the capture is scaled down to fit, never up; the result reports the scale.",
                       "properties": {
@@ -1135,8 +1314,12 @@
                       "description": "A label returned with the capture; default: its index in the sequence.",
                       "type": "string"
                     },
+                    "title": {
+                      "description": "Instead of window: the topmost window whose title contains this text, ignoring case; dialogs included.",
+                      "type": "string"
+                    },
                     "window": {
-                      "description": "A window ID from Window.Enumerate; default: the active window.",
+                      "description": "A window ID from Window.Enumerate, e.g. \"0x0001A2B4\". IDs change when the application restarts; title, processName and pid find the window instead.",
                       "type": "string"
                     }
                   },
@@ -1309,11 +1492,15 @@
                 },
                 {
                   "additionalProperties": false,
-                  "description": "Lists the open top-level windows: ID, title, process, position, size, state, and which one is in the foreground.",
+                  "description": "Lists the open top-level windows, topmost first: ID, title, process, position, size, state, and which one is in the foreground.",
                   "properties": {
                     "action": {
                       "const": "Window.Enumerate",
                       "type": "string"
+                    },
+                    "all": {
+                      "description": "Also list dialogs and other windows the taskbar does not show, if they have a title.",
+                      "type": "boolean"
                     }
                   },
                   "required": [
@@ -1323,20 +1510,32 @@
                 },
                 {
                   "additionalProperties": false,
-                  "description": "Brings a window to the foreground and gives it keyboard focus, restoring it if minimized. Use it before typing into a window.",
+                  "description": "Brings a window to the foreground and gives it keyboard focus, restoring it if minimized. Use it before typing into a window, e.g. {\"action\": \"Window.Focus\", \"title\": \"Notepad\"}.",
                   "properties": {
                     "action": {
                       "const": "Window.Focus",
                       "type": "string"
                     },
+                    "pid": {
+                      "description": "Instead of window: the topmost window of this process ID, e.g. from Process.Run.",
+                      "minimum": 0,
+                      "type": "number"
+                    },
+                    "processName": {
+                      "description": "Instead of window: the topmost window of this process, e.g. \"notepad.exe\" or \"notepad\". With title or pid, all must match.",
+                      "type": "string"
+                    },
+                    "title": {
+                      "description": "Instead of window: the topmost window whose title contains this text, ignoring case; dialogs included.",
+                      "type": "string"
+                    },
                     "window": {
-                      "description": "A window ID from Window.Enumerate, e.g. \"0x0001A2B4\".",
+                      "description": "A window ID from Window.Enumerate, e.g. \"0x0001A2B4\". IDs change when the application restarts; title, processName and pid find the window instead.",
                       "type": "string"
                     }
                   },
                   "required": [
-                    "action",
-                    "window"
+                    "action"
                   ],
                   "type": "object"
                 },
@@ -1348,8 +1547,21 @@
                       "const": "Window.Move",
                       "type": "string"
                     },
+                    "pid": {
+                      "description": "Instead of window: the topmost window of this process ID, e.g. from Process.Run.",
+                      "minimum": 0,
+                      "type": "number"
+                    },
+                    "processName": {
+                      "description": "Instead of window: the topmost window of this process, e.g. \"notepad.exe\" or \"notepad\". With title or pid, all must match.",
+                      "type": "string"
+                    },
+                    "title": {
+                      "description": "Instead of window: the topmost window whose title contains this text, ignoring case; dialogs included.",
+                      "type": "string"
+                    },
                     "window": {
-                      "description": "A window ID from Window.Enumerate, e.g. \"0x0001A2B4\".",
+                      "description": "A window ID from Window.Enumerate, e.g. \"0x0001A2B4\". IDs change when the application restarts; title, processName and pid find the window instead.",
                       "type": "string"
                     },
                     "x": {
@@ -1363,7 +1575,6 @@
                   },
                   "required": [
                     "action",
-                    "window",
                     "x",
                     "y"
                   ],
@@ -1382,19 +1593,31 @@
                       "minimum": 1,
                       "type": "number"
                     },
+                    "pid": {
+                      "description": "Instead of window: the topmost window of this process ID, e.g. from Process.Run.",
+                      "minimum": 0,
+                      "type": "number"
+                    },
+                    "processName": {
+                      "description": "Instead of window: the topmost window of this process, e.g. \"notepad.exe\" or \"notepad\". With title or pid, all must match.",
+                      "type": "string"
+                    },
+                    "title": {
+                      "description": "Instead of window: the topmost window whose title contains this text, ignoring case; dialogs included.",
+                      "type": "string"
+                    },
                     "width": {
                       "description": "Session pixels.",
                       "minimum": 1,
                       "type": "number"
                     },
                     "window": {
-                      "description": "A window ID from Window.Enumerate, e.g. \"0x0001A2B4\".",
+                      "description": "A window ID from Window.Enumerate, e.g. \"0x0001A2B4\". IDs change when the application restarts; title, processName and pid find the window instead.",
                       "type": "string"
                     }
                   },
                   "required": [
                     "action",
-                    "window",
                     "width",
                     "height"
                   ],
@@ -1408,14 +1631,26 @@
                       "const": "Window.Minimize",
                       "type": "string"
                     },
+                    "pid": {
+                      "description": "Instead of window: the topmost window of this process ID, e.g. from Process.Run.",
+                      "minimum": 0,
+                      "type": "number"
+                    },
+                    "processName": {
+                      "description": "Instead of window: the topmost window of this process, e.g. \"notepad.exe\" or \"notepad\". With title or pid, all must match.",
+                      "type": "string"
+                    },
+                    "title": {
+                      "description": "Instead of window: the topmost window whose title contains this text, ignoring case; dialogs included.",
+                      "type": "string"
+                    },
                     "window": {
-                      "description": "A window ID from Window.Enumerate, e.g. \"0x0001A2B4\".",
+                      "description": "A window ID from Window.Enumerate, e.g. \"0x0001A2B4\". IDs change when the application restarts; title, processName and pid find the window instead.",
                       "type": "string"
                     }
                   },
                   "required": [
-                    "action",
-                    "window"
+                    "action"
                   ],
                   "type": "object"
                 },
@@ -1427,14 +1662,26 @@
                       "const": "Window.Maximize",
                       "type": "string"
                     },
+                    "pid": {
+                      "description": "Instead of window: the topmost window of this process ID, e.g. from Process.Run.",
+                      "minimum": 0,
+                      "type": "number"
+                    },
+                    "processName": {
+                      "description": "Instead of window: the topmost window of this process, e.g. \"notepad.exe\" or \"notepad\". With title or pid, all must match.",
+                      "type": "string"
+                    },
+                    "title": {
+                      "description": "Instead of window: the topmost window whose title contains this text, ignoring case; dialogs included.",
+                      "type": "string"
+                    },
                     "window": {
-                      "description": "A window ID from Window.Enumerate, e.g. \"0x0001A2B4\".",
+                      "description": "A window ID from Window.Enumerate, e.g. \"0x0001A2B4\". IDs change when the application restarts; title, processName and pid find the window instead.",
                       "type": "string"
                     }
                   },
                   "required": [
-                    "action",
-                    "window"
+                    "action"
                   ],
                   "type": "object"
                 },
@@ -1446,14 +1693,26 @@
                       "const": "Window.Restore",
                       "type": "string"
                     },
+                    "pid": {
+                      "description": "Instead of window: the topmost window of this process ID, e.g. from Process.Run.",
+                      "minimum": 0,
+                      "type": "number"
+                    },
+                    "processName": {
+                      "description": "Instead of window: the topmost window of this process, e.g. \"notepad.exe\" or \"notepad\". With title or pid, all must match.",
+                      "type": "string"
+                    },
+                    "title": {
+                      "description": "Instead of window: the topmost window whose title contains this text, ignoring case; dialogs included.",
+                      "type": "string"
+                    },
                     "window": {
-                      "description": "A window ID from Window.Enumerate, e.g. \"0x0001A2B4\".",
+                      "description": "A window ID from Window.Enumerate, e.g. \"0x0001A2B4\". IDs change when the application restarts; title, processName and pid find the window instead.",
                       "type": "string"
                     }
                   },
                   "required": [
-                    "action",
-                    "window"
+                    "action"
                   ],
                   "type": "object"
                 },
@@ -1465,27 +1724,39 @@
                       "const": "Window.Close",
                       "type": "string"
                     },
+                    "pid": {
+                      "description": "Instead of window: the topmost window of this process ID, e.g. from Process.Run.",
+                      "minimum": 0,
+                      "type": "number"
+                    },
+                    "processName": {
+                      "description": "Instead of window: the topmost window of this process, e.g. \"notepad.exe\" or \"notepad\". With title or pid, all must match.",
+                      "type": "string"
+                    },
+                    "title": {
+                      "description": "Instead of window: the topmost window whose title contains this text, ignoring case; dialogs included.",
+                      "type": "string"
+                    },
                     "window": {
-                      "description": "A window ID from Window.Enumerate, e.g. \"0x0001A2B4\".",
+                      "description": "A window ID from Window.Enumerate, e.g. \"0x0001A2B4\". IDs change when the application restarts; title, processName and pid find the window instead.",
                       "type": "string"
                     }
                   },
                   "required": [
-                    "action",
-                    "window"
+                    "action"
                   ],
                   "type": "object"
                 },
                 {
                   "additionalProperties": false,
-                  "description": "Runs a command in the session. Synchronous by default: waits for the exit and returns the exit code and the output and error streams (each truncated to 64 KB). Use async for programs that keep running, e.g. GUI applications or a console to interact with: it starts the program as Explorer would and returns its process ID at once; with shell None the ID is the program's own.",
+                  "description": "Runs a command in the session. Synchronous by default: waits for the exit and returns the exit code and the output and error streams (each truncated to 64 KB). Use async for programs that keep running, e.g. GUI applications or a console to interact with: it starts the program as Explorer would and returns its process ID at once; with shell None the ID is the program's own. Start a packaged (Store) app through its execution alias with workingDirectory set to its package folder, as some load files relative to it.",
                   "properties": {
                     "action": {
                       "const": "Process.Run",
                       "type": "string"
                     },
                     "args": {
-                      "description": "Arguments, passed without shell parsing with shell None.",
+                      "description": "Arguments of the program in command, each passed as it is, never parsed by the shell, e.g. [\"/c\", \"dir\"] with command \"cmd.exe\".",
                       "items": {
                         "type": "string"
                       },
@@ -1496,11 +1767,11 @@
                       "type": "boolean"
                     },
                     "command": {
-                      "description": "The command for the shell, or with shell None the path of an executable.",
+                      "description": "Without args: a command line for the shell, e.g. \"Get-ChildItem C:\\\\Temp | Select-Object -First 5\". With args, or with shell None: the program to run, e.g. \"cmd.exe\" or \"C:\\\\Tools\\\\tool.exe\" (in PowerShell also a script or cmdlet).",
                       "type": "string"
                     },
                     "shell": {
-                      "description": "PowerShell (Windows PowerShell), Pwsh (PowerShell 7), Cmd, or None (no shell parsing); default: the user's setting, PowerShell unless they changed it.",
+                      "description": "PowerShell (Windows PowerShell), Pwsh (PowerShell 7), Cmd, or None (no shell: command is an executable); default: the user's setting, PowerShell unless they changed it.",
                       "enum": [
                         "PowerShell",
                         "Pwsh",
@@ -1724,7 +1995,7 @@
             "type": "array"
           },
           "timeout": {
-            "description": "Milliseconds for the whole sequence, default 60000.",
+            "description": "Milliseconds for the whole sequence, default 60000; it does not extend how long the AI client waits.",
             "minimum": 0,
             "type": "number"
           }
@@ -1750,11 +2021,84 @@
             ],
             "type": "string"
           },
+          "events": {
+            "description": "What changed since your previous call: the user taking or giving back control, the PC being locked and input stopping or coming back, the user leaving or coming back.",
+            "items": {
+              "properties": {
+                "event": {
+                  "enum": [
+                    "ControlTaken",
+                    "AgentStopped",
+                    "ControlReturned",
+                    "InputPaused",
+                    "InputUnavailable",
+                    "InputAvailable",
+                    "UserLeft",
+                    "UserReturned"
+                  ],
+                  "type": "string"
+                },
+                "message": {
+                  "type": "string"
+                },
+                "time": {
+                  "description": "Local time.",
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            },
+            "type": "array"
+          },
           "failedStep": {
             "type": "number"
           },
           "message": {
             "type": "string"
+          },
+          "newWindows": {
+            "description": "Windows which opened since your previous call, dialogs included: yours, and prompts of other programs which may need an answer.",
+            "items": {
+              "properties": {
+                "height": {
+                  "type": "number"
+                },
+                "isForeground": {
+                  "type": "boolean"
+                },
+                "pid": {
+                  "type": "number"
+                },
+                "processName": {
+                  "type": "string"
+                },
+                "state": {
+                  "enum": [
+                    "Normal",
+                    "Minimized",
+                    "Maximized"
+                  ],
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "width": {
+                  "type": "number"
+                },
+                "window": {
+                  "type": "string"
+                },
+                "x": {
+                  "type": "number"
+                },
+                "y": {
+                  "type": "number"
+                }
+              },
+              "type": "object"
+            },
+            "type": "array"
           },
           "releasedInput": {
             "properties": {

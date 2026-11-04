@@ -29,7 +29,10 @@ namespace SecondShell::Actions
     const char* const _height = "Session pixels.";
     const char* const _duration = "Milliseconds the input takes; with async it runs in parallel with the next actions.";
     const char* const _async = "Run in parallel with the next actions, until Control.Join.";
-    const char* const _window = "A window ID from Window.Enumerate, e.g. \"0x0001A2B4\".";
+    const char* const _window = "A window ID from Window.Enumerate, e.g. \"0x0001A2B4\". IDs change when the application restarts; title, processName and pid find the window instead.";
+    const char* const _windowTitle = "Instead of window: the topmost window whose title contains this text, ignoring case; dialogs included.";
+    const char* const _windowProcessName = "Instead of window: the topmost window of this process, e.g. \"notepad.exe\" or \"notepad\". With title or pid, all must match.";
+    const char* const _windowProcessId = "Instead of window: the topmost window of this process ID, e.g. from Process.Run.";
     const char* const _touchId = "Identifies the touch point; it must not be in use by another active touch point.";
     const char* const _pressure = "How hard the pen presses, 0..1; default 0.5 when it touches the screen.";
     const char* const _tiltX = "Degrees the pen leans right (positive) or left, -90..90; default 0.";
@@ -37,7 +40,7 @@ namespace SecondShell::Actions
     const char* const _rotation = "Degrees the pen is turned clockwise around its axis, 0..359; default 0.";
     const char* const _barrel = "Holds the pen's barrel button, which applications usually treat as a right click.";
     const char* const _eraser = "Uses the pen's eraser end instead of its tip.";
-    const char* const _key ="A key name of System.Windows.Forms.Keys (e.g. Enter, Tab, F5, A, D1, Left), an alias (Ctrl, Alt, Shift, Win, Esc, Backspace, 0-9), or a virtual key code number.";
+    const char* const _key ="One key: a key name of System.Windows.Forms.Keys (e.g. Enter, Tab, F5, A, D1, Left), an alias (Ctrl, Alt, Shift, Win, Esc, Backspace, 0-9), or a virtual key code number. Not a combination: for Ctrl+A, key A with modifiers [\"Ctrl\"].";
     const char* const _modifiers = "Modifier keys held during the key: Shift, Ctrl, Alt, Win.";
     const char* const _timeout = "Milliseconds to wait at most, default 10000; when it expires the sequence stops with a Timeout error.";
     const char* const _processId = "The process ID, e.g. from Process.Run or Process.Enumerate.";
@@ -77,6 +80,11 @@ namespace SecondShell::Actions
     return json_serializer<Action>::get_type_description(*this)->name();
   }
 
+  expected<> Action::Validate() const
+  {
+    return {};
+  }
+
   json_object_descriptor<CaptureAction> CaptureAction::json_description = describe_json_object<CaptureAction, Action>(
     { .name = "Capture" },
     {
@@ -90,7 +98,7 @@ namespace SecondShell::Actions
 
 #pragma region Control
   json_object_descriptor<ControlWaitAction> ControlWaitAction::json_description = describe_json_object<ControlWaitAction, Action>(
-    { .name = "Control.Wait", .description = "Waits before the next action." },
+    { .name = "Control.Wait", .description = "Waits a fixed time before the next action, e.g. {\"action\": \"Control.Wait\", \"duration\": 500}. Capture.WaitForStable and Capture.WaitForText wait only as long as needed." },
     {
       { &ControlWaitAction::Duration, "duration", { .is_required = true, .schema = { .description = "Milliseconds.", .minimum = 0 } } }
     });
@@ -118,7 +126,7 @@ namespace SecondShell::Actions
   }
 
   json_object_descriptor<MouseClickAction> MouseClickAction::json_description = describe_json_object<MouseClickAction, Action>(
-    { .name = "Mouse.Click", .description = "Clicks a mouse button; with x and y the cursor first moves there instantly." },
+    { .name = "Mouse.Click", .description = "Clicks a mouse button; with x and y the cursor first moves there instantly. For Ctrl+click and the like, hold the key with Keyboard.Press around it and let go with Keyboard.Release; for a triple click, Mouse.DoubleClick then Mouse.Click." },
     {
       { &MouseClickAction::Button, "button", { .is_required = false, .schema = { .description = "Left (default), Right or Middle." } } },
       { &MouseClickAction::X, "x", { .is_required = false, .schema = { .description = _x, .minimum = 0 } } },
@@ -150,7 +158,7 @@ namespace SecondShell::Actions
     });
 
   json_object_descriptor<MousePressAction> MousePressAction::json_description = describe_json_object<MousePressAction, Action>(
-    { .name = "Mouse.Press", .description = "Presses a mouse button at the cursor and holds it until Mouse.Release." },
+    { .name = "Mouse.Press", .description = "Presses a mouse button where the cursor is, and holds it until Mouse.Release. To drag: Mouse.Move to the start, Mouse.Press, Mouse.Move to the end with a duration, Mouse.Release." },
     {
       { &MousePressAction::Button, "button", { .is_required = false, .schema = { .description = "Left (default), Right or Middle." } } }
     });
@@ -292,13 +300,26 @@ namespace SecondShell::Actions
 
 #pragma region Capture
   json_object_descriptor<CaptureScreenAction> CaptureScreenAction::json_description = describe_json_object<CaptureScreenAction, CaptureAction>(
-    { .name = "Capture.Screen", .description = "Captures the session's whole desktop." }, {});
+    { .name = "Capture.Screen", .description = "Captures the session's whole desktop. For a smaller image, set resolution, e.g. {\"width\": 1280, \"height\": 720}; the result reports the scale." }, {});
 
   json_object_descriptor<CaptureWindowAction> CaptureWindowAction::json_description = describe_json_object<CaptureWindowAction, CaptureAction>(
-    { .name = "Capture.Window", .description = "Captures one window; prefer it over Capture.Screen to save context." },
+    { .name = "Capture.Window", .description = "Captures one window, by default the active one; prefer it over Capture.Screen to save context." },
     {
-      { &CaptureWindowAction::Window, "window", { .is_required = false, .schema = { .description = "A window ID from Window.Enumerate; default: the active window." } } }
+      { &CaptureWindowAction::Window, "window", { .is_required = false, .schema = { .description = _window } } },
+      { &CaptureWindowAction::Title, "title", { .is_required = false, .schema = { .description = _windowTitle } } },
+      { &CaptureWindowAction::ProcessName, "processName", { .is_required = false, .schema = { .description = _windowProcessName } } },
+      { &CaptureWindowAction::ProcessId, "pid", { .is_required = false, .schema = { .description = _windowProcessId, .minimum = 0 } } }
     });
+
+  WindowQuery CaptureWindowAction::Query() const
+  {
+    return { Window, Title, ProcessName, ProcessId };
+  }
+
+  expected<> CaptureWindowAction::Validate() const
+  {
+    return Query().Validate(false);
+  }
 
   json_object_descriptor<CaptureRegionAction> CaptureRegionAction::json_description = describe_json_object<CaptureRegionAction, CaptureAction>(
     { .name = "Capture.Region", .description = "Captures a rectangle of the session's desktop." },
@@ -343,62 +364,67 @@ namespace SecondShell::Actions
 
 #pragma region Window
   json_object_descriptor<WindowEnumerateAction> WindowEnumerateAction::json_description = describe_json_object<WindowEnumerateAction, Action>(
-    { .name = "Window.Enumerate", .description = "Lists the open top-level windows: ID, title, process, position, size, state, and which one is in the foreground." }, {});
-
-  json_object_descriptor<WindowFocusAction> WindowFocusAction::json_description = describe_json_object<WindowFocusAction, Action>(
-    { .name = "Window.Focus", .description = "Brings a window to the foreground and gives it keyboard focus, restoring it if minimized. Use it before typing into a window." },
+    { .name = "Window.Enumerate", .description = "Lists the open top-level windows, topmost first: ID, title, process, position, size, state, and which one is in the foreground." },
     {
-      { &WindowFocusAction::Window, "window", { .is_required = true, .schema = { .description = _window } } }
+      { &WindowEnumerateAction::All, "all", { .is_required = false, .schema = { .description = "Also list dialogs and other windows the taskbar does not show, if they have a title." } } }
     });
 
-  json_object_descriptor<WindowMoveAction> WindowMoveAction::json_description = describe_json_object<WindowMoveAction, Action>(
+  json_object_descriptor<WindowTargetAction> WindowTargetAction::json_description = describe_json_object<WindowTargetAction, Action>(
+    { .name = "WindowTarget" },
+    {
+      { &WindowTargetAction::Window, "window", { .is_required = false, .schema = { .description = _window } } },
+      { &WindowTargetAction::Title, "title", { .is_required = false, .schema = { .description = _windowTitle } } },
+      { &WindowTargetAction::ProcessName, "processName", { .is_required = false, .schema = { .description = _windowProcessName } } },
+      { &WindowTargetAction::ProcessId, "pid", { .is_required = false, .schema = { .description = _windowProcessId, .minimum = 0 } } }
+    });
+
+  WindowQuery WindowTargetAction::Query() const
+  {
+    return { Window, Title, ProcessName, ProcessId };
+  }
+
+  expected<> WindowTargetAction::Validate() const
+  {
+    return Query().Validate(true);
+  }
+
+  json_object_descriptor<WindowFocusAction> WindowFocusAction::json_description = describe_json_object<WindowFocusAction, WindowTargetAction>(
+    { .name = "Window.Focus", .description = "Brings a window to the foreground and gives it keyboard focus, restoring it if minimized. Use it before typing into a window, e.g. {\"action\": \"Window.Focus\", \"title\": \"Notepad\"}." }, {});
+
+  json_object_descriptor<WindowMoveAction> WindowMoveAction::json_description = describe_json_object<WindowMoveAction, WindowTargetAction>(
     { .name = "Window.Move", .description = "Moves a window's top-left corner to (x, y)." },
     {
-      { &WindowMoveAction::Window, "window", { .is_required = true, .schema = { .description = _window } } },
       { &WindowMoveAction::X, "x", { .is_required = true, .schema = { .description = _x } } },
       { &WindowMoveAction::Y, "y", { .is_required = true, .schema = { .description = _y } } }
     });
 
-  json_object_descriptor<WindowResizeAction> WindowResizeAction::json_description = describe_json_object<WindowResizeAction, Action>(
+  json_object_descriptor<WindowResizeAction> WindowResizeAction::json_description = describe_json_object<WindowResizeAction, WindowTargetAction>(
     { .name = "Window.Resize", .description = "Resizes a window." },
     {
-      { &WindowResizeAction::Window, "window", { .is_required = true, .schema = { .description = _window } } },
       { &WindowResizeAction::Width, "width", { .is_required = true, .schema = { .description = _width, .minimum = 1 } } },
       { &WindowResizeAction::Height, "height", { .is_required = true, .schema = { .description = _height, .minimum = 1 } } }
     });
 
-  json_object_descriptor<WindowMinimizeAction> WindowMinimizeAction::json_description = describe_json_object<WindowMinimizeAction, Action>(
-    { .name = "Window.Minimize", .description = "Minimizes a window." },
-    {
-      { &WindowMinimizeAction::Window, "window", { .is_required = true, .schema = { .description = _window } } }
-    });
+  json_object_descriptor<WindowMinimizeAction> WindowMinimizeAction::json_description = describe_json_object<WindowMinimizeAction, WindowTargetAction>(
+    { .name = "Window.Minimize", .description = "Minimizes a window." }, {});
 
-  json_object_descriptor<WindowMaximizeAction> WindowMaximizeAction::json_description = describe_json_object<WindowMaximizeAction, Action>(
-    { .name = "Window.Maximize", .description = "Maximizes a window." },
-    {
-      { &WindowMaximizeAction::Window, "window", { .is_required = true, .schema = { .description = _window } } }
-    });
+  json_object_descriptor<WindowMaximizeAction> WindowMaximizeAction::json_description = describe_json_object<WindowMaximizeAction, WindowTargetAction>(
+    { .name = "Window.Maximize", .description = "Maximizes a window." }, {});
 
-  json_object_descriptor<WindowRestoreAction> WindowRestoreAction::json_description = describe_json_object<WindowRestoreAction, Action>(
-    { .name = "Window.Restore", .description = "Restores a window to its previous size and position." },
-    {
-      { &WindowRestoreAction::Window, "window", { .is_required = true, .schema = { .description = _window } } }
-    });
+  json_object_descriptor<WindowRestoreAction> WindowRestoreAction::json_description = describe_json_object<WindowRestoreAction, WindowTargetAction>(
+    { .name = "Window.Restore", .description = "Restores a window to its previous size and position." }, {});
 
-  json_object_descriptor<WindowCloseAction> WindowCloseAction::json_description = describe_json_object<WindowCloseAction, Action>(
-    { .name = "Window.Close", .description = "Asks a window to close, as its X button does; the application may ask for confirmation first." },
-    {
-      { &WindowCloseAction::Window, "window", { .is_required = true, .schema = { .description = _window } } }
-    });
+  json_object_descriptor<WindowCloseAction> WindowCloseAction::json_description = describe_json_object<WindowCloseAction, WindowTargetAction>(
+    { .name = "Window.Close", .description = "Asks a window to close, as its X button does; the application may ask for confirmation first." }, {});
 #pragma endregion
 
 #pragma region Process
   json_object_descriptor<ProcessRunAction> ProcessRunAction::json_description = describe_json_object<ProcessRunAction, Action>(
-    { .name = "Process.Run", .description = "Runs a command in the session. Synchronous by default: waits for the exit and returns the exit code and the output and error streams (each truncated to 64 KB). Use async for programs that keep running, e.g. GUI applications or a console to interact with: it starts the program as Explorer would and returns its process ID at once; with shell None the ID is the program's own." },
+    { .name = "Process.Run", .description = "Runs a command in the session. Synchronous by default: waits for the exit and returns the exit code and the output and error streams (each truncated to 64 KB). Use async for programs that keep running, e.g. GUI applications or a console to interact with: it starts the program as Explorer would and returns its process ID at once; with shell None the ID is the program's own. Start a packaged (Store) app through its execution alias with workingDirectory set to its package folder, as some load files relative to it." },
     {
-      { &ProcessRunAction::Command, "command", { .is_required = true, .schema = { .description = "The command for the shell, or with shell None the path of an executable." } } },
-      { &ProcessRunAction::Shell, "shell", { .is_required = false, .schema = { .description = "PowerShell (Windows PowerShell), Pwsh (PowerShell 7), Cmd, or None (no shell parsing); default: the user's setting, PowerShell unless they changed it." } } },
-      { &ProcessRunAction::Args, "args", { .is_required = false, .schema = { .description = "Arguments, passed without shell parsing with shell None." } } },
+      { &ProcessRunAction::Command, "command", { .is_required = true, .schema = { .description = "Without args: a command line for the shell, e.g. \"Get-ChildItem C:\\\\Temp | Select-Object -First 5\". With args, or with shell None: the program to run, e.g. \"cmd.exe\" or \"C:\\\\Tools\\\\tool.exe\" (in PowerShell also a script or cmdlet)." } } },
+      { &ProcessRunAction::Shell, "shell", { .is_required = false, .schema = { .description = "PowerShell (Windows PowerShell), Pwsh (PowerShell 7), Cmd, or None (no shell: command is an executable); default: the user's setting, PowerShell unless they changed it." } } },
+      { &ProcessRunAction::Args, "args", { .is_required = false, .schema = { .description = "Arguments of the program in command, each passed as it is, never parsed by the shell, e.g. [\"/c\", \"dir\"] with command \"cmd.exe\"." } } },
       { &ProcessRunAction::WorkingDirectory, "workingDirectory", { .is_required = false, .schema = { .description = "Default: the user's profile folder." } } },
       { &ProcessRunAction::Async, "async", { .is_required = false, .schema = { .description = "Start the program as Explorer would (console programs get a window, nothing is redirected) and return its process ID at once; Control.Join does not wait for it, Process.WaitForProcess does." } } },
       { &ProcessRunAction::Timeout, "timeout", { .is_required = false, .schema = { .description = "Milliseconds to wait for the exit, default 10000; when it expires the sequence stops with a Timeout error and the process keeps running.", .minimum = 0 } } }

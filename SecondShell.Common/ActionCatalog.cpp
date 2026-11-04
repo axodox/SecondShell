@@ -52,6 +52,9 @@ namespace SecondShell::Actions
       auto parsing = StrictJson::Parse(json, *action);
       if (!parsing) return format_unexpected("{}: {}", TAction::json_description.name(), parsing.error());
 
+      auto validation = action->Validate();
+      if (!validation) return format_unexpected("{}: {}", TAction::json_description.name(), validation.error());
+
       return value_ptr<Action>(move(action));
     }
 
@@ -208,6 +211,34 @@ namespace SecondShell::Actions
     auto result = ActionCatalog::Parse(value);
     if (!result) return failure<>(result.error());
     return {};
+  }
+
+  void ActionListSchema::populate_schema(json_object& schema) const
+  {
+    if (description) schema.set_value("description", description);
+    if (min_items) schema.set_value("minItems", *min_items);
+    schema.set_value("items", ActionCatalog::Schema());
+  }
+
+  expected<> ActionListSchema::validate_value(const json_value& value) const
+  {
+    auto& items = static_cast<const json_array&>(value).value;
+    if (min_items && int32_t(items.size()) < *min_items) return format_unexpected("Must have at least {} items.", *min_items);
+
+    //Each invalid step on a line of its own, so the AI fixes them all in one go
+    string problems;
+    size_t count = 0;
+    for (size_t index = 0; index < items.size(); index++)
+    {
+      auto result = items[index] ? ActionCatalog::Parse(*items[index]) : expected<value_ptr<Action>>(failure<>("The step is missing."));
+      if (result) continue;
+
+      problems += format("\n- step {}: {}", index, result.error());
+      count++;
+    }
+
+    if (count == 0) return {};
+    return format_unexpected("{} of the {} steps {} invalid, so none ran:{}", count, items.size(), count == 1 ? "is" : "are", problems);
   }
 
   value_ptr<json_value> ActionResultSchema::to_json() const

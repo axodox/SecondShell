@@ -61,6 +61,24 @@ namespace SecondShell::Actions
     uint64_t MemoryBytes = 0;
   };
 
+  //Which window an action is for: the window with an ID, or else the topmost window matching all of the title (a part
+  //of it, ignoring case), the process name (with or without .exe, ignoring case) and the process ID that are given.
+  struct SECONDSHELL_COMMON_API WindowQuery
+  {
+    std::optional<WindowId> Window;
+    std::optional<std::string> Title;
+    std::optional<std::string> ProcessName;
+    std::optional<uint32_t> ProcessId;
+
+    bool IsEmpty() const;
+
+    //Fails when the ID is given with the other criteria, or, if a window is required, when nothing is given.
+    Axodox::Infrastructure::expected<> Validate(bool isRequired) const;
+
+    //E.g. "title 'Save' and process notepad.exe", for messages.
+    std::string to_string() const;
+  };
+
   struct SECONDSHELL_COMMON_API WindowInfo
   {
     static Axodox::Json::json_object_descriptor<WindowInfo> json_description;

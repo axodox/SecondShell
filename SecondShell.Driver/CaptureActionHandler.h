@@ -29,7 +29,7 @@ namespace SecondShell::Driver
     Axodox::Infrastructure::value_ptr<Actions::ActionResult> WaitForStable(const Actions::CaptureWaitForStableAction& action, const Rpc::CancellationToken& cancellation);
 
     //The window's visible part on the screen; throws invalid_argument if it has none.
-    Capture::Rect WindowRect(const std::optional<Actions::WindowId>& window) const;
+    Capture::Rect WindowRect(const Actions::WindowQuery& query) const;
     Axodox::Infrastructure::value_ptr<Actions::ActionResult> CaptureRect(const Actions::CaptureAction& action, const Capture::Rect& region);
   };
 }

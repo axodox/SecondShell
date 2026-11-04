@@ -15,8 +15,10 @@ namespace SecondShell::Session
     _sessions(container->resolve<SessionManager>()),
     _machine(container->resolve<IMachineConfiguration>()),
     _watcher(container->resolve<SessionLockWatcher>()),
-    _loopback(container->resolve<LoopbackClient>())
+    _loopback(container->resolve<LoopbackClient>()),
+    _eventLog(container->resolve<Agent::SessionEventLog>())
   {
+    _reportedStatus = Status();
     _thread = thread([this] { Run(); });
 
     _settingsSubscription = _settings->Changed([this](SettingsStore*, const Settings&) { Post(Signal::ActiveChanged); });
@@ -37,6 +39,7 @@ namespace SecondShell::Session
         Post(Signal::ConsoleConnected);
         break;
       default:
+        Post(Signal::OtherChange);  //only for the status
         break;
       }
       });
@@ -109,6 +112,12 @@ namespace SecondShell::Session
       }
 
       _isResuming = _policy.IsResuming();
+
+      //For the agent, which hears about it with its next call
+      if (auto status = Status(); status != _reportedStatus)
+      {
+        _eventLog->OnInputStatusChanged(exchange(_reportedStatus, status), status);
+      }
     }
 
     //Ending the connection leaves the session disconnected, so it is locked again
@@ -137,6 +146,8 @@ namespace SecondShell::Session
       break;
     case Signal::ConsoleConnected:
       Execute(_policy.OnConsoleConnected());
+      break;
+    case Signal::OtherChange:
       break;
     case Signal::LoopbackConnected:
       _policy.OnLoopbackConnected();

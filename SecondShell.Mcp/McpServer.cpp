@@ -15,7 +15,10 @@ namespace SecondShell::Mcp
     "SecondShell gives you a second Windows desktop: a separate session of the same user on this machine, where you can "
     "use applications without disturbing the user. Start it with Initialize-Session, then work in it with Run-Sequence "
     "(mouse, keyboard, touch, pen, screen captures, windows, processes, clipboard). Coordinates are session pixels; captures "
-    "report the scale of their image. Applications in the session work on the user's real files and settings.";
+    "report the scale of their image. Applications in the session work on the user's real files and settings. The user "
+    "can watch, take control, or stop you; each response tells what changed since your previous call. Applications in "
+    "the session render at most at its compose rate, about 30 to 40 frames per second, so frame rates measured there "
+    "are lower than on the PC's own screen.";
 
   McpServer::McpServer(dependency_container* container) :
     _toolSources(container->resolve<registry<ToolSource>>()),
@@ -93,15 +96,15 @@ namespace SecondShell::Mcp
     return nullptr;
   }
 
-  function<void(uint32_t, uint32_t, string_view)> McpServer::ProgressReporter(const CallToolRequest& request)
+  function<void(double, double, string_view)> McpServer::ProgressReporter(const CallToolRequest& request)
   {
     if (!request.Meta || !request.Meta->ProgressToken) return {};
 
-    return [this, token = request.Meta->ProgressToken](uint32_t completed, uint32_t total, string_view message) {
+    return [this, token = request.Meta->ProgressToken](double progress, double total, string_view message) {
       _peer.Notify(ProgressNotification{
         .ProgressToken = token,
-        .Progress = double(completed),
-        .Total = double(total),
+        .Progress = progress,
+        .Total = total,
         .Message = message.empty() ? nullopt : optional<string>(message)
         });
       };

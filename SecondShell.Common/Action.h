@@ -23,6 +23,9 @@ namespace SecondShell::Actions
 
     //The action name, e.g. "Mouse.Click".
     const char* Name() const;
+
+    //Checks what its schema cannot express, e.g. that one of several properties is given; the error is for the AI.
+    virtual Axodox::Infrastructure::expected<> Validate() const;
   };
 
   //Implements Kind and Type for a concrete action.
@@ -46,6 +49,16 @@ namespace SecondShell::Actions
     Axodox::Infrastructure::value_ptr<Axodox::Json::json_value> to_json() const;
     Axodox::Infrastructure::expected<> validate_value(const Axodox::Json::json_value& value) const;
   };
+
+  //The schema of a list of actions, the steps of a sequence: validation reports every invalid step, not just the first.
+  struct SECONDSHELL_COMMON_API ActionListSchema : public Axodox::Json::json_type_schema<ActionListSchema, Axodox::Json::json_type::array>
+  {
+    const char* description = nullptr;
+    std::optional<int32_t> min_items;
+
+    void populate_schema(Axodox::Json::json_object& schema) const;
+    Axodox::Infrastructure::expected<> validate_value(const Axodox::Json::json_value& value) const;
+  };
 }
 
 namespace Axodox::Json
@@ -54,5 +67,11 @@ namespace Axodox::Json
   struct json_type_metadata<Axodox::Infrastructure::value_ptr<SecondShell::Actions::Action>>
   {
     using type = SecondShell::Actions::ActionSchema;
+  };
+
+  template<>
+  struct json_type_metadata<std::vector<Axodox::Infrastructure::value_ptr<SecondShell::Actions::Action>>>
+  {
+    using type = SecondShell::Actions::ActionListSchema;
   };
 }

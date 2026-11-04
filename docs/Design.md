@@ -112,15 +112,25 @@ With **Keep working while the screen is locked** on (Settings, General; off by d
 
 **Security**: the PC's screen stays locked throughout, so nobody at the PC can use the session without signing in. But while the user is away their session is unlocked, reachable only through the connection inside SecondShell, and SecondShell uses the saved password to unlock it whenever the user locks the PC. That is why it is off by default; on a managed PC the organization's policy decides whether it is acceptable. Policies that end idle Remote Desktop sessions end this connection too.
 
+### Telling the agent what changed
+
+MCP clients do not show the model notifications that arrive between tool calls, so the agent hears about changes with its next call instead. Every response of `Initialize-Session`, `Check-Session` and `Run-Sequence` carries what changed since the agent's previous call:
+
+- **`events`**: each with its local `time`, an `event` and a `message` that says what it means for the agent: the user took control (`ControlTaken`), stopped the agent (`AgentStopped`) or gave control back (`ControlReturned`); input paused while the session is kept unlocked behind the lock screen (`InputPaused`), stopped until the user signs in (`InputUnavailable`) or is back (`InputAvailable`); the user left the PC (`UserLeft`) or came back (`UserReturned`). Each MCP connection reads the events after its previous call, from when it connected; the host keeps the last 100.
+- **`newWindows`**: the windows of the session that were not there at the previous call, dialogs and windows of other programs included, as `Window.Enumerate` with `all` lists them. They are the agent's own windows and dialogs, but also prompts nobody answers otherwise, e.g. endpoint protection asking about a new program, which would time out and block it (seen with Trend Micro Apex One). The first call of a connection, and the first after a session started, only learns which windows there are.
+- **Waiting for control**: `Check-Session` with `waitForControl` (milliseconds) waits until the agent may send input again: the user gave control back and input reaches the session. The `AgentInputDisabled` message and the `ControlTaken`/`AgentStopped` events point to it. Waits beyond a minute take several calls, as clients give up on long ones.
+
 ## MCP tools
 
 - `Initialize-Session`: initializes a new session and starts the second shell process. Display settings and capture settings (see `Configure-Capture`) can be specified, otherwise the defaults will be used. Waits until the login is complete, or until its timeout expires (default 3 minutes).
 
-- `Check-Session`: checks the status of the current session and returns information about the session, such as whether it is active, the display settings, and the process ID of the second shell process. Normally it can be assumed after initialization that the session is active, and running a sequence will check the session status anyways and return an error if the session is not active. It also reports `isUserPresent` (the user's own session is unlocked on the PC's screen; false: the PC is unattended) and `input`: `Available`, `Resuming` (the user's session locked and is being kept unlocked behind the lock screen: input steps wait the few seconds that takes) or `Unavailable` (until the user signs in again; see Working while the screen is locked).
+- `Check-Session`: checks the status of the current session and returns information about the session, such as whether it is active, the display settings, and the process ID of the second shell process. Normally it can be assumed after initialization that the session is active, and running a sequence will check the session status anyways and return an error if the session is not active. It also reports `isUserPresent` (the user's own session is unlocked on the PC's screen; false: the PC is unattended), `input`: `Available`, `Resuming` (the user's session locked and is being kept unlocked behind the lock screen: input steps wait the few seconds that takes) or `Unavailable` (until the user signs in again; see Working while the screen is locked), and `control`: `Agent`, `User` (the user took control) or `Stopped`. With `waitForControl` it first waits until the agent may send input again (see Telling the agent what changed).
 
 - `Shutdown-Session`: closes the current session and terminates the second shell process.
 
-- `Run-Sequence`: performs a sequence of actions, this is the main tool used by the AI agent to perform input simulation and screen capture.
+- `Run-Sequence`: performs a sequence of actions, this is the main tool used by the AI agent to perform input simulation and screen capture. Its description gives a few examples of steps: agents rebuild calls from memory after their context is compacted, and guessed property names were most of the failed calls in practice.
+
+The server's instructions also say that the user may watch, take control or stop the agent, and that applications in the session render at most at its compose rate, about 30 to 40 frames per second (Findings.md 2.13), so performance checks there are not misread.
 
 - `Set-Display`: sets the display resolution and other display settings (resolution, scaling, orientation); settings left out stay as they are. Returns once captures show the new size.
 
@@ -134,7 +144,7 @@ All tools that wait for something have a timeout with a sensible default, which 
 
 ### Basics
 
-Inputs are defined as a sequence of actions, which are executed in order. Each action is represented as a JSON object with an `"action"` field specifying the type of action, and additional fields specifying the parameters for that action. Action names and enum values (e.g. `"Left"`, `"inline"`) are case-insensitive; the tool schema lists enum values in PascalCase. Unknown properties are rejected, so typos are reported instead of ignored.
+Inputs are defined as a sequence of actions, which are executed in order. Each action is represented as a JSON object with an `"action"` field specifying the type of action, and additional fields specifying the parameters for that action. Action names and enum values (e.g. `"Left"`, `"inline"`) are case-insensitive; the tool schema lists enum values in PascalCase. Unknown properties are rejected, so typos are reported instead of ignored. Every problem is reported at once: all invalid steps, each on a line of its own with all of its problems (unknown properties with the valid ones, missing and invalid values), and then no step runs, so the agent fixes them in one round trip. Guessed names are not accepted as aliases; the descriptions say what to use instead (e.g. key `A` with modifiers `["Ctrl"]` for `Ctrl+A`, `resolution` for a smaller capture, `Mouse.Press`, `Mouse.Move` and `Mouse.Release` for a drag).
 
 Actions are normally executed sequentially. Most actions require no duration setting, instead a default duration is used, so the system may register the input and process it. 
 
@@ -176,13 +186,14 @@ All coordinates, sizes and regions in actions and results are in **session pixel
 
 - **Input state after failure**: when a sequence stops early, all inputs are released as by `Control.Reset` (held mouse buttons, keys, touch points, the pen and gamepad buttons; gamepad sticks and triggers return to rest), and the result reports what was held, so the agent knows the state it left the session in.
 
-- **User interruption**: if the user presses "Stop" or switches the window to interactive mode, the running sequence stops with a `UserInterrupted` error. Until the user gives control back, all further sequences fail immediately with `AgentInputDisabled`.
+- **User interruption**: if the user presses "Stop" or switches the window to interactive mode, the running sequence stops with a `UserInterrupted` error. Until the user gives control back, all further sequences fail immediately with `AgentInputDisabled`; `Check-Session` with `waitForControl` waits for control to come back, and the next response's `events` say when it did.
 
 - **Timeouts**:
   - `Run-Sequence` accepts a master `"timeout"` for the whole sequence (default 60 seconds).
   - Every action that waits for something (`Process.WaitForProcess`, `Capture.WaitForText`, synchronous `Process.Run`, etc.) accepts its own `"timeout"` (default 10 seconds).
   - Session tools (`Initialize-Session`, `Shutdown-Session`, etc.) have default timeouts too.
   - Whichever timeout expires first stops the sequence with a `Timeout` error.
+  - **The AI client's own timeout**: clients give up on a tool call after a while, often a minute, whatever the sequence's timeout. The tool description says so, and suggests starting longer work in the background (`Process.Run` with `async`) and checking on it with short sequences. While a step runs long, the host reports progress whenever nothing has been reported for 20 s, just often enough for clients that reset their timeout on progress; short sequences report only their completed steps. A call the client gives up on is cancelled (`notifications/cancelled`, or its connection closing), and the cancellation reaches the host, which stops the sequence and releases what it held, so its later steps never run.
 
 - **Error codes**: `SessionNotActive`, `UserInterrupted`, `AgentInputDisabled`, `Timeout`, `InvalidArgument` (e.g. unknown window ID or coordinates outside the screen), `ActionFailed` (the action itself failed; the message has the details), `SetupRequired`, `InputUnavailable` (Windows refused an input action because the user's own session is locked, and input is not coming back within seconds; the message says why, see Working while the screen is locked).
 
@@ -197,7 +208,9 @@ All coordinates, sizes and regions in actions and results are in **session pixel
 ### Process management
 
 - `{ "action": "Process.Run", "command": command, "shell": "PowerShell/Pwsh/Cmd/None", "args": [arg], "workingDirectory": path, "async": true/false, "timeout": timeoutMS }`: **Run**: executes a command inside the child session.
-  - `shell` selects how `command` is interpreted: `PowerShell` (default, Windows PowerShell), `Pwsh` (PowerShell 7, if installed), `Cmd`, or `None`. With `None`, `command` is the path of an executable and `args` its arguments, passed without any shell parsing. The default shell can be changed in the SecondShell settings.
+  - `shell` selects how `command` is interpreted: `PowerShell` (default, Windows PowerShell), `Pwsh` (PowerShell 7, if installed), `Cmd`, or `None`. The default shell can be changed in the SecondShell settings.
+  - Without `args`, `command` is a command line for the shell. With `args`, or with `None`, `command` is the program to run and `args` its arguments, each passed as it is, never parsed by the shell: PowerShell runs `& 'program' 'arg' ...` (so the program may also be a script or a cmdlet), Cmd runs `"program" arg ...`. (Earlier, `args` went to a PowerShell script block as `$args`, so `cmd.exe` with `/c ...` started interactively and ignored them.)
+  - Packaged (Store) apps start through their execution alias, with `workingDirectory` set to the package folder, as some load files relative to it; there is no action of its own for them.
   - `workingDirectory` is optional; default is the user's profile folder.
   - Synchronous (default): waits for the process to exit, then returns its exit code and its output and error streams. Each stream is truncated to 64 KB, and the result says if it was. If `timeout` (default 10 seconds) expires, the sequence stops with a `Timeout` error; the process keeps running and its PID is reported, so it can be stopped or killed.
   - Synchronous runs have no window and an empty input stream, so they suit commands, not programs to interact with.
@@ -236,7 +249,7 @@ A sequence returns at most 4 inline captures (configurable). Further captures ma
 
 - `{ "action": "Capture.Screen" }`: **Capture screen**: captures the whole desktop of the session.
 
-- `{ "action": "Capture.Window", "window": windowId }`: **Capture window**: captures a single window. `window` is optional; if not set, the active window is captured.
+- `{ "action": "Capture.Window", "window": windowId }`: **Capture window**: captures a single window, given by ID or by `title`, `processName` or `pid` as for the window actions. If none is set, the active window is captured.
 
 - `{ "action": "Capture.Region", "x": x, "y": y, "width": width, "height": height }`: **Capture region**: captures the specified rectangle of the screen.
 
@@ -339,9 +352,11 @@ Actions:
 
 **Window IDs** are window handles (HWND) written as hexadecimal strings, e.g. `"0x0001A2B4"`. They are valid only inside the child session and only while the window exists. Using the ID of a window that has closed gives an `InvalidArgument` error.
 
-- `{ "action": "Window.Enumerate" }`: **Enumerate windows**: returns a list of all open top-level windows with their ID, title, process ID and name, position and size, state (normal, minimized, maximized), and which one is in the foreground.
+**Finding a window without its ID**: IDs change when an application restarts, so every action below that takes `window` also takes, instead, any of `title` (a part of the title, ignoring case), `processName` (e.g. `"notepad.exe"` or `"notepad"`, ignoring case) and `pid`. The action is for the topmost window that matches all of those given, dialogs included. Giving `window` together with them is an error, and so is giving none. If no window matches, the `InvalidArgument` message lists the windows there are (at most 20), so the agent can correct the query without another call.
 
-- `{ "action": "Window.Focus", "window": windowId }`: **Focus window**: brings the window to the foreground and gives it keyboard focus, restoring it first if it is minimized. Use it before typing into a window. Returns an error if Windows refused to switch the foreground window.
+- `{ "action": "Window.Enumerate", "all": false }`: **Enumerate windows**: returns a list of all open top-level windows, topmost first, with their ID, title, process ID and name, position and size, state (normal, minimized, maximized), and which one is in the foreground. By default the windows the taskbar shows; with `all`, also dialogs and other windows it does not show, if they have a title.
+
+- `{ "action": "Window.Focus", "window": windowId }` or `{ "action": "Window.Focus", "title": "Notepad" }`: **Focus window**: brings the window to the foreground and gives it keyboard focus, restoring it first if it is minimized. Use it before typing into a window. Returns an error if Windows refused to switch the foreground window.
 
 - `{ "action": "Window.Move", "window": windowId, "x": x, "y": y }`: **Move window**: moves the specified window to the specified screen coordinates.
 

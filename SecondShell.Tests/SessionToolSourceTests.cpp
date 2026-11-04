@@ -9,6 +9,7 @@
 using namespace Axodox::Infrastructure;
 using namespace Axodox::Json;
 using namespace Axodox::Networking;
+using namespace Axodox::Threading;
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 using namespace SecondShell::Actions;
 using namespace SecondShell::Mcp;
@@ -28,6 +29,8 @@ namespace SecondShell::Tests
       mutex Mutex;
       optional<InitializeSessionRequest> Initialize;
       optional<RunSequenceRequest> Sequence;
+      optional<CheckSessionRequest> Check;
+      manual_reset_event SequenceCancelled;
     };
 
     //One connection of the fake host: answers the host's methods like a host with a ready session would.
@@ -61,19 +64,33 @@ namespace SecondShell::Tests
         return ReadySession();
       }
 
-      RpcResult<SessionResponse> CheckSession(const CheckSessionRequest& /*request*/, const CancellationToken& /*cancellation*/)
+      RpcResult<SessionResponse> CheckSession(const CheckSessionRequest& request, const CancellationToken& /*cancellation*/)
       {
+        lock_guard lock{ _requests.Mutex };
+        _requests.Check = request;
         return ReadySession();
       }
 
-      RpcResult<RunSequenceResponse> RunSequence(const RunSequenceRequest& request, const CancellationToken& /*cancellation*/)
+      RpcResult<RunSequenceResponse> RunSequence(const RunSequenceRequest& request, const CancellationToken& cancellation)
       {
         {
           lock_guard lock{ _requests.Mutex };
           _requests.Sequence = request;
         }
 
-        if (request.ProgressToken) _peer.Notify(SequenceProgressNotification{ .ProgressToken = request.ProgressToken, .CompletedSteps = 1, .TotalSteps = 1, .Message = "Capture.Screen" });
+        //A wait runs until the request is cancelled
+        if (request.Steps.at(0)->Type() == ActionType::ControlWait)
+        {
+          if (cancellation.WaitFor(5s)) _requests.SequenceCancelled.set();
+          return RunSequenceResponse{};
+        }
+
+        //A long step still running, then done
+        if (request.ProgressToken)
+        {
+          _peer.Notify(SequenceProgressNotification{ .ProgressToken = request.ProgressToken, .CompletedSteps = 0, .TotalSteps = 1, .Message = "Capture.Screen, running for 20 s", .StepProgress = 0.5 });
+          _peer.Notify(SequenceProgressNotification{ .ProgressToken = request.ProgressToken, .CompletedSteps = 1, .TotalSteps = 1, .Message = "Capture.Screen" });
+        }
 
         auto capture = make_value<CaptureResult>();
         capture->Tag = "0";
@@ -246,6 +263,7 @@ namespace SecondShell::Tests
       FakeHost host{ _pipeName };
 
       _client.Send(R"({"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "Run-Sequence", "arguments": {"steps": [{"action": "Capture.Screen"}]}, "_meta": {"progressToken": "p"}}})");
+      JsonSnapshot::AssertEqual(R"({"jsonrpc": "2.0", "method": "notifications/progress", "params": {"progressToken": "p", "progress": 0.5, "total": 1, "message": "Capture.Screen, running for 20 s"}})", *_client.Receive());
       JsonSnapshot::AssertEqual(R"({"jsonrpc": "2.0", "method": "notifications/progress", "params": {"progressToken": "p", "progress": 1, "total": 1, "message": "Capture.Screen"}})", *_client.Receive());
 
       //The structured result keeps everything but the image data, also as text; the image follows with a caption
@@ -283,6 +301,28 @@ namespace SecondShell::Tests
     {
       auto result = _client.CallTool("Run-Sequence", R"({"steps": [{"action": "Capture.Screen"}], "progressToken": 1})");
       Assert::IsTrue(ErrorText(*result).starts_with("Invalid arguments: unknown property 'progressToken'"));
+    }
+
+    TEST_METHOD(ASequenceTheClientGivesUpOnIsCancelledInTheHost)
+    {
+      FakeHost host{ _pipeName };
+
+      _client.Send(R"({"jsonrpc": "2.0", "id": 9, "method": "tools/call", "params": {"name": "Run-Sequence", "arguments": {"steps": [{"action": "Control.Wait", "duration": 60000}]}}})");
+      Assert::IsTrue(Eventually([&] { lock_guard lock{ host.Requests.Mutex }; return host.Requests.Sequence.has_value(); }), L"the host should get the sequence");
+
+      _client.Send(R"({"jsonrpc": "2.0", "method": "notifications/cancelled", "params": {"requestId": 9, "reason": "Request timed out"}})");
+      Assert::IsTrue(host.Requests.SequenceCancelled.wait(5s), L"the host should stop the sequence");
+    }
+
+    TEST_METHOD(CheckSessionForwardsTheWaitForControl)
+    {
+      FakeHost host{ _pipeName };
+
+      auto result = _client.CallTool("Check-Session", R"({"waitForControl": 100})");
+      Assert::AreEqual(string("Ready"), StructuredContent(*result).at("session")->as<json_object>().at("state")->as<json_string>().value);
+
+      lock_guard lock{ host.Requests.Mutex };
+      Assert::AreEqual(100u, *host.Requests.Check->WaitForControl);
     }
 
     TEST_METHOD(HostErrorsBecomeToolErrors)

@@ -9,8 +9,9 @@ namespace SecondShell::Mcp
   {
     const Rpc::CancellationToken& Cancellation;
 
-    //Reports progress to the client; empty if the client did not ask for progress. May be called from any thread.
-    std::function<void(uint32_t completed, uint32_t total, std::string_view message)> ReportProgress;
+    //Reports progress to the client, which must increase with each report; empty if the client did not ask for
+    //progress. May be called from any thread.
+    std::function<void(double progress, double total, std::string_view message)> ReportProgress;
 
     //Added to the response after the result, e.g. the images of captures.
     std::vector<Axodox::Infrastructure::value_ptr<ContentBlock>> Content;

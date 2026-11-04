@@ -47,7 +47,7 @@ namespace SecondShell::Driver
     case ActionType::CaptureWindow:
     {
       auto& windowAction = static_cast<const CaptureWindowAction&>(action);
-      return CaptureRect(windowAction, WindowRect(windowAction.Window));
+      return CaptureRect(windowAction, WindowRect(windowAction.Query()));
     }
     case ActionType::CaptureRegion:
     {
@@ -83,7 +83,7 @@ namespace SecondShell::Driver
     Rect region;
     if (action.Window)
     {
-      region = WindowRect(action.Window);
+      region = WindowRect({ .Window = action.Window });
     }
     else if (action.X || action.Y || action.Width || action.Height)
     {
@@ -103,9 +103,9 @@ namespace SecondShell::Driver
     return ActionResult::Failed(ErrorCode::Timeout, format("The screen did not stay the same for {} ms within {} ms; an animation, such as a caret or a spinner, can keep it changing, so limit the check to a window or region.", stableFor.count(), timeout.count()));
   }
 
-  Rect CaptureActionHandler::WindowRect(const optional<WindowId>& window) const
+  Rect CaptureActionHandler::WindowRect(const WindowQuery& query) const
   {
-    auto target = window ? window : _windows->Foreground();
+    auto target = query.IsEmpty() ? _windows->Foreground() : _windows->Find(query);
     if (!target) throw invalid_argument("There is no active window.");
 
     auto info = _windows->Get(*target);

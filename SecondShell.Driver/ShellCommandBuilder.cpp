@@ -93,7 +93,8 @@ namespace SecondShell::Desktop
   wstring ShellCommandBuilder::PowerShell(wstring_view executable, string_view command, span<const string> args) const
   {
     //One argument, which PowerShell reads as the C runtime does. Not -EncodedCommand: with it, errors are written as
-    //CLIXML. The arguments reach the command as $args.
+    //CLIXML. With arguments, the command is the program, which the call operator runs whether it is an executable, a
+    //script or a cmdlet.
     string script = _powerShellPrelude;
     if (args.empty())
     {
@@ -101,7 +102,7 @@ namespace SecondShell::Desktop
     }
     else
     {
-      script += format("& {{ {} }}", command);
+      script += "& " + PowerShellLiteral(command);
       for (auto& arg : args) script += " " + PowerShellLiteral(arg);
     }
 
@@ -110,8 +111,10 @@ namespace SecondShell::Desktop
 
   wstring ShellCommandBuilder::Cmd(string_view command, span<const string> args) const
   {
-    //With /s, cmd removes the outer quotes and runs the rest as it is
-    return std::format(L"{} /d /s /c \"{}{}\"", QuoteArgument((_systemFolder / L"cmd.exe").wstring()), winrt::to_hstring(command), JoinArguments(args));
+    //With /s, cmd removes the outer quotes and runs the rest as it is. With arguments, the command is the program.
+    wstring line{ winrt::to_hstring(command) };
+    if (!args.empty()) line = QuoteArgument(line) + JoinArguments(args);
+    return std::format(L"{} /d /s /c \"{}\"", QuoteArgument((_systemFolder / L"cmd.exe").wstring()), line);
   }
 
   wstring ShellCommandBuilder::Executable(string_view command, span<const string> args) const

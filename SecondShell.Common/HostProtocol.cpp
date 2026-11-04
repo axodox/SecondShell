@@ -25,11 +25,26 @@ namespace SecondShell::Protocol
     { &SessionInfo::IsDriverConnected, "isDriverConnected" },
     { &SessionInfo::DriverProcessId, "driverPid", { .is_required = false } },
     { &SessionInfo::IsUserPresent, "isUserPresent", { .is_required = false, .schema = { .description = "Whether the user is at the PC: their own Windows session is unlocked on its screen. False: the PC is unattended." } } },
-    { &SessionInfo::Input, "input", { .is_required = false, .schema = { .description = "Whether input actions reach the session. Windows stops all input while the user's own session is locked. Resuming: SecondShell is keeping it unlocked behind the lock screen, and input actions wait the few seconds that takes. Unavailable: until the user signs in again; captures, windows, processes and the clipboard still work." } } }
+    { &SessionInfo::Input, "input", { .is_required = false, .schema = { .description = "Whether input actions reach the session. Windows stops all input while the user's own session is locked. Resuming: SecondShell is keeping it unlocked behind the lock screen, and input actions wait the few seconds that takes. Unavailable: until the user signs in again; captures, windows, processes and the clipboard still work." } } },
+    { &SessionInfo::Control, "control", { .is_required = false, .schema = { .description = "Who controls the session. Agent: you. User: the user has taken control; Stopped: the user stopped the agent. Either way sequences fail with AgentInputDisabled until the user gives control back; Check-Session with waitForControl waits for that." } } }
     });
 
+  json_object_descriptor<SessionEvent> SessionEvent::json_description = describe_json_object<SessionEvent>({
+    { &SessionEvent::Time, "time", { .schema = { .description = "Local time." } } },
+    { &SessionEvent::Event, "event" },
+    { &SessionEvent::Message, "message" }
+    });
+
+  namespace
+  {
+    const char* const _events = "What changed since your previous call: the user taking or giving back control, the PC being locked and input stopping or coming back, the user leaving or coming back.";
+    const char* const _newWindows = "Windows which opened since your previous call, dialogs included: yours, and prompts of other programs which may need an answer.";
+  }
+
   json_object_descriptor<SessionResponse> SessionResponse::json_description = describe_json_object<SessionResponse>({
-    { &SessionResponse::Session, "session" }
+    { &SessionResponse::Session, "session" },
+    { &SessionResponse::Events, "events", { .is_required = false, .schema = { .description = _events } } },
+    { &SessionResponse::NewWindows, "newWindows", { .is_required = false, .schema = { .description = _newWindows } } }
     });
 
   json_object_descriptor<InitializeSessionRequest> InitializeSessionRequest::json_description = describe_json_object<InitializeSessionRequest>(
@@ -42,7 +57,10 @@ namespace SecondShell::Protocol
     });
 
   json_object_descriptor<CheckSessionRequest> CheckSessionRequest::json_description = describe_json_object<CheckSessionRequest>(
-    { .name = "session/check", .description = "Returns the state of the session: whether it is ready, its display settings, the driver's process ID, whether the user is at the PC, and whether input reaches the session." }, {});
+    { .name = "session/check", .description = "Returns the state of the session: whether it is ready, its display settings, the driver's process ID, whether the user is at the PC, whether input reaches the session, and who controls it. With waitForControl it first waits until you may send input again, e.g. after the user took control." },
+    {
+      { &CheckSessionRequest::WaitForControl, "waitForControl", { .is_required = false, .schema = { .description = "Milliseconds to wait at most until you control the session and input reaches it. Keep it under 50000: AI clients often give up on a tool call after a minute; check again to wait longer.", .minimum = 0 } } }
+    });
 
   json_object_descriptor<ShutdownSessionRequest> ShutdownSessionRequest::json_description = describe_json_object<ShutdownSessionRequest>(
     { .name = "session/shutdown", .description = "Logs the session off, closing all its applications." },
@@ -55,14 +73,24 @@ namespace SecondShell::Protocol
     { &RunSequenceResponse::FailedStep, "failedStep", { .is_required = false } },
     { &RunSequenceResponse::Error, "error", { .is_required = false } },
     { &RunSequenceResponse::Message, "message", { .is_required = false } },
-    { &RunSequenceResponse::ReleasedInput, "releasedInput", { .is_required = false } }
+    { &RunSequenceResponse::ReleasedInput, "releasedInput", { .is_required = false } },
+    { &RunSequenceResponse::Events, "events", { .is_required = false, .schema = { .description = _events } } },
+    { &RunSequenceResponse::NewWindows, "newWindows", { .is_required = false, .schema = { .description = _newWindows } } }
     });
 
   json_object_descriptor<RunSequenceArguments> RunSequenceArguments::json_description = describe_json_object<RunSequenceArguments>(
-    "Runs actions in order in the session, until one fails: input, captures, windows, processes, clipboard. Captures are returned as images. When the user locks the PC, input actions wait the few seconds SecondShell takes to keep input working; they fail with InputUnavailable when input does not come back soon (the message, and Check-Session, tell why).",
+    "Runs actions in order in the session, until one fails: input, captures, windows, processes, clipboard. Captures are returned as images. "
+    "Each step is an object with the action's name in \"action\" and only the properties its schema lists, e.g. "
+    "{\"action\": \"Mouse.Click\", \"x\": 640, \"y\": 360}, {\"action\": \"Keyboard.Type\", \"text\": \"hello\"}, "
+    "{\"action\": \"Keyboard.Tap\", \"key\": \"S\", \"modifiers\": [\"Ctrl\"]}, {\"action\": \"Control.Wait\", \"duration\": 500}, "
+    "{\"action\": \"Capture.Window\", \"title\": \"Notepad\"}. Invalid steps are all reported at once, and then nothing runs. "
+    "AI clients often give up on a tool call after about a minute, so keep each sequence's waits well below that; for longer work, "
+    "start it in the background (Process.Run with async) and check on it with short sequences. A sequence the client gives up on is stopped. "
+    "When the user locks the PC, input actions wait the few seconds SecondShell takes to keep input working; they fail with InputUnavailable when input does not come back soon (the message, and Check-Session, tell why). "
+    "The response also tells what changed since your previous call (events, newWindows).",
     {
       { &RunSequenceArguments::Steps, "steps", { .is_required = true, .schema = { .description = "The actions, run in order. Coordinates are session pixels.", .min_items = 1 } } },
-      { &RunSequenceArguments::Timeout, "timeout", { .is_required = false, .schema = { .description = "Milliseconds for the whole sequence, default 60000.", .minimum = 0 } } },
+      { &RunSequenceArguments::Timeout, "timeout", { .is_required = false, .schema = { .description = "Milliseconds for the whole sequence, default 60000; it does not extend how long the AI client waits.", .minimum = 0 } } },
       { &RunSequenceArguments::Description, "description", { .is_required = false, .schema = { .description = "What the sequence does, in a few words, for the user watching SecondShell, e.g. \"Opening the settings\"." } } }
     });
 
@@ -78,7 +106,8 @@ namespace SecondShell::Protocol
       { &SequenceProgressNotification::ProgressToken, "progressToken", { .is_required = false } },
       { &SequenceProgressNotification::CompletedSteps, "completedSteps" },
       { &SequenceProgressNotification::TotalSteps, "totalSteps" },
-      { &SequenceProgressNotification::Message, "message", { .is_required = false } }
+      { &SequenceProgressNotification::Message, "message", { .is_required = false } },
+      { &SequenceProgressNotification::StepProgress, "stepProgress", { .is_required = false } }
     });
 
   json_object_descriptor<DisplayResponse> DisplayResponse::json_description = describe_json_object<DisplayResponse>({

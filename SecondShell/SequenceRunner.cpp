@@ -6,6 +6,7 @@
 #include "ProtocolErrors.h"
 
 using namespace Axodox::Infrastructure;
+using namespace Axodox::Threading;
 using namespace SecondShell::Actions;
 using namespace SecondShell::Protocol;
 using namespace SecondShell::Rpc;
@@ -58,6 +59,106 @@ namespace SecondShell::Agent
       auto kind = action.Kind();
       return kind == ActionKind::Mouse || kind == ActionKind::Keyboard || kind == ActionKind::Touch || kind == ActionKind::Pen;
     }
+
+    //How long a step is expected to take, for its progress
+    milliseconds ExpectedDuration(const Action& action, milliseconds remaining)
+    {
+      if (action.Type() == ActionType::ControlWait) return milliseconds(static_cast<const ControlWaitAction&>(action).Duration);
+      return min(remaining, action.WaitTimeout().value_or(Action::DefaultWaitTimeout));
+    }
+
+    //Reports a sequence's progress: after each step, and, while a long step runs, again whenever nothing has been
+    //reported for a while: just often enough that clients which reset their timeout on progress do not give up on it.
+    //The values only increase, as MCP requires.
+    class ProgressReporter
+    {
+    public:
+      ProgressReporter(const ProgressCallback& callback, uint32_t total, milliseconds keepAliveInterval) :
+        _callback(callback),
+        _total(total),
+        _keepAliveInterval(keepAliveInterval)
+      {
+        if (_callback) _thread = thread([this] { Run(); });
+      }
+
+      ~ProgressReporter()
+      {
+        if (!_thread.joinable()) return;
+        {
+          lock_guard lock{ _mutex };
+          _isDone = true;
+        }
+        _wake.notify_all();
+        _thread.join();
+      }
+
+      void StartStep(uint32_t index, const char* name, milliseconds expected)
+      {
+        lock_guard lock{ _mutex };
+        _index = index;
+        _name = name;
+        _start = steady_clock::now();
+        _expected = max(expected, 1ms);
+      }
+
+      void CompleteStep(uint32_t index, string_view name)
+      {
+        lock_guard lock{ _mutex };
+        _name = nullptr;
+        Report(index + 1, nullopt, name);
+      }
+
+    private:
+      const ProgressCallback& _callback;
+      uint32_t _total;
+      milliseconds _keepAliveInterval;
+
+      mutex _mutex;
+      condition_variable _wake;
+      bool _isDone = false;
+      uint32_t _index = 0;
+      const char* _name = nullptr;  //of the running step
+      steady_clock::time_point _start;
+      milliseconds _expected{ 1 };
+      double _reported = 0;
+      steady_clock::time_point _reportedAt = steady_clock::now();
+      thread _thread;
+
+      void Run()
+      {
+        set_thread_name("* Sequence progress");
+
+        unique_lock lock{ _mutex };
+        while (!_wake.wait_until(lock, _reportedAt + _keepAliveInterval, [this] { return _isDone; }))
+        {
+          //Reported meanwhile, or no step running
+          auto now = steady_clock::now();
+          if (now < _reportedAt + _keepAliveInterval) continue;
+          if (!_name)
+          {
+            _reportedAt = now;
+            continue;
+          }
+
+          //Up to 90% over the expected time, then ever closer to 100% for a step which takes longer
+          auto elapsed = duration_cast<milliseconds>(now - _start);
+          auto ratio = double(elapsed.count()) / double(_expected.count());
+          auto fraction = ratio < 1 ? 0.9 * ratio : 1 - 0.1 / ratio;
+          Report(_index, fraction, format("{}, running for {} s", _name, duration_cast<seconds>(elapsed).count()));
+        }
+      }
+
+      //Under _mutex
+      void Report(uint32_t completed, optional<double> step, string_view message)
+      {
+        auto value = completed + step.value_or(0);
+        if (value <= _reported) return;
+
+        _reported = value;
+        _reportedAt = steady_clock::now();
+        if (_callback) _callback(completed, _total, step, message);
+      }
+    };
   }
 
   SequenceRunner::SequenceRunner(dependency_container* container) :
@@ -102,23 +203,27 @@ namespace SecondShell::Agent
     _actionLog->BeginSequence(state.Sequence, request.Description, uint32_t(request.Steps.size()));
 
     RunSequenceResponse response;
-    for (uint32_t index = 0; index < request.Steps.size(); index++)
     {
-      auto& step = request.Steps[index];
-      _actionLog->Start(step, index);
-      auto visualId = _visualization->OnActionStarted(*step);
-      auto result = RunStep(state, step, index);
-      _visualization->OnActionFinished(visualId, *step, *result);
-      _actionLog->Add(step, *result, exchange(state.CaptureFile, nullopt));
-
-      if (result->Status != ActionStatus::Succeeded)
+      ProgressReporter reporter{ progress, uint32_t(request.Steps.size()), KeepAliveInterval };
+      for (uint32_t index = 0; index < request.Steps.size(); index++)
       {
-        ReportFailure(response, state, index, *result);
-        break;
-      }
+        auto& step = request.Steps[index];
+        _actionLog->Start(step, index);
+        reporter.StartStep(index, step->Name(), ExpectedDuration(*step, Remaining(state.Deadline)));
+        auto visualId = _visualization->OnActionStarted(*step);
+        auto result = RunStep(state, step, index);
+        _visualization->OnActionFinished(visualId, *step, *result);
+        _actionLog->Add(step, *result, exchange(state.CaptureFile, nullopt));
 
-      response.Results.push_back(move(result));
-      if (progress) progress(index + 1, uint32_t(request.Steps.size()), step->Name());
+        if (result->Status != ActionStatus::Succeeded)
+        {
+          ReportFailure(response, state, index, *result);
+          break;
+        }
+
+        response.Results.push_back(move(result));
+        reporter.CompleteStep(index, step->Name());
+      }
     }
 
     {
@@ -339,8 +444,8 @@ namespace SecondShell::Agent
 
   string SequenceRunner::RefusalMessage() const
   {
-    if (_agentControl->Mode() == ControlMode::User) return "The user has taken control of the session; sequences fail until they give it back.";
-    return "The user stopped the agent; sequences fail until they give control back.";
+    if (_agentControl->Mode() == ControlMode::User) return "The user has taken control of the session; sequences fail until they give it back. Check-Session with waitForControl waits for that.";
+    return "The user stopped the agent; sequences fail until they give control back. Check-Session with waitForControl waits for that.";
   }
 
   void SequenceRunner::ReportFailure(RunSequenceResponse& response, const RunState& state, uint32_t index, const ActionResult& result) const

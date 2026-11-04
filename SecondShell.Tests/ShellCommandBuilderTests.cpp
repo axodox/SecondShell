@@ -66,17 +66,23 @@ namespace SecondShell::Tests
       Assert::IsTrue(script.find("[Console]::OutputEncoding") != string::npos, L"the output should be UTF-8");
     }
 
-    TEST_METHOD(PowerShellArgumentsAreLiterals)
+    TEST_METHOD(PowerShellRunsTheProgramWithLiteralArguments)
     {
-      vector<string> args{ "it's", "$env:USERNAME" };
-      auto script = Script(_builder.Build(ShellKind::Pwsh, "Write-Output \"$args\"", args));
-      Assert::IsTrue(script.ends_with("& { Write-Output \"$args\" } 'it''s' '$env:USERNAME'"), to_wstring(script).c_str());
+      //cmd.exe with its arguments used to start interactively: the arguments went to a script block which ignored them
+      vector<string> args{ "/c", "it's", "$env:USERNAME" };
+      auto script = Script(_builder.Build(ShellKind::Pwsh, "C:\\Program Files\\cmd.exe", args));
+      Assert::IsTrue(script.ends_with("\n& 'C:\\Program Files\\cmd.exe' '/c' 'it''s' '$env:USERNAME'"), to_wstring(script).c_str());
     }
 
     TEST_METHOD(CmdRunsTheCommandAsItIs)
     {
-      vector<string> args{ "a b" };
-      Assert::AreEqual(wstring(L"C:\\Windows\\System32\\cmd.exe /d /s /c \"echo %PATH% & dir \"a b\"\""), _builder.Build(ShellKind::Cmd, "echo %PATH% & dir", args));
+      Assert::AreEqual(wstring(L"C:\\Windows\\System32\\cmd.exe /d /s /c \"echo %PATH% & dir\""), _builder.Build(ShellKind::Cmd, "echo %PATH% & dir", {}));
+    }
+
+    TEST_METHOD(CmdRunsTheProgramWithQuotedArguments)
+    {
+      vector<string> args{ "a b", "c" };
+      Assert::AreEqual(wstring(L"C:\\Windows\\System32\\cmd.exe /d /s /c \"\"C:\\My Tools\\tool.exe\" \"a b\" c\""), _builder.Build(ShellKind::Cmd, "C:\\My Tools\\tool.exe", args));
     }
   };
 }

@@ -28,6 +28,6 @@ namespace SecondShell::Mcp
     Rpc::RpcResult<CallToolResponse> CallTool(const CallToolRequest& request, const Rpc::CancellationToken& cancellation);
 
     const ToolDefinition* FindTool(std::string_view name) const;
-    std::function<void(uint32_t, uint32_t, std::string_view)> ProgressReporter(const CallToolRequest& request);
+    std::function<void(double, double, std::string_view)> ProgressReporter(const CallToolRequest& request);
   };
 }

@@ -41,6 +41,35 @@ namespace SecondShell::Desktop
       return !(style & WS_EX_TOOLWINDOW) && !GetWindow(handle, GW_OWNER);
     }
 
+    //Any other visible window with a title and a size, e.g. a dialog, or a prompt of another program
+    bool IsTitled(HWND handle)
+    {
+      if (handle == GetShellWindow() || !IsWindowVisible(handle) || IsCloaked(handle) || GetWindowTextLengthW(handle) == 0) return false;
+
+      RECT bounds;
+      return GetWindowRect(handle, &bounds) && bounds.right > bounds.left && bounds.bottom > bounds.top;
+    }
+
+    wstring Lowercase(string_view text)
+    {
+      wstring result{ winrt::to_hstring(text) };
+      CharLowerBuffW(result.data(), DWORD(result.size()));
+      return result;
+    }
+
+    bool Matches(const WindowInfo& window, const WindowQuery& query)
+    {
+      if (query.ProcessId && window.ProcessId != *query.ProcessId) return false;
+      if (query.Title && Lowercase(window.Title).find(Lowercase(*query.Title)) == wstring::npos) return false;
+      if (query.ProcessName)
+      {
+        auto name = Lowercase(window.ProcessName);
+        auto wanted = Lowercase(*query.ProcessName);
+        if (name != wanted && name != wanted + L".exe") return false;
+      }
+      return true;
+    }
+
     RECT FrameBounds(HWND handle)
     {
       RECT bounds;
@@ -101,20 +130,49 @@ namespace SecondShell::Desktop
     }
   }
 
-  vector<WindowInfo> WindowManager::Enumerate() const
+  vector<WindowInfo> WindowManager::Enumerate(bool all) const
   {
     //In Z order, the topmost first
-    vector<WindowInfo> windows;
-    EnumWindows([](HWND handle, LPARAM context) {
-      if (IsListed(handle)) reinterpret_cast<vector<WindowInfo>*>(context)->push_back(Describe(handle));
+    struct Context
+    {
+      bool All;
+      vector<WindowInfo> Windows;
+    } context{ all };
+
+    EnumWindows([](HWND handle, LPARAM parameter) {
+      auto& context = *reinterpret_cast<Context*>(parameter);
+      if (IsListed(handle) || (context.All && IsTitled(handle))) context.Windows.push_back(Describe(handle));
       return TRUE;
-      }, LPARAM(&windows));
-    return windows;
+      }, LPARAM(&context));
+    return move(context.Windows);
   }
 
   WindowInfo WindowManager::Get(WindowId window) const
   {
     return Describe(Handle(window));
+  }
+
+  WindowId WindowManager::Find(const WindowQuery& query) const
+  {
+    if (query.Window)
+    {
+      Handle(*query.Window);
+      return *query.Window;
+    }
+
+    auto windows = Enumerate(true);
+    for (auto& window : windows)
+    {
+      if (Matches(window, query)) return window.Window;
+    }
+
+    //What there is, so the agent can correct the query without another call
+    string list;
+    for (auto& window : windows | views::take(20))
+    {
+      list += format("{}'{}' ({}, pid {})", list.empty() ? "" : ", ", window.Title, window.ProcessName, window.ProcessId);
+    }
+    throw invalid_argument(format("No window matches {}. The windows are: {}.", query.to_string(), list.empty() ? "none" : list));
   }
 
   optional<WindowId> WindowManager::Foreground() const

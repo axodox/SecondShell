@@ -25,7 +25,14 @@ namespace SecondShell::Actions
   {
     static Axodox::Json::json_object_descriptor<CaptureWindowAction> json_description;
 
+    //As WindowTargetAction's; none: the active window
     std::optional<WindowId> Window;
+    std::optional<std::string> Title;
+    std::optional<std::string> ProcessName;
+    std::optional<uint32_t> ProcessId;
+
+    WindowQuery Query() const;
+    virtual Axodox::Infrastructure::expected<> Validate() const override;
   };
 
   struct SECONDSHELL_COMMON_API CaptureRegionAction : public TypedAction<ActionKind::Capture, ActionType::CaptureRegion, CaptureAction>

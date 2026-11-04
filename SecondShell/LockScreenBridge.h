@@ -3,19 +3,13 @@
 #include "LockScreenPolicy.h"
 #include "LoopbackClient.h"
 #include "MachineConfiguration.h"
+#include "SessionEventLog.h"
 #include "SessionLockWatcher.h"
 #include "SessionManager.h"
 #include "SettingsStore.h"
 
 namespace SecondShell::Session
 {
-  //What the agent is told about the user and its input (Check-Session, InputUnavailable).
-  struct InputStatus
-  {
-    bool IsUserPresent = true;
-    Protocol::InputAvailability Input = Protocol::InputAvailability::Available;
-  };
-
   //Keeps the user's session unlocked behind the lock screen while the agent works, if the user turned it on (Design.md,
   //Working while the screen is locked): when the user locks the PC, it signs the session in again through the loopback
   //connection, and when the user signs in at the PC, Windows ends that connection. LockScreenPolicy decides; this class
@@ -41,6 +35,7 @@ namespace SecondShell::Session
       Locked,
       Unlocked,
       ConsoleConnected,
+      OtherChange,
       LoopbackConnected,
       LoopbackDisconnected
     };
@@ -50,6 +45,7 @@ namespace SecondShell::Session
     std::shared_ptr<Setup::IMachineConfiguration> _machine;
     std::shared_ptr<SessionLockWatcher> _watcher;
     std::shared_ptr<LoopbackClient> _loopback;
+    std::shared_ptr<Agent::SessionEventLog> _eventLog;  //told of each change of the status
 
     std::mutex _mutex;
     std::condition_variable _signalled;
@@ -59,6 +55,7 @@ namespace SecondShell::Session
 
     LockScreenPolicy _policy;  //used on _thread only
     std::atomic_bool _isResuming = false;  //_policy.IsResuming(), for other threads
+    InputStatus _reportedStatus;  //used on _thread only
 
     Axodox::Infrastructure::event_subscription _settingsSubscription;
     Axodox::Infrastructure::event_subscription _stateSubscription;

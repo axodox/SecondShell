@@ -1,12 +1,9 @@
 #pragma once
+#include "HostProtocol.h"
 
 namespace SecondShell::Agent
 {
-  named_enum(ControlMode,
-    Agent,    //the agent may use the session
-    Stopped,  //the user stopped the agent
-    User      //the user has taken control: their input goes to the session
-  );
+  using Protocol::ControlMode;
 
   //Who controls the session (Design.md, Visualization). The user stops the agent or takes control, which interrupts
   //the running sequence and makes further ones fail until they give control back.

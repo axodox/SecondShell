@@ -220,7 +220,11 @@ namespace SecondShell::Tests
     {
       vector<uint32_t> progress;
       auto response = _container.resolve<SequenceRunner>()->Run(Request(R"({"steps": [{"action": "Mouse.Click"}, {"action": "Control.Wait", "duration": 10}, {"action": "Keyboard.Type", "text": "a"}]})"),
-        [&](uint32_t completed, uint32_t total, string_view) { progress.push_back(completed); Assert::AreEqual(3u, total); }, _noCancellation);
+        [&](uint32_t completed, uint32_t total, optional<double> step, string_view) {
+          progress.push_back(completed);
+          Assert::AreEqual(3u, total);
+          Assert::IsFalse(step.has_value(), L"short steps report only that they completed");
+        }, _noCancellation);
 
       Assert::IsFalse(response.FailedStep.has_value());
       Assert::AreEqual(size_t(3), response.Results.size(), L"one result per step");
@@ -229,6 +233,45 @@ namespace SecondShell::Tests
       auto requests = _driver->Requests();
       Assert::AreEqual(size_t(2), requests.size(), L"Control.Wait runs in the host");
       Assert::IsTrue(requests[0].Action->Type() == ActionType::MouseClick && requests[1].Action->Type() == ActionType::KeyboardType);
+    }
+
+    TEST_METHOD(ALongStepReportsProgressNowAndThen)
+    {
+      auto runner = _container.resolve<SequenceRunner>();
+      runner->KeepAliveInterval = 200ms;
+
+      mutex mutex;
+      vector<double> progress;
+      auto response = runner->Run(Request(R"({"steps": [{"action": "Control.Wait", "duration": 1000}]})"),
+        [&](uint32_t completed, uint32_t, optional<double> step, string_view) {
+          lock_guard lock{ mutex };
+          progress.push_back(completed + step.value_or(0));
+        }, _noCancellation);
+
+      Assert::IsFalse(response.FailedStep.has_value());
+      lock_guard lock{ mutex };
+      Assert::IsTrue(progress.size() >= 4 && progress.size() <= 6, to_wstring(format("{} reports: one per 200 ms of the wait, and the step's end", progress.size())).c_str());
+      Assert::IsTrue(ranges::is_sorted(progress) && ranges::adjacent_find(progress) == progress.end(), L"progress only increases");
+      Assert::AreEqual(1.0, progress.back());
+    }
+
+    TEST_METHOD(ACancelledRequestStopsTheSequence)
+    {
+      //The AI client gave up on the call: the MCP server cancels its request to the host
+      CancellationToken cancellation;
+      thread canceller([&] {
+        this_thread::sleep_for(50ms);
+        cancellation.Cancel();
+        });
+
+      auto start = steady_clock::now();
+      auto response = _container.resolve<SequenceRunner>()->Run(Request(R"({"steps": [{"action": "Control.Wait", "duration": 5000}, {"action": "Mouse.Click"}]})"), nullptr, cancellation);
+      canceller.join();
+
+      Assert::IsTrue(steady_clock::now() - start < 2s);
+      Assert::AreEqual(0u, *response.FailedStep);
+      Assert::IsTrue(_driver->Requests().empty(), L"the click after the wait never runs");
+      Assert::AreEqual(1, _driver->ResetCount(), L"held input is released");
     }
 
     TEST_METHOD(CommandsGetTheDefaultShellWhenTheAgentNamesNone)

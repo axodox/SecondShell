@@ -9,10 +9,14 @@ namespace SecondShell::Desktop
   class WindowManager
   {
   public:
-    std::vector<Actions::WindowInfo> Enumerate() const;
+    //Topmost first. All: also owned and tool windows with a title, e.g. dialogs, which the taskbar does not show.
+    std::vector<Actions::WindowInfo> Enumerate(bool all = false) const;
 
     //Throws invalid_argument if there is no such visible window.
     Actions::WindowInfo Get(Actions::WindowId window) const;
+
+    //The window of a query (WindowQuery); throws invalid_argument, listing the windows, if none matches.
+    Actions::WindowId Find(const Actions::WindowQuery& query) const;
     std::optional<Actions::WindowId> Foreground() const;
 
     //False if Windows refused to switch the foreground window.

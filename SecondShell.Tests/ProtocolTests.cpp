@@ -101,7 +101,7 @@ namespace SecondShell::Tests
     TEST_METHOD(SequenceStepsAreValidatedAsActions)
     {
       auto error = ValidationError<RunSequenceRequest>(R"({"steps": [{"action": "Mouse.Click"}, {"action": "Mouse.Scroll"}]})");
-      Assert::IsTrue(error.find("'steps': Item 1: Unknown action 'Mouse.Scroll'") != string::npos, to_wstring(error).c_str());
+      Assert::IsTrue(error.find("'steps': 1 of the 2 steps is invalid, so none ran:\n- step 1: Unknown action 'Mouse.Scroll'") != string::npos, to_wstring(error).c_str());
 
       error = ValidationError<RunSequenceRequest>(R"({"steps": []})");
       Assert::IsTrue(error.find("at least 1") != string::npos, to_wstring(error).c_str());

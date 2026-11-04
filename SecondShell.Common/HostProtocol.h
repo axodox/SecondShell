@@ -32,6 +32,34 @@ namespace SecondShell::Protocol
     Unavailable  //the user's session is locked: until the user signs in again
   );
 
+  //Who controls the session (Design.md, Visualization).
+  named_enum(ControlMode,
+    Agent,    //the agent may use the session
+    Stopped,  //the user stopped the agent
+    User      //the user has taken control: their input goes to the session
+  );
+
+  //What changed in the session and around it, which the agent hears about with its next call.
+  named_enum(SessionEventKind,
+    ControlTaken,      //the user took control
+    AgentStopped,      //the user stopped the agent
+    ControlReturned,   //the user gave control back
+    InputPaused,       //the user locked the PC, and SecondShell is keeping the session unlocked behind the lock screen
+    InputUnavailable,  //the user's session is locked: no input until it is unlocked
+    InputAvailable,
+    UserLeft,          //the user's session is no longer unlocked on the PC's screen
+    UserReturned
+  );
+
+  struct SECONDSHELL_COMMON_API SessionEvent
+  {
+    static Axodox::Json::json_object_descriptor<SessionEvent> json_description;
+
+    std::string Time;  //local time, e.g. "2026-11-04T14:02:10+01:00"
+    SessionEventKind Event = SessionEventKind::ControlTaken;
+    std::string Message;
+  };
+
   named_enum(DisplayOrientation,
     Landscape,
     Portrait,
@@ -73,6 +101,7 @@ namespace SecondShell::Protocol
     //Empty when SecondShell is not running
     std::optional<bool> IsUserPresent;          //the user's own session is unlocked on the PC's screen; false: unattended
     std::optional<InputAvailability> Input;
+    std::optional<ControlMode> Control;
   };
 #pragma endregion
 
@@ -82,6 +111,10 @@ namespace SecondShell::Protocol
     static Axodox::Json::json_object_descriptor<SessionResponse> json_description;
 
     SessionInfo Session;
+
+    //Since the agent's previous call
+    std::vector<SessionEvent> Events;
+    std::vector<Actions::WindowInfo> NewWindows;
   };
 
   struct SECONDSHELL_COMMON_API InitializeSessionRequest
@@ -105,6 +138,8 @@ namespace SecondShell::Protocol
   {
     static Axodox::Json::json_object_descriptor<CheckSessionRequest> json_description;
     using ResponseType = SessionResponse;
+
+    std::optional<uint32_t> WaitForControl;  //milliseconds to wait at most until the agent may send input
   };
 
   struct SECONDSHELL_COMMON_API ShutdownSessionRequest
@@ -127,6 +162,10 @@ namespace SecondShell::Protocol
     std::optional<Actions::ErrorCode> Error;
     std::optional<std::string> Message;
     std::optional<Actions::InputState> ReleasedInput;                                 //what was held when the sequence stopped early
+
+    //Since the agent's previous call
+    std::vector<SessionEvent> Events;
+    std::vector<Actions::WindowInfo> NewWindows;
   };
 
   //The arguments of the Run-Sequence tool.
@@ -149,7 +188,8 @@ namespace SecondShell::Protocol
     Axodox::Infrastructure::value_ptr<Axodox::Json::json_value> ProgressToken;  //echoed in sequence/progress
   };
 
-  //Host to MCP server: a step of a running sequence finished.
+  //Host to MCP server: a step of a running sequence finished, or a long step is still running (when nothing has been
+  //reported for a while).
   struct SECONDSHELL_COMMON_API SequenceProgressNotification
   {
     static Axodox::Json::json_object_descriptor<SequenceProgressNotification> json_description;
@@ -158,6 +198,7 @@ namespace SecondShell::Protocol
     uint32_t CompletedSteps = 0;
     uint32_t TotalSteps = 0;
     std::string Message;
+    std::optional<double> StepProgress;  //of the running step, 0..1: how much of its time it has used
   };
 #pragma endregion
 

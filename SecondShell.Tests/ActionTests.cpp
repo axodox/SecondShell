@@ -3,10 +3,12 @@
 #include "CaptureActions.h"
 #include "ClipboardActions.h"
 #include "ControlActions.h"
+#include "HostProtocol.h"
 #include "JsonSnapshot.h"
 #include "KeyboardActions.h"
 #include "MouseActions.h"
 #include "ProcessActions.h"
+#include "StrictJson.h"
 #include "TouchActions.h"
 #include "WindowActions.h"
 
@@ -58,14 +60,14 @@ namespace SecondShell::Tests
       { ActionType::KeyboardPress, R"({"action": "Keyboard.Press", "key": "LWin"})" },
       { ActionType::KeyboardRelease, R"({"action": "Keyboard.Release", "key": "LWin"})" },
       { ActionType::KeyboardReset, R"({"action": "Keyboard.Reset"})" },
-      { ActionType::WindowEnumerate, R"({"action": "Window.Enumerate"})" },
+      { ActionType::WindowEnumerate, R"({"action": "Window.Enumerate", "all": true})" },
       { ActionType::WindowFocus, R"({"action": "Window.Focus", "window": "0x0001A2B4"})" },
       { ActionType::WindowMove, R"({"action": "Window.Move", "window": "0x0001A2B4", "x": 0, "y": 0})" },
       { ActionType::WindowResize, R"({"action": "Window.Resize", "window": "0x0001A2B4", "width": 800, "height": 600})" },
       { ActionType::WindowMinimize, R"({"action": "Window.Minimize", "window": "0x0001A2B4"})" },
       { ActionType::WindowMaximize, R"({"action": "Window.Maximize", "window": "0x0001A2B4"})" },
       { ActionType::WindowRestore, R"({"action": "Window.Restore", "window": "0x0001A2B4"})" },
-      { ActionType::WindowClose, R"({"action": "Window.Close", "window": "0x0001A2B4"})" },
+      { ActionType::WindowClose, R"({"action": "Window.Close", "title": "Untitled", "processName": "notepad.exe", "pid": 1234})" },
       { ActionType::ClipboardRead, R"({"action": "Clipboard.Read", "format": "text"})" },
       { ActionType::ClipboardWrite, R"({"action": "Clipboard.Write", "content": [{"format": "text", "data": "hello"}, {"format": "html", "data": "<b>hello</b>"}]})" }
     };
@@ -197,6 +199,44 @@ namespace SecondShell::Tests
       AssertContains(ParseError(R"({"action": "Keyboard.Tap", "key": "Hyper"})"), "Must be a key name");
       AssertContains(ParseError(R"({"action": "Window.Focus", "window": "not-a-window"})"), "window");
       AssertContains(ParseError(R"({"action": "Clipboard.Write", "content": []})"), "at least 1");
+      AssertContains(ParseError(R"({"action": "Window.Focus"})"), "which window?");
+      AssertContains(ParseError(R"({"action": "Window.Focus", "window": "0x1", "title": "Notepad"})"), "not both");
+      AssertContains(ParseError(R"({"action": "Capture.Window", "window": "0x1", "pid": 5})"), "not both");
+    }
+
+    TEST_METHOD(EveryProblemOfAnActionIsReported)
+    {
+      auto error = ParseError(R"({"action": "Control.Wait", "milliseconds": 500, "scale": 1})");
+      AssertContains(error, "Control.Wait: unknown property '");
+      AssertContains(error, "unknown property 'milliseconds'");
+      AssertContains(error, "unknown property 'scale'");
+      AssertContains(error, "'duration' is required; the properties are: duration.");
+    }
+
+    TEST_METHOD(EveryInvalidStepIsReported)
+    {
+      string_view text = R"({"steps": [{"action": "Wait", "duration": 5}, {"action": "Mouse.Click"}, {"action": "Mouse.Press", "x": 1}]})";
+      auto json = json_value::from_string(text);
+      Protocol::RunSequenceArguments arguments;
+      auto result = Rpc::StrictJson::Parse(json->as<json_object>(), arguments);
+      Assert::IsFalse(bool(result));
+
+      auto& error = result.error();
+      AssertContains(error, "'steps': 2 of the 3 steps are invalid, so none ran:");
+      AssertContains(error, "\n- step 0: Unknown action 'Wait'");
+      AssertContains(error, "\n- step 2: Mouse.Press: unknown property 'x'");
+      Assert::IsTrue(error.find("step 1") == string::npos, L"valid steps are not listed");
+    }
+
+    TEST_METHOD(WindowsAreFoundByIdOrDescription)
+    {
+      auto close = ParseAs<WindowCloseAction>(_examples[42].second);
+      auto query = close.Query();
+      Assert::IsFalse(query.Window.has_value());
+      Assert::AreEqual(string("title 'Untitled', process notepad.exe and pid 1234"), query.to_string());
+
+      Assert::AreEqual(string("window 0x0001A2B4"), ParseAs<WindowFocusAction>(_examples[36].second).Query().to_string());
+      Assert::IsTrue(ParseAs<CaptureWindowAction>(R"({"action": "Capture.Window"})").Query().IsEmpty(), L"Capture.Window takes the active window");
     }
 
     TEST_METHOD(ActionsRoundtripPolymorphically)

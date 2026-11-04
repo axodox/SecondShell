@@ -27,48 +27,49 @@ namespace SecondShell::Driver
 
   value_ptr<ActionResult> WindowActionHandler::Run(const Action& action)
   {
+    if (action.Type() == ActionType::WindowEnumerate) return Enumerate(static_cast<const WindowEnumerateAction&>(action));
+
+    auto window = _windows->Find(static_cast<const WindowTargetAction&>(action).Query());
     switch (action.Type())
     {
-    case ActionType::WindowEnumerate:
-      return Enumerate();
     case ActionType::WindowFocus:
-      return Focus(static_cast<const WindowFocusAction&>(action));
+      return Focus(window);
     case ActionType::WindowMove:
     {
       auto& move = static_cast<const WindowMoveAction&>(action);
-      _windows->Move(move.Window, move.X, move.Y);
+      _windows->Move(window, move.X, move.Y);
       return ActionResult::Succeeded();
     }
     case ActionType::WindowResize:
     {
       auto& resize = static_cast<const WindowResizeAction&>(action);
-      _windows->Resize(resize.Window, resize.Width, resize.Height);
+      _windows->Resize(window, resize.Width, resize.Height);
       return ActionResult::Succeeded();
     }
     case ActionType::WindowMinimize:
-      return SetState(static_cast<const WindowMinimizeAction&>(action).Window, WindowState::Minimized);
+      return SetState(window, WindowState::Minimized);
     case ActionType::WindowMaximize:
-      return SetState(static_cast<const WindowMaximizeAction&>(action).Window, WindowState::Maximized);
+      return SetState(window, WindowState::Maximized);
     case ActionType::WindowRestore:
-      return SetState(static_cast<const WindowRestoreAction&>(action).Window, WindowState::Normal);
+      return SetState(window, WindowState::Normal);
     case ActionType::WindowClose:
-      _windows->Close(static_cast<const WindowCloseAction&>(action).Window);
+      _windows->Close(window);
       return ActionResult::Succeeded();
     default:
       throw logic_error(format("{} is not a window action.", action.Name()));
     }
   }
 
-  value_ptr<ActionResult> WindowActionHandler::Enumerate()
+  value_ptr<ActionResult> WindowActionHandler::Enumerate(const WindowEnumerateAction& action)
   {
     auto result = make_value<WindowListResult>();
-    result->Windows = _windows->Enumerate();
+    result->Windows = _windows->Enumerate(action.All.value_or(false));
     return result;
   }
 
-  value_ptr<ActionResult> WindowActionHandler::Focus(const WindowFocusAction& action)
+  value_ptr<ActionResult> WindowActionHandler::Focus(WindowId window)
   {
-    if (!_windows->Focus(action.Window)) return ActionResult::Failed(ErrorCode::ActionFailed, format("Windows did not switch the foreground to window {}.", action.Window.to_string()));
+    if (!_windows->Focus(window)) return ActionResult::Failed(ErrorCode::ActionFailed, format("Windows did not switch the foreground to window {}.", window.to_string()));
     return ActionResult::Succeeded();
   }
 

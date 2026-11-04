@@ -47,7 +47,8 @@ namespace SecondShell::Mcp
     //Without the host there is no session, which is an answer rather than an error
     if (!_host->IsRunning()) return SessionResponse{};
 
-    return Forward(arguments, context);
+    auto timeout = _hostTimeout + (arguments.WaitForControl ? milliseconds(*arguments.WaitForControl) : 0ms);
+    return _host->Request(arguments, timeout, context.Cancellation);
   }
 
   RpcResult<EmptyResponse> SessionToolSource::ShutdownSession(const ShutdownSessionRequest& arguments, ToolContext& context)
@@ -67,7 +68,7 @@ namespace SecondShell::Mcp
     {
       request.ProgressToken = make_value<json_number>(double(_nextProgressToken++));
       progressSubscription = _host->SequenceProgress([&context, token = request.ProgressToken->to_string()](HostClient*, const SequenceProgressNotification& progress) {
-        if (progress.ProgressToken && progress.ProgressToken->to_string() == token) context.ReportProgress(progress.CompletedSteps, progress.TotalSteps, progress.Message);
+        if (progress.ProgressToken && progress.ProgressToken->to_string() == token) context.ReportProgress(progress.CompletedSteps + progress.StepProgress.value_or(0), progress.TotalSteps, progress.Message);
         });
     }
 

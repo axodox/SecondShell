@@ -3,7 +3,8 @@
 
 namespace SecondShell::Desktop
 {
-  //The command line which runs a command with a shell. Arguments are passed literally: quoted for the shell, never
+  //The command line which runs a command with a shell. Without arguments the command is a command line for the shell;
+  //with arguments it is the program to run, and the arguments are passed literally: quoted for the shell, never
   //interpreted by it.
   class ShellCommandBuilder
   {

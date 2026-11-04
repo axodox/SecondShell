@@ -190,7 +190,7 @@ namespace SecondShell::Tests
     {
       auto result = _client.CallTool("Add", R"({"a": 1, "c": 2})");
       Assert::IsTrue(IsError(*result));
-      Assert::AreEqual(string("Invalid arguments: unknown property 'c'; the properties are: a, b."), Text(*result));
+      Assert::AreEqual(string("Invalid arguments: unknown property 'c'; 'b' is required; the properties are: a, b."), Text(*result));
 
       result = _client.CallTool("Add", R"({"a": 1})");
       Assert::IsTrue(IsError(*result));

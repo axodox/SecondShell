@@ -8,7 +8,8 @@
 
 namespace SecondShell::Agent
 {
-  using ProgressCallback = std::function<void(uint32_t completed, uint32_t total, std::string_view message)>;
+  //Steps completed, of the total; while a long step runs, how far it is (0..1), now and then (KeepAliveInterval).
+  using ProgressCallback = std::function<void(uint32_t completed, uint32_t total, std::optional<double> stepProgress, std::string_view message)>;
 
   //Runs one sequence at a time (Design.md, Errors and timeouts): the steps in order, Control.* itself and the rest on
   //the driver, async actions until Control.Join, the sequence's timeout, and the user's Stop. It stops at the first
@@ -28,6 +29,10 @@ namespace SecondShell::Agent
 
     //A sequence started (true) or ended (false): the agent is using the session meanwhile.
     Axodox::Infrastructure::event_publisher<SequenceRunner*, bool> RunningChanged;
+
+    //While a long step runs, progress is reported after this long without any: well within the minute after which AI
+    //clients often give up on a tool call, for those which reset that timeout on progress. Tests shorten it.
+    std::chrono::milliseconds KeepAliveInterval{ 20000 };
 
   private:
     std::shared_ptr<Session::IDriverLink> _driver;

@@ -18,8 +18,8 @@ namespace SecondShell::Driver
     std::shared_ptr<Desktop::WindowManager> _windows;
 
     Axodox::Infrastructure::value_ptr<Actions::ActionResult> Run(const Actions::Action& action);
-    Axodox::Infrastructure::value_ptr<Actions::ActionResult> Enumerate();
-    Axodox::Infrastructure::value_ptr<Actions::ActionResult> Focus(const Actions::WindowFocusAction& action);
+    Axodox::Infrastructure::value_ptr<Actions::ActionResult> Enumerate(const Actions::WindowEnumerateAction& action);
+    Axodox::Infrastructure::value_ptr<Actions::ActionResult> Focus(Actions::WindowId window);
     Axodox::Infrastructure::value_ptr<Actions::ActionResult> SetState(Actions::WindowId window, Actions::WindowState state);
   };
 }

@@ -43,6 +43,36 @@ namespace SecondShell::Actions
     { &ProcessInfo::MemoryBytes, "memoryBytes" }
     });
 
+  bool WindowQuery::IsEmpty() const
+  {
+    return !Window && !Title && !ProcessName && !ProcessId;
+  }
+
+  Axodox::Infrastructure::expected<> WindowQuery::Validate(bool isRequired) const
+  {
+    if (Window && (Title || ProcessName || ProcessId)) return Axodox::Infrastructure::failure<>("give either window, or any of title, processName and pid, not both.");
+    if (isRequired && IsEmpty()) return Axodox::Infrastructure::failure<>("which window? Give window (an ID from Window.Enumerate), or any of title, processName and pid.");
+    return {};
+  }
+
+  string WindowQuery::to_string() const
+  {
+    if (Window) return format("window {}", Window->to_string());
+
+    vector<string> parts;
+    if (Title) parts.push_back(format("title '{}'", *Title));
+    if (ProcessName) parts.push_back(format("process {}", *ProcessName));
+    if (ProcessId) parts.push_back(format("pid {}", *ProcessId));
+
+    string result;
+    for (size_t index = 0; index < parts.size(); index++)
+    {
+      if (index > 0) result += index + 1 == parts.size() ? " and " : ", ";
+      result += parts[index];
+    }
+    return result.empty() ? "the active window" : result;
+  }
+
   json_object_descriptor<WindowInfo> WindowInfo::json_description = describe_json_object<WindowInfo>({
     { &WindowInfo::Window, "window" },
     { &WindowInfo::Title, "title" },
