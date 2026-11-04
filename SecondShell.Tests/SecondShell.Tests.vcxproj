@@ -104,6 +104,7 @@
     <ClCompile Include="ScreenBandsTests.cpp" />
     <ClCompile Include="ScreenTextCacheTests.cpp" />
     <ClCompile Include="SequenceRunnerTests.cpp" />
+    <ClCompile Include="ProcessOutputTests.cpp" />
     <ClCompile Include="SessionEventLogTests.cpp" />
     <ClCompile Include="SetupTests.cpp" />
     <ClCompile Include="SettingsStoreTests.cpp" />
@@ -123,6 +124,7 @@
     <ClCompile Include="..\SecondShell.Driver\AtlasLayout.cpp" />
     <ClCompile Include="..\SecondShell.Driver\CaptureEncoder.cpp" />
     <ClCompile Include="..\SecondShell.Driver\ChangedLines.cpp" />
+    <ClCompile Include="..\SecondShell.Driver\ProcessOutput.cpp" />
     <ClCompile Include="..\SecondShell.Driver\ClipboardFormatConverter.cpp" />
     <ClCompile Include="..\SecondShell.Driver\DirtyRegion.cpp" />
     <ClCompile Include="..\SecondShell.Driver\FrameChangeLog.cpp" />
@@ -166,6 +168,7 @@
     <ClCompile Include="..\SecondShell\JsonConfigEditor.cpp" />
     <ClCompile Include="..\SecondShell\LockScreenPolicy.cpp" />
     <ClCompile Include="..\SecondShell\PendingRestart.cpp" />
+    <ClCompile Include="..\SecondShell\ProcessOutputStore.cpp" />
     <ClCompile Include="..\SecondShell\SessionEventLog.cpp" />
     <ClCompile Include="..\SecondShell\MachineSetup.cpp" />
     <ClCompile Include="..\SecondShell\SequenceRunner.cpp" />

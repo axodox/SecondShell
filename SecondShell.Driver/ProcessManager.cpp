@@ -1,9 +1,12 @@
 #include "pch.h"
 #include "ProcessManager.h"
+#include "AppEnvironment.h"
 
 using namespace Axodox::Infrastructure;
 using namespace Axodox::Threading;
 using namespace SecondShell::Actions;
+using namespace SecondShell::Environment;
+using namespace SecondShell::Protocol;
 using namespace SecondShell::Rpc;
 using namespace std;
 using namespace std::chrono;
@@ -20,6 +23,14 @@ namespace SecondShell::Desktop
   //A program started by a shell may inherit the streams and keep them open after the shell exited, so the rest of the
   //output is awaited only this long
   const milliseconds _outputGrace{ 500 };
+
+  //Processes started with output: what stays in memory, how often and how much of it goes to the host, and how many
+  //ended ones are kept for reading
+  const size_t _outputTailSize = 1024 * 1024;
+  const milliseconds _publishInterval{ 200 };
+  const size_t _publishChunk = 256 * 1024;
+  const ptrdiff_t _keptEnded = 20;
+  const DWORD _inputPipeSize = 1024 * 1024;
 
   namespace
   {
@@ -92,6 +103,36 @@ namespace SecondShell::Desktop
     uint64_t ToTicks(const FILETIME& time)
     {
       return (uint64_t(time.dwHighDateTime) << 32) | time.dwLowDateTime;
+    }
+
+    //The program's name, for the output file's name: "npm" for "npm run dev", "server" for "C:\x\server.exe"
+    wstring OutputName(string_view command)
+    {
+      auto text = command.substr(min(command.find_first_not_of(' '), command.size()));
+      string_view first;
+      if (text.starts_with('"'))
+      {
+        auto end = text.find('"', 1);
+        first = text.substr(1, end == string_view::npos ? string_view::npos : end - 1);
+      }
+      else
+      {
+        first = text.substr(0, text.find(' '));
+      }
+
+      auto name = filesystem::path(winrt::to_hstring(first).c_str()).stem().wstring();
+      for (auto& character : name)
+      {
+        if (!iswalnum(character) && character != L'-' && character != L'_') character = L'_';
+      }
+      return name.empty() ? L"process" : name.substr(0, 40);
+    }
+
+    string Join(const vector<string>& args)
+    {
+      string result;
+      for (auto& arg : args) result += (result.empty() ? "" : " ") + (arg.find(' ') == string::npos ? arg : "\"" + arg + "\"");
+      return result;
     }
 
     //One of a process's output streams, read on a thread of its own; keeps the first _streamLimit bytes.
@@ -182,12 +223,279 @@ namespace SecondShell::Desktop
     StreamCollector Error;
   };
 
+  //A process started with output: its streams read into its output, its input, and its exit.
+  class ProcessManager::CapturedProcess
+  {
+  public:
+    CapturedProcess(uint32_t id, string command, winrt::handle&& process, winrt::file_handle&& input, winrt::file_handle&& output, winrt::file_handle&& error, shared_ptr<ProcessOutput> log) :
+      Id(id),
+      Command(move(command)),
+      Log(move(log)),
+      _process(move(process)),
+      _stop(CreateEventW(nullptr, TRUE, FALSE, nullptr)),
+      _input(move(input)),
+      _outputPipe(move(output)),
+      _errorPipe(move(error))
+    {
+      _outputReader = thread([this] { Read(_outputPipe.get(), _isOutputEnded); });
+      _errorReader = thread([this] { Read(_errorPipe.get(), _isErrorEnded); });
+      _watcher = thread([this] { Watch(); });
+    }
+
+    ~CapturedProcess()
+    {
+      SetEvent(_stop.get());
+      _watcher.join();
+
+      //Programs the process passed its streams to may keep them open
+      while (!_isOutputEnded || !_isErrorEnded)
+      {
+        if (!_isOutputEnded) CancelSynchronousIo(_outputReader.native_handle());
+        if (!_isErrorEnded) CancelSynchronousIo(_errorReader.native_handle());
+        this_thread::sleep_for(_cancelInterval);
+      }
+      _outputReader.join();
+      _errorReader.join();
+    }
+
+    CapturedProcess(const CapturedProcess&) = delete;
+    CapturedProcess& operator=(const CapturedProcess&) = delete;
+
+    const uint32_t Id;
+    const string Command;
+    const shared_ptr<ProcessOutput> Log;
+
+    //What was published; under ProcessManager::_mutex
+    uint64_t Sent = 0;
+    bool IsStartSent = false;
+    bool IsEndSent = false;
+
+    void Write(string_view text, bool close)
+    {
+      lock_guard lock{ _inputMutex };
+      if (!_input) throw invalid_argument(format("The input of process {} is closed.", Id));
+
+      while (!text.empty())
+      {
+        DWORD written = 0;
+        if (!WriteFile(_input.get(), text.data(), DWORD(min<size_t>(text.size(), 65536)), &written, nullptr))
+        {
+          throw invalid_argument(format("Process {} takes no more input: {}", Id, ErrorMessage(GetLastError())));
+        }
+        text.remove_prefix(written);
+      }
+
+      if (close) _input.close();
+    }
+
+  private:
+    winrt::handle _process;
+    winrt::handle _stop;
+    mutex _inputMutex;
+    winrt::file_handle _input;
+    winrt::file_handle _outputPipe;
+    winrt::file_handle _errorPipe;
+    atomic_bool _isOutputEnded = false;
+    atomic_bool _isErrorEnded = false;
+    thread _outputReader;
+    thread _errorReader;
+    thread _watcher;
+
+    void Read(HANDLE pipe, atomic_bool& isEnded)
+    {
+      set_thread_name("* Process output");
+
+      OutputDecoder decoder;
+      char buffer[8192];
+      DWORD read = 0;
+      while (ReadFile(pipe, buffer, sizeof(buffer), &read, nullptr) && read > 0)
+      {
+        Log->Append(decoder.Decode({ buffer, read }));
+      }
+      Log->Append(decoder.Finish());
+      isEnded = true;
+    }
+
+    void Watch()
+    {
+      set_thread_name("* Process exit");
+
+      HANDLE handles[] = { _process.get(), _stop.get() };
+      if (WaitForMultipleObjects(2, handles, FALSE, INFINITE) != WAIT_OBJECT_0) return;
+
+      DWORD exitCode = 0;
+      auto hasExitCode = GetExitCodeProcess(_process.get(), &exitCode);
+
+      //The last output may still be in the pipes
+      auto deadline = steady_clock::now() + _outputGrace;
+      while ((!_isOutputEnded || !_isErrorEnded) && steady_clock::now() < deadline && WaitForSingleObject(_stop.get(), DWORD(_cancelInterval.count())) == WAIT_TIMEOUT);
+
+      {
+        lock_guard lock{ _inputMutex };
+        _input.close();
+      }
+      Log->End(hasExitCode ? optional<int32_t>(int32_t(exitCode)) : nullopt);
+    }
+  };
+
   ProcessManager::ProcessManager(dependency_container* container) :
-    _commands(container->resolve<ShellCommandBuilder>())
+    _commands(container->resolve<ShellCommandBuilder>()),
+    _outputFolder(AppEnvironment().OutputFolder())
   {
     DWORD sessionId = 0;
     winrt::check_bool(ProcessIdToSessionId(GetCurrentProcessId(), &sessionId));
     _sessionId = sessionId;
+
+    _publisher = thread([this] { Publish(); });
+  }
+
+  ProcessManager::~ProcessManager()
+  {
+    {
+      lock_guard lock{ _mutex };
+      _isStopping = true;
+    }
+    _publishWake.notify_all();
+    _publisher.join();
+
+    //Their threads end before the rest goes
+    vector<shared_ptr<CapturedProcess>> captured;
+    {
+      lock_guard lock{ _mutex };
+      captured = move(_captured);
+    }
+  }
+
+  uint32_t ProcessManager::StartWithOutput(const RunOptions& options)
+  {
+    auto commandLine = _commands->Build(options.Shell, options.Command, options.Args);
+    auto workingDirectory = WorkingDirectory(options);
+
+    //The process's ends of the pipes are inherited, ours are not
+    SECURITY_ATTRIBUTES inheritable{ .nLength = sizeof(SECURITY_ATTRIBUTES), .bInheritHandle = TRUE };
+    winrt::file_handle inputRead, inputWrite, outputRead, outputWrite, errorRead, errorWrite;
+    winrt::check_bool(CreatePipe(inputRead.put(), inputWrite.put(), &inheritable, _inputPipeSize));
+    winrt::check_bool(CreatePipe(outputRead.put(), outputWrite.put(), &inheritable, 0));
+    winrt::check_bool(CreatePipe(errorRead.put(), errorWrite.put(), &inheritable, 0));
+    winrt::check_bool(SetHandleInformation(inputWrite.get(), HANDLE_FLAG_INHERIT, 0));
+    winrt::check_bool(SetHandleInformation(outputRead.get(), HANDLE_FLAG_INHERIT, 0));
+    winrt::check_bool(SetHandleInformation(errorRead.get(), HANDLE_FLAG_INHERIT, 0));
+
+    HANDLE inherited[] = { inputRead.get(), outputWrite.get(), errorWrite.get() };
+    SIZE_T attributesSize = 0;
+    InitializeProcThreadAttributeList(nullptr, 1, 0, &attributesSize);
+    vector<uint8_t> attributesBuffer(attributesSize);
+    auto attributes = reinterpret_cast<LPPROC_THREAD_ATTRIBUTE_LIST>(attributesBuffer.data());
+    winrt::check_bool(InitializeProcThreadAttributeList(attributes, 1, 0, &attributesSize));
+    winrt::check_bool(UpdateProcThreadAttribute(attributes, 0, PROC_THREAD_ATTRIBUTE_HANDLE_LIST, inherited, sizeof(inherited), nullptr, nullptr));
+
+    STARTUPINFOEXW startup{};
+    startup.StartupInfo.cb = sizeof(STARTUPINFOEXW);
+    startup.StartupInfo.dwFlags = STARTF_USESTDHANDLES;
+    startup.StartupInfo.hStdInput = inputRead.get();
+    startup.StartupInfo.hStdOutput = outputWrite.get();
+    startup.StartupInfo.hStdError = errorWrite.get();
+    startup.lpAttributeList = attributes;
+
+    PROCESS_INFORMATION information{};
+    auto isStarted = CreateProcessW(nullptr, commandLine.data(), nullptr, nullptr, TRUE, CREATE_NO_WINDOW | EXTENDED_STARTUPINFO_PRESENT, nullptr, workingDirectory.c_str(), &startup.StartupInfo, &information);
+    auto error = GetLastError();
+    DeleteProcThreadAttributeList(attributes);
+    if (!isStarted) throw runtime_error(format("The process could not start: {}", ErrorMessage(error)));
+
+    CloseHandle(information.hThread);
+    inputRead.close();
+    outputWrite.close();
+    errorWrite.close();
+
+    auto file = _outputFolder / format(L"{:%Y%m%d-%H%M%S}-{}-{}.log", floor<seconds>(system_clock::now()), information.dwProcessId, OutputName(options.Command));
+    auto log = make_shared<ProcessOutput>(file, _outputPartSize, _outputTailSize);
+    auto command = options.Args.empty() ? options.Command : options.Command + " " + Join(options.Args);
+    auto captured = make_shared<CapturedProcess>(information.dwProcessId, move(command), winrt::handle{ information.hProcess }, move(inputWrite), move(outputRead), move(errorRead), move(log));
+    {
+      lock_guard lock{ _mutex };
+      _captured.push_back(move(captured));
+    }
+
+    _logger.log(log_severity::information, "Started process {} with output to {}.", information.dwProcessId, winrt::to_string(file.wstring()));
+    return information.dwProcessId;
+  }
+
+  shared_ptr<ProcessOutput> ProcessManager::Output(uint32_t processId) const
+  {
+    return Captured(processId)->Log;
+  }
+
+  void ProcessManager::WriteInput(uint32_t processId, string_view text, bool close)
+  {
+    Captured(processId)->Write(text, close);
+  }
+
+  void ProcessManager::SetOutputPartSize(uint64_t bytes)
+  {
+    _outputPartSize = max<uint64_t>(bytes, 1024 * 1024);
+  }
+
+  shared_ptr<ProcessManager::CapturedProcess> ProcessManager::Captured(uint32_t processId) const
+  {
+    lock_guard lock{ _mutex };
+    for (auto& process : _captured | views::reverse)
+    {
+      if (process->Id == processId) return process;
+    }
+    throw invalid_argument(format("Process {} was not started with output; only Process.Run with async and output collects output and takes input.", processId));
+  }
+
+  void ProcessManager::Publish()
+  {
+    set_thread_name("* Process output publisher");
+
+    while (true)
+    {
+      vector<ProcessOutputNotification> notifications;
+      vector<shared_ptr<CapturedProcess>> removed;
+      {
+        unique_lock lock{ _mutex };
+        if (_publishWake.wait_for(lock, _publishInterval, [this] { return _isStopping; })) return;
+
+        for (auto& process : _captured)
+        {
+          if (process->IsEndSent) continue;
+
+          auto& log = *process->Log;
+          auto size = log.Size();
+          auto isRunning = log.IsRunning();
+          if (process->IsStartSent && process->Sent >= size && isRunning) continue;
+
+          //What the host missed beyond the tail is in the files
+          auto chunk = log.Read(max(process->Sent, log.TailStart()), _publishChunk);
+          process->Sent = chunk.Next;
+          process->IsStartSent = true;
+          process->IsEndSent = !isRunning && chunk.Next >= size;
+          notifications.push_back({ process->Id, process->Command, winrt::to_string(log.File().wstring()), chunk.From, move(chunk.Text), isRunning, log.ExitCode() });
+        }
+
+        //The most recent of the ended ones are kept, for their output
+        auto ended = ranges::count_if(_captured, [](auto& process) { return process->IsEndSent; });
+        for (auto item = _captured.begin(); item != _captured.end() && ended > _keptEnded;)
+        {
+          if (!(*item)->IsEndSent)
+          {
+            item++;
+            continue;
+          }
+
+          removed.push_back(move(*item));
+          item = _captured.erase(item);
+          ended--;
+        }
+      }
+
+      if (OutputChanged)
+      {
+        for (auto& notification : notifications) OutputChanged(notification);
+      }
+    }
   }
 
   uint32_t ProcessManager::Start(const RunOptions& options)

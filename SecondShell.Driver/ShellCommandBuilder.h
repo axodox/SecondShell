@@ -4,8 +4,8 @@
 namespace SecondShell::Desktop
 {
   //The command line which runs a command with a shell. Without arguments the command is a command line for the shell;
-  //with arguments it is the program to run, and the arguments are passed literally: quoted for the shell, never
-  //interpreted by it.
+  //with arguments it is the program to run, and the arguments are passed literally, never interpreted by a shell: an
+  //executable runs as itself, anything else (a script, a cmdlet, a batch file) through the shell, quoted for it.
   class ShellCommandBuilder
   {
   public:
@@ -17,6 +17,10 @@ namespace SecondShell::Desktop
 
     //An argument as the C runtime reads command lines (CommandLineToArgvW), quoted only if it has to be.
     static std::wstring QuoteArgument(std::wstring_view argument);
+
+    //Whether the command is an executable (.exe, .com) CreateProcess would find, rather than a script, a batch file or
+    //a shell command.
+    static bool IsExecutable(std::string_view command);
 
   private:
     std::filesystem::path _systemFolder;

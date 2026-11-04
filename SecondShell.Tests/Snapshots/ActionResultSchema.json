@@ -127,6 +127,10 @@
         "message": {
           "type": "string"
         },
+        "outputFile": {
+          "description": "Where the output goes; past its size limit it continues in the same name with .2, .3 before .log.",
+          "type": "string"
+        },
         "pid": {
           "type": "number"
         },
@@ -215,6 +219,67 @@
         },
         "type": {
           "const": "ProcessList",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "type": "object"
+    },
+    {
+      "additionalProperties": false,
+      "properties": {
+        "error": {
+          "enum": [
+            "SessionNotActive",
+            "UserInterrupted",
+            "AgentInputDisabled",
+            "Timeout",
+            "InvalidArgument",
+            "ActionFailed",
+            "SetupRequired",
+            "InputUnavailable"
+          ],
+          "type": "string"
+        },
+        "exitCode": {
+          "type": "number"
+        },
+        "from": {
+          "description": "The offset of the text.",
+          "type": "number"
+        },
+        "isRunning": {
+          "type": "boolean"
+        },
+        "message": {
+          "type": "string"
+        },
+        "next": {
+          "description": "The offset after the text: from of the next read.",
+          "type": "number"
+        },
+        "pid": {
+          "type": "number"
+        },
+        "status": {
+          "enum": [
+            "Succeeded",
+            "Failed",
+            "Cancelled"
+          ],
+          "type": "string"
+        },
+        "text": {
+          "type": "string"
+        },
+        "truncated": {
+          "description": "More output follows before next; read on from next.",
+          "type": "boolean"
+        },
+        "type": {
+          "const": "ProcessOutput",
           "type": "string"
         }
       },

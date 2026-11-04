@@ -114,6 +114,9 @@ namespace SecondShell::Actions
         Define<ProcessKillAction>(),
         Define<ProcessWaitForProcessAction>(),
         Define<ProcessEnumerateAction>(),
+        Define<ProcessReadOutputAction>(),
+        Define<ProcessWaitForOutputAction>(),
+        Define<ProcessWriteInputAction>(),
         Define<ClipboardReadAction>(),
         Define<ClipboardWriteAction>()
       };
@@ -194,6 +197,7 @@ namespace SecondShell::Actions
         DescribeDerived<CaptureResult>(discriminator),
         DescribeDerived<ProcessResult>(discriminator),
         DescribeDerived<ProcessListResult>(discriminator),
+        DescribeDerived<ProcessOutputResult>(discriminator),
         DescribeDerived<WindowListResult>(discriminator),
         DescribeDerived<ClipboardResult>(discriminator)
         });

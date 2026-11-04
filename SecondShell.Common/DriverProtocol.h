@@ -123,6 +123,31 @@ namespace SecondShell::Protocol
   };
 #pragma endregion
 
+#pragma region Process output
+  //Driver to host: a process started with output began, wrote more, or ended; a few times a second while it writes.
+  //The text follows on from the previous notification's, unless the host's view fell behind what the driver keeps.
+  struct SECONDSHELL_COMMON_API ProcessOutputNotification
+  {
+    static Axodox::Json::json_object_descriptor<ProcessOutputNotification> json_description;
+
+    uint32_t ProcessId = 0;
+    std::string Command;
+    std::string OutputFile;
+    uint64_t Offset = 0;            //of the text in the output
+    std::string Text;
+    bool IsRunning = true;
+    std::optional<int32_t> ExitCode;
+  };
+
+  //Host to driver: how the output of processes is kept, from the user's settings; at the start and on changes.
+  struct SECONDSHELL_COMMON_API ConfigureOutputNotification
+  {
+    static Axodox::Json::json_object_descriptor<ConfigureOutputNotification> json_description;
+
+    uint32_t PartSize = 100;  //megabytes per file, then the output continues in the next one
+  };
+#pragma endregion
+
 #pragma region Interactive mode
   //Host to driver: start or stop watching the session's clipboard for clipboard/changed.
   struct SECONDSHELL_COMMON_API SetClipboardSyncRequest

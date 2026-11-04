@@ -40,6 +40,9 @@ namespace SecondShell::Session
     Rpc::RpcResult<Protocol::EmptyResponse> SetClipboardSync(bool isEnabled);
     Rpc::RpcResult<Protocol::EmptyResponse> SetClipboard(const std::vector<Actions::ClipboardContent>& contents);
 
+    //How the driver keeps the output of processes; dropped if no driver is connected.
+    void ConfigureOutput(const Protocol::ConfigureOutputNotification& configuration);
+
     //Shares the driver's frames with this process; fails with SessionNotActive if no driver is connected.
     Rpc::RpcResult<Protocol::SubscribeFramesResponse> SubscribeFrames();
 
@@ -48,6 +51,12 @@ namespace SecondShell::Session
 
     //The session's clipboard changed while syncing; raised on the connection's thread.
     Axodox::Infrastructure::event_publisher<DriverLink*, const std::vector<Actions::ClipboardContent>&> ClipboardChanged;
+
+    //Output of a process started with output; raised on the connection's thread.
+    Axodox::Infrastructure::event_publisher<DriverLink*, const Protocol::ProcessOutputNotification&> ProcessOutput;
+
+    //A driver was accepted; raised before it hears so, on the connection's thread.
+    Axodox::Infrastructure::event_publisher<DriverLink*> Accepted;
 
   private:
     Axodox::Networking::named_pipe_messaging_server _server;
@@ -67,6 +76,7 @@ namespace SecondShell::Session
     void OnClientDisconnected(Axodox::Networking::messaging_server* server, Axodox::Networking::messaging_channel* channel);
 
     Protocol::DriverHelloResponse Accept(const std::shared_ptr<Connection>& connection);
+    Protocol::DriverHelloResponse Admit(const std::shared_ptr<Connection>& connection);
     std::shared_ptr<Connection> Driver() const;
   };
 }

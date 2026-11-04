@@ -10,10 +10,6 @@ Built: Keep working while the screen is locked, `InputUnavailable`, and `isUserP
 - **UI Automation actions** (invoke, toggle or set value on an element found by name): on hold. They do not cover canvas or 3D views, which need real mouse and touch input.
 - **The window** could show that the session is being kept unlocked behind the lock screen, e.g. in the status bar, for when the user comes back.
 
-## Output of asynchronous processes
-
-An `async` process's console output isn't collected, so to find a line in a server's log the agent had to use Windows Terminal's search box through the UI. Add an option to write the output to a file, or a way to read it later. Being discussed: redirect it, and add actions to read it.
-
 ## Reset of a running session
 
 `Initialize-Session` with `"existingSession": "Reset"` on a session that was already running returned the same session id and driver PID 3 times out of 5, without saying it hadn't reset anything. Either reset the running session (log it off and start a new one) or say that it didn't.

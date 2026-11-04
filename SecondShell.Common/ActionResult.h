@@ -37,6 +37,22 @@ namespace SecondShell::Actions
     std::optional<std::string> StandardError;
     std::optional<bool> IsOutputTruncated;
     std::optional<bool> IsErrorTruncated;
+    std::optional<std::string> OutputFile;  //started with output: where its output goes
+  };
+
+  //Output of a process started with output, from Process.ReadOutput and Process.WaitForOutput. Offsets count the
+  //bytes of the output in UTF-8, both streams together, from its start.
+  struct SECONDSHELL_COMMON_API ProcessOutputResult : public ActionResult
+  {
+    static Axodox::Json::json_object_descriptor<ProcessOutputResult> json_description;
+
+    uint32_t ProcessId = 0;
+    std::string Text;
+    uint64_t From = 0;
+    uint64_t Next = 0;
+    bool IsRunning = false;
+    std::optional<int32_t> ExitCode;
+    std::optional<bool> IsTruncated;  //more follows before next
   };
 
   struct SECONDSHELL_COMMON_API ProcessListResult : public ActionResult

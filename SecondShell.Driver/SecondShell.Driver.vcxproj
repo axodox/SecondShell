@@ -95,6 +95,7 @@
     <ClInclude Include="Pixels.h" />
     <ClInclude Include="ProcessActionHandler.h" />
     <ClInclude Include="ProcessManager.h" />
+    <ClInclude Include="ProcessOutput.h" />
     <ClInclude Include="QuickTextReader.h" />
     <ClInclude Include="Rect.h" />
     <ClInclude Include="ScreenBands.h" />
@@ -154,6 +155,7 @@
     <ClCompile Include="Pixels.cpp" />
     <ClCompile Include="ProcessActionHandler.cpp" />
     <ClCompile Include="ProcessManager.cpp" />
+    <ClCompile Include="ProcessOutput.cpp" />
     <ClCompile Include="QuickTextReader.cpp" />
     <ClCompile Include="ScreenBands.cpp" />
     <ClCompile Include="ScreenCapturer.cpp" />

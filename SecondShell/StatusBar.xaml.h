@@ -3,6 +3,7 @@
 #include "ActionLog.h"
 #include "ActivityBars.h"
 #include "AgentControl.h"
+#include "ProcessOutputStore.h"
 #include "SessionManager.h"
 #include "SessionRenderer.h"
 #include "SetupChecker.h"
@@ -20,6 +21,8 @@ namespace winrt::SecondShell::implementation
 
     void OnLogOpening(const Windows::Foundation::IInspectable& sender, const Windows::Foundation::IInspectable& eventArgs);
     void OnLogClosed(const Windows::Foundation::IInspectable& sender, const Windows::Foundation::IInspectable& eventArgs);
+    void OnProcessesOpening(const Windows::Foundation::IInspectable& sender, const Windows::Foundation::IInspectable& eventArgs);
+    void OnProcessesClosed(const Windows::Foundation::IInspectable& sender, const Windows::Foundation::IInspectable& eventArgs);
 
   private:
     std::shared_ptr<::SecondShell::Agent::ActionLog> _actionLog;
@@ -27,6 +30,7 @@ namespace winrt::SecondShell::implementation
     std::shared_ptr<::SecondShell::Session::SessionManager> _sessions;
     std::shared_ptr<::SecondShell::Rendering::SessionRenderer> _renderer;
     std::shared_ptr<::SecondShell::Setup::SetupChecker> _setupChecker;
+    std::shared_ptr<::SecondShell::Agent::ProcessOutputStore> _processOutput;
     std::vector<Axodox::Infrastructure::event_subscription> _subscriptions;
     Microsoft::UI::Dispatching::DispatcherQueue _queue{ nullptr };
     Microsoft::UI::Dispatching::DispatcherQueueTimer _timer{ nullptr };
@@ -39,6 +43,8 @@ namespace winrt::SecondShell::implementation
     bool _hasUnseenFailure = false;
     bool _isLogOpen = false;
     bool _isLogExpanded = false;
+    bool _isProcessesOpen = false;
+    bool _isProcessesExpanded = false;
 
     void Post(std::function<void()> action);
 
@@ -50,6 +56,8 @@ namespace winrt::SecondShell::implementation
     void UpdateLog();
     void Flash();
     void SizeLog();
+    void UpdateProcesses();
+    void SizePanel(const Microsoft::UI::Xaml::FrameworkElement& panel, bool isExpanded);
   };
 }
 

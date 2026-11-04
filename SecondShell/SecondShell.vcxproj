@@ -82,6 +82,10 @@
     <ClInclude Include="ActionLogPanel.xaml.h">
       <DependentUpon>ActionLogPanel.xaml</DependentUpon>
     </ClInclude>
+    <ClInclude Include="ProcessesPanel.xaml.h">
+      <DependentUpon>ProcessesPanel.xaml</DependentUpon>
+    </ClInclude>
+    <ClInclude Include="ProcessOutputStore.h" />
     <ClInclude Include="ActivityCards.h" />
     <ClInclude Include="AgentControl.h" />
     <ClInclude Include="CaptureFlashOverlay.h" />
@@ -166,6 +170,7 @@
     <ApplicationDefinition Include="App.xaml" />
     <Page Include="MainWindow.xaml" />
     <Page Include="ActionLogPanel.xaml" />
+    <Page Include="ProcessesPanel.xaml" />
     <Page Include="StatusBar.xaml" />
     <Page Include="AiAppsSettings.xaml" />
     <Page Include="AboutSettings.xaml" />
@@ -207,6 +212,10 @@
     <ClCompile Include="ActionLogPanel.xaml.cpp">
       <DependentUpon>ActionLogPanel.xaml</DependentUpon>
     </ClCompile>
+    <ClCompile Include="ProcessesPanel.xaml.cpp">
+      <DependentUpon>ProcessesPanel.xaml</DependentUpon>
+    </ClCompile>
+    <ClCompile Include="ProcessOutputStore.cpp" />
     <ClCompile Include="ActivityCards.cpp" />
     <ClCompile Include="AgentControl.cpp" />
     <ClCompile Include="CaptureFlashOverlay.cpp" />
@@ -273,6 +282,10 @@
     <Midl Include="ActionLogPanel.idl">
       <SubType>Code</SubType>
       <DependentUpon>ActionLogPanel.xaml</DependentUpon>
+    </Midl>
+    <Midl Include="ProcessesPanel.idl">
+      <SubType>Code</SubType>
+      <DependentUpon>ProcessesPanel.xaml</DependentUpon>
     </Midl>
     <Midl Include="StatusBar.idl">
       <SubType>Code</SubType>

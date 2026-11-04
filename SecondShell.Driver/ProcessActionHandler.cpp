@@ -4,15 +4,34 @@
 using namespace Axodox::Infrastructure;
 using namespace SecondShell::Actions;
 using namespace SecondShell::Desktop;
+using namespace SecondShell::Protocol;
 using namespace SecondShell::Rpc;
 using namespace std;
 using namespace std::chrono;
 
 namespace SecondShell::Driver
 {
+  //Process.ReadOutput: the last lines by default, and at most this much
+  const uint32_t _defaultTailLines = 50;
+  const size_t _defaultReadBytes = 16384;
+  const milliseconds _outputPollInterval{ 250 };
+  const uint32_t _failureTailLines = 5;
+
   ProcessActionHandler::ProcessActionHandler(dependency_container* container) :
+    _connection(container->resolve<HostConnection>()),
     _processes(container->resolve<ProcessManager>())
-  { }
+  {
+    //The host shows the output live; before the peer starts, as handlers must
+    _connection->Peer().AddNotificationHandler(this, &ProcessActionHandler::OnConfigureOutput);
+    _processes->OutputChanged = [connection = _connection](const ProcessOutputNotification& notification) {
+      if (connection->IsAccepted()) connection->Peer().Notify(notification);
+      };
+  }
+
+  void ProcessActionHandler::OnConfigureOutput(const ConfigureOutputNotification& notification)
+  {
+    _processes->SetOutputPartSize(uint64_t(notification.PartSize) * 1024 * 1024);
+  }
 
   value_ptr<ActionResult> ProcessActionHandler::Execute(const Action& action, const CancellationToken& cancellation)
   {
@@ -47,6 +66,16 @@ namespace SecondShell::Driver
     }
     case ActionType::ProcessEnumerate:
       return Enumerate();
+    case ActionType::ProcessReadOutput:
+      return ReadOutput(static_cast<const ProcessReadOutputAction&>(action));
+    case ActionType::ProcessWaitForOutput:
+      return WaitForOutput(static_cast<const ProcessWaitForOutputAction&>(action), cancellation);
+    case ActionType::ProcessWriteInput:
+    {
+      auto& write = static_cast<const ProcessWriteInputAction&>(action);
+      _processes->WriteInput(write.ProcessId, write.Text.value_or(""), write.Close.value_or(false));
+      return ActionResult::Succeeded();
+    }
     default:
       throw logic_error(format("{} is not a process action.", action.Name()));
     }
@@ -61,6 +90,14 @@ namespace SecondShell::Driver
       .WorkingDirectory = action.WorkingDirectory
     };
 
+    if (action.Output.value_or(false))
+    {
+      auto result = make_value<ProcessResult>();
+      result->ProcessId = _processes->StartWithOutput(options);
+      result->OutputFile = winrt::to_string(_processes->Output(result->ProcessId)->File().wstring());
+      return result;
+    }
+
     if (action.Async.value_or(false))
     {
       auto result = make_value<ProcessResult>();
@@ -71,6 +108,57 @@ namespace SecondShell::Driver
     auto processId = _processes->Start(options);
     auto timeout = action.WaitTimeout().value_or(Action::DefaultWaitTimeout);
     return Exited(_processes->Wait(processId, timeout, cancellation), processId, timeout, cancellation);
+  }
+
+  namespace
+  {
+    value_ptr<ActionResult> OutputResult(uint32_t processId, const ProcessOutput& output, OutputChunk&& chunk)
+    {
+      auto result = make_value<ProcessOutputResult>();
+      result->ProcessId = processId;
+      result->Text = move(chunk.Text);
+      result->From = chunk.From;
+      result->Next = chunk.Next;
+      result->IsRunning = output.IsRunning();
+      result->ExitCode = output.ExitCode();
+      if (chunk.IsTruncated) result->IsTruncated = true;
+      return result;
+    }
+  }
+
+  value_ptr<ActionResult> ProcessActionHandler::ReadOutput(const ProcessReadOutputAction& action)
+  {
+    auto output = _processes->Output(action.ProcessId);
+    auto maxBytes = action.MaxBytes ? size_t(*action.MaxBytes) : _defaultReadBytes;
+    auto chunk = action.From ? output->Read(*action.From, maxBytes) : output->Tail(action.Tail.value_or(_defaultTailLines), maxBytes);
+    return OutputResult(action.ProcessId, *output, move(chunk));
+  }
+
+  value_ptr<ActionResult> ProcessActionHandler::WaitForOutput(const ProcessWaitForOutputAction& action, const CancellationToken& cancellation)
+  {
+    auto output = _processes->Output(action.ProcessId);
+    auto timeout = action.WaitTimeout().value_or(Action::DefaultWaitTimeout);
+    auto deadline = steady_clock::now() + timeout;
+    while (true)
+    {
+      //The size first: output after it wakes the wait below
+      auto size = output->Size();
+      auto isRunning = output->IsRunning();
+      if (auto found = output->Find(action.Text, action.From.value_or(0))) return OutputResult(action.ProcessId, *output, move(*found));
+
+      auto lastLines = output->Tail(_failureTailLines, _defaultReadBytes).Text;
+      if (!isRunning)
+      {
+        auto exitCode = output->ExitCode();
+        return ActionResult::Failed(ErrorCode::ActionFailed, format("Process {} exited{} before its output contained \"{}\". Its last lines:\n{}", action.ProcessId, exitCode ? format(" with code {}", *exitCode) : "", action.Text, lastLines));
+      }
+
+      auto remaining = duration_cast<milliseconds>(deadline - steady_clock::now());
+      if (remaining <= 0ms) return ActionResult::Failed(ErrorCode::Timeout, format("The output of process {} did not contain \"{}\" within {} ms. Its last lines:\n{}", action.ProcessId, action.Text, timeout.count(), lastLines));
+      if (cancellation.IsCancelled()) return ActionResult::Cancelled();
+
+      output->WaitForChange(size, min(remaining, _outputPollInterval));
+    }
   }
 
   value_ptr<ActionResult> ProcessActionHandler::Kill(const ProcessKillAction& action)

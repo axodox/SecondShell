@@ -91,4 +91,9 @@ namespace SecondShell::Environment
   {
     return _dataFolder / "Logs";
   }
+
+  path AppEnvironment::OutputFolder() const
+  {
+    return _dataFolder / "Output";
+  }
 }

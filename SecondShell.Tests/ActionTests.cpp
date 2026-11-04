@@ -69,7 +69,10 @@ namespace SecondShell::Tests
       { ActionType::WindowRestore, R"({"action": "Window.Restore", "window": "0x0001A2B4"})" },
       { ActionType::WindowClose, R"({"action": "Window.Close", "title": "Untitled", "processName": "notepad.exe", "pid": 1234})" },
       { ActionType::ClipboardRead, R"({"action": "Clipboard.Read", "format": "text"})" },
-      { ActionType::ClipboardWrite, R"({"action": "Clipboard.Write", "content": [{"format": "text", "data": "hello"}, {"format": "html", "data": "<b>hello</b>"}]})" }
+      { ActionType::ClipboardWrite, R"({"action": "Clipboard.Write", "content": [{"format": "text", "data": "hello"}, {"format": "html", "data": "<b>hello</b>"}]})" },
+      { ActionType::ProcessReadOutput, R"({"action": "Process.ReadOutput", "pid": 1234, "from": 4096, "maxBytes": 8192})" },
+      { ActionType::ProcessWaitForOutput, R"({"action": "Process.WaitForOutput", "pid": 1234, "text": "Listening on", "timeout": 30000})" },
+      { ActionType::ProcessWriteInput, R"({"action": "Process.WriteInput", "pid": 1234, "text": "quit\n", "close": true})" }
     };
 
     static value_ptr<Action> Parse(string_view text)
@@ -202,6 +205,8 @@ namespace SecondShell::Tests
       AssertContains(ParseError(R"({"action": "Window.Focus"})"), "which window?");
       AssertContains(ParseError(R"({"action": "Window.Focus", "window": "0x1", "title": "Notepad"})"), "not both");
       AssertContains(ParseError(R"({"action": "Capture.Window", "window": "0x1", "pid": 5})"), "not both");
+      AssertContains(ParseError(R"({"action": "Process.Run", "command": "server.exe", "output": true})"), "output needs async");
+      AssertContains(ParseError(R"({"action": "Process.ReadOutput", "pid": 5, "tail": 10, "from": 0})"), "tail or from");
     }
 
     TEST_METHOD(EveryProblemOfAnActionIsReported)

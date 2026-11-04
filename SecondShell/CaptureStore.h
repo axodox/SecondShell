@@ -19,16 +19,34 @@ namespace SecondShell::Agent
   //The capture settings, and what happens to captures and clipboard images (Design.md, Capture output): the inline
   //limit per sequence, defaults for the actions, and saving files in the session's capture folder. The format and the
   //inline limit start as the user's settings, and follow them; capture/configure changes them for this run.
+  //A file of the captures or the output of processes, for the storage limit.
+  struct StoredFile
+  {
+    std::filesystem::path Path;
+    uint64_t Size = 0;
+    std::filesystem::file_time_type Written;
+  };
+
   class CaptureStore
   {
+    inline static const Axodox::Infrastructure::logger _logger{ "CaptureStore" };
+
   public:
     explicit CaptureStore(Axodox::Infrastructure::dependency_container* container);
+    ~CaptureStore();
 
     Protocol::CaptureSettings Settings() const;
     void Configure(const Protocol::CaptureSettings& settings);
 
-    //Deletes the capture folders of earlier runs older than the settings keep them (Design.md, Files).
+    //Deletes the capture folders of earlier runs older than the settings keep them, then the oldest captures and output
+    //files beyond the storage limit (Design.md, Files).
     void RemoveOldCaptures() const;
+
+    //Does that now, in the background, and then every few minutes, until destroyed.
+    void StartCleanup();
+
+    //The oldest files to delete, so the rest take at most the limit in bytes.
+    static std::vector<std::filesystem::path> OverLimit(std::vector<StoredFile> files, uint64_t limit);
 
     CaptureDestination Decide(const std::optional<Actions::CaptureOutput>& output, uint32_t inlineCountSoFar) const;
 
@@ -51,5 +69,8 @@ namespace SecondShell::Agent
 
     Axodox::Infrastructure::event_subscription _settingsChangedSubscription;
     void OnSettingsChanged(Session::SettingsStore* sender, const Session::Settings& settings);
+
+    std::jthread _cleanup;
+    void LimitStorage() const;
   };
 }

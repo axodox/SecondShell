@@ -7,6 +7,7 @@
 #include "LockScreenBridge.h"
 #include "MachineSetup.h"
 #include "McpRequestHandler.h"
+#include "ProcessOutputStore.h"
 #include "ProductInfo.h"
 #include "SetupChecker.h"
 #include "Uninstaller.h"
@@ -201,8 +202,9 @@ namespace winrt::SecondShell::implementation
     //Per-user problems are fixed here and now; machine-wide ones the window offers to set up
     _container->resolve<SetupChecker>()->Check();
 
-    //Old capture folders go in the background; there may be many files
-    thread([captures = _container->resolve<CaptureStore>()] { captures->RemoveOldCaptures(); }).detach();
+    //Old captures and output files go in the background, now and every few minutes; there may be many files
+    _container->resolve<CaptureStore>()->StartCleanup();
+    _container->resolve<ProcessOutputStore>();
     _container->resolve<DriverLink>()->Start();
     _container->resolve<ClipboardSync>();
     _container->resolve<LockScreenBridge>();

@@ -67,6 +67,24 @@ namespace SecondShell::Protocol
       { &FramesChangedNotification::Frames, "frames" }
     });
 
+  json_object_descriptor<ProcessOutputNotification> ProcessOutputNotification::json_description = describe_json_object<ProcessOutputNotification>(
+    { .name = "process/output" },
+    {
+      { &ProcessOutputNotification::ProcessId, "pid", { .is_required = true } },
+      { &ProcessOutputNotification::Command, "command" },
+      { &ProcessOutputNotification::OutputFile, "outputFile" },
+      { &ProcessOutputNotification::Offset, "offset" },
+      { &ProcessOutputNotification::Text, "text" },
+      { &ProcessOutputNotification::IsRunning, "isRunning" },
+      { &ProcessOutputNotification::ExitCode, "exitCode", { .is_required = false } }
+    });
+
+  json_object_descriptor<ConfigureOutputNotification> ConfigureOutputNotification::json_description = describe_json_object<ConfigureOutputNotification>(
+    { .name = "output/configure" },
+    {
+      { &ConfigureOutputNotification::PartSize, "partSize", { .is_required = true } }
+    });
+
   json_object_descriptor<SetClipboardSyncRequest> SetClipboardSyncRequest::json_description = describe_json_object<SetClipboardSyncRequest>(
     { .name = "clipboard/sync" },
     {

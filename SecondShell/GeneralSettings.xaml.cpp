@@ -114,6 +114,10 @@ namespace winrt::SecondShell::implementation
     _retentions = { 1, 7, 30, 0 };
     Show<uint32_t>(RetentionBox(), _retentions, settings.CaptureRetention, [](auto& days) { return Days(days); });
 
+    OutputFolderText().Text(_environment->OutputFolder().c_str());
+    OutputPartSizeBox().Value(double(settings.OutputPartSize));
+    StorageLimitBox().Value(double(settings.StorageLimit));
+
     ShellBox().Items().Clear();
     for (auto shell : _shells) ShellBox().Items().Append(box_value(ShellName(shell)));
     ShellBox().SelectedIndex(int32_t(ranges::find(_shells, settings.DefaultShell) - begin(_shells)));
@@ -129,6 +133,11 @@ namespace winrt::SecondShell::implementation
   }
 
   void GeneralSettings::OnInlineLimitChanged(const NumberBox& /*sender*/, const NumberBoxValueChangedEventArgs& /*eventArgs*/)
+  {
+    Save();
+  }
+
+  void GeneralSettings::OnNumberChanged(const NumberBox& /*sender*/, const NumberBoxValueChangedEventArgs& /*eventArgs*/)
   {
     Save();
   }
@@ -157,6 +166,8 @@ namespace winrt::SecondShell::implementation
     auto retention = Selected(RetentionBox(), _retentions);
     auto shell = _shells[max(ShellBox().SelectedIndex(), 0)];
     auto workWhileLocked = WorkWhileLockedSwitch().IsOn();
+    auto partSize = isnan(OutputPartSizeBox().Value()) ? 100u : uint32_t(clamp(OutputPartSizeBox().Value(), 1.0, 4096.0));
+    auto storageLimit = isnan(StorageLimitBox().Value()) ? 1024u : uint32_t(clamp(StorageLimitBox().Value(), 0.0, 1048576.0));
 
     _settings->Update([&](Settings& settings) {
       settings.Display.Width = resolution.Width;
@@ -168,12 +179,22 @@ namespace winrt::SecondShell::implementation
       settings.CaptureRetention = retention;
       settings.DefaultShell = shell;
       settings.WorkWhileLocked = workWhileLocked;
+      settings.OutputPartSize = partSize;
+      settings.StorageLimit = storageLimit;
       });
   }
 
   void GeneralSettings::OnOpenCaptureFolderClick(const IInspectable& /*sender*/, const RoutedEventArgs& /*eventArgs*/)
   {
     auto folder = _environment->CapturesFolder();
+    error_code error;
+    filesystem::create_directories(folder, error);
+    ShellExecuteW(nullptr, L"open", folder.c_str(), nullptr, nullptr, SW_SHOWNORMAL);
+  }
+
+  void GeneralSettings::OnOpenOutputFolderClick(const IInspectable& /*sender*/, const RoutedEventArgs& /*eventArgs*/)
+  {
+    auto folder = _environment->OutputFolder();
     error_code error;
     filesystem::create_directories(folder, error);
     ShellExecuteW(nullptr, L"open", folder.c_str(), nullptr, nullptr, SW_SHOWNORMAL);

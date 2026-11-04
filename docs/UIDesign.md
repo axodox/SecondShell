@@ -58,7 +58,8 @@ From left to right:
 1. **Activity**: animated bars while a sequence runs, with the agent's description of the sequence (a `description` on `Run-Sequence`; "Agent working" without one) and "step x of y". Between sequences the bars slow down and dim for a few seconds ("Agent thinking"), then go quiet ("Agent idle", with how long ago the agent was last active: "last active 12 min ago", coarser the longer ago: s, min, h, days). While the user has control: "You're in control" in amber.
 2. **The current action**: a spinner while it runs, then its result (check, cross); the action name in the agent colour; its arguments as rectangles, the name dim and the value bright (strings in quotes, sensitive text as dots); keys as keycaps (`Ctrl` + `Shift` + `Esc`). It brightens briefly when it changes, then settles. A failure follows as "failed: reason" in the failure colour. Durations read "60 s", "200 ms".
 3. **Session**: state, frame rate, clipboard sync while the user has control.
-4. **Log**: a button with the entry count (and a dot after a failure) that opens the log flyout.
+4. **Processes**: a button with the number of the agent's processes running, which opens the processes flyout.
+5. **Log**: a button with the entry count (and a dot after a failure) that opens the log flyout.
 
 ## Log flyout
 
@@ -71,9 +72,19 @@ Expands over the window from its status bar button, and can expand to the window
 - **Commands** show their output live while they run (standard output and error), with Copy.
 - A failed step shows its reason; sensitive text stays hidden and clipboard content short.
 
+## Processes flyout
+
+Like the log flyout, from its status bar button, and can expand to the window's height.
+
+- Filters as in the log: **All**, **Running**, **Finished**, and search (command, program or PID).
+- On the left the processes the agent started with output in this run, newest first: the command, the PID, running or its exit code. Under **Earlier**, the output files of the others in the output folder, also of earlier runs, newest first (at most 100): the program, the PID, when it started and the size. The newest is selected until the user picks another.
+- An earlier one shows the end of its file (its last 10,000 lines, from at most its last 4 MB, across its parts); it does not change.
+- On the right the selected one's output, in the monospace font, a line per row, following the new lines while scrolled to the end. It keeps the last 10,000 lines of each process (the file has all of it); a gap the window missed shows as a line saying how much more is in the file. Only the rows on the screen are built, so a busy process stays quick.
+- In the header: PID, state and line count; **Copy** (the lines shown) and **Open file** (the output file, all of it).
+
 ## Settings
 
-Pages: **General** (session display and sign-in timeout, Keep working while the screen is locked (off by default; says when Remote Desktop is off on the PC), captures, default shell, password and setup), **Add to AI apps** (each client with its state: added, out of date, not added, not found; a snippet for other apps), **About**.
+Pages: **General** (session display and sign-in timeout, Keep working while the screen is locked (off by default; says when Remote Desktop is off on the PC), captures, the output files' part size and the space for captures and output files, default shell, password and setup), **Add to AI apps** (each client with its state: added, out of date, not added, not found; a snippet for other apps), **About**.
 
 ## Dialogs
 

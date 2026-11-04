@@ -49,6 +49,10 @@ namespace SecondShell::Desktop
 
   wstring ShellCommandBuilder::Build(ShellKind shell, string_view command, span<const string> args) const
   {
+    //An executable with arguments runs as itself: Windows PowerShell drops the double quotes inside arguments it passes
+    //to a program, and cmd has rules of its own; scripts, cmdlets and batch files still go through the shell
+    if (!args.empty() && shell != ShellKind::None && IsExecutable(command)) return Executable(command, args);
+
     switch (shell)
     {
     case ShellKind::PowerShell:
@@ -62,6 +66,17 @@ namespace SecondShell::Desktop
     default:
       throw logic_error("Unknown shell.");
     }
+  }
+
+  bool ShellCommandBuilder::IsExecutable(string_view command)
+  {
+    //As CreateProcess finds it: the path, or the name on the search path, with .exe if it has no extension
+    wchar_t path[MAX_PATH];
+    auto length = SearchPathW(nullptr, winrt::to_hstring(command).c_str(), L".exe", MAX_PATH, path, nullptr);
+    if (length == 0 || length >= MAX_PATH) return false;
+
+    auto extension = filesystem::path(path).extension().wstring();
+    return _wcsicmp(extension.c_str(), L".exe") == 0 || _wcsicmp(extension.c_str(), L".com") == 0;
   }
 
   wstring ShellCommandBuilder::QuoteArgument(wstring_view argument)

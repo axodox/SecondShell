@@ -74,6 +74,18 @@ namespace SecondShell::Tests
       Assert::IsTrue(script.ends_with("\n& 'C:\\Program Files\\cmd.exe' '/c' 'it''s' '$env:USERNAME'"), to_wstring(script).c_str());
     }
 
+    TEST_METHOD(AnExecutableWithArgumentsRunsAsItself)
+    {
+      //Windows PowerShell would drop the quotes inside the argument
+      vector<string> args{ "-Command", "\"quoted\" text" };
+      auto parsed = Parse(_builder.Build(ShellKind::PowerShell, "powershell.exe", args));
+      Assert::AreEqual(size_t(3), parsed.size());
+      Assert::AreEqual(wstring(L"powershell.exe"), parsed[0]);
+      Assert::AreEqual(wstring(L"\"quoted\" text"), parsed[2]);
+      Assert::IsTrue(ShellCommandBuilder::IsExecutable("cmd"), L"found on the path, with .exe");
+      Assert::IsFalse(ShellCommandBuilder::IsExecutable("Get-ChildItem"));
+    }
+
     TEST_METHOD(CmdRunsTheCommandAsItIs)
     {
       Assert::AreEqual(wstring(L"C:\\Windows\\System32\\cmd.exe /d /s /c \"echo %PATH% & dir\""), _builder.Build(ShellKind::Cmd, "echo %PATH% & dir", {}));

@@ -34,6 +34,7 @@ namespace SecondShell::Session
       Peer.AddNotificationHandler(this, &Connection::OnActionCompleted);
       Peer.AddNotificationHandler(this, &Connection::OnFramesChanged);
       Peer.AddNotificationHandler(this, &Connection::OnClipboardChanged);
+      Peer.AddNotificationHandler(this, &Connection::OnProcessOutput);
       Peer.Start();
     }
 
@@ -62,6 +63,11 @@ namespace SecondShell::Session
     {
       if (_owner->Driver().get() == this) _owner->_events.raise(_owner->ClipboardChanged, _owner, notification.Contents);
     }
+
+    void OnProcessOutput(const ProcessOutputNotification& notification)
+    {
+      if (_owner->Driver().get() == this) _owner->_events.raise(_owner->ProcessOutput, _owner, notification);
+    }
   };
 
   DriverLink::DriverLink(dependency_container* container) :
@@ -71,6 +77,8 @@ namespace SecondShell::Session
   DriverLink::DriverLink(dependency_container* /*container*/, string_view pipeName) :
     FramesChanged(_events),
     ClipboardChanged(_events),
+    ProcessOutput(_events),
+    Accepted(_events),
     _server(pipeName),
     _clientConnectedSubscription(_server.client_connected({ this, &DriverLink::OnClientConnected })),
     _clientDisconnectedSubscription(_server.client_disconnected({ this, &DriverLink::OnClientDisconnected }))
@@ -175,6 +183,11 @@ namespace SecondShell::Session
     return driver->Peer.Request(SubscribeFramesRequest{}, _queryTimeout, noCancellation);
   }
 
+  void DriverLink::ConfigureOutput(const ConfigureOutputNotification& configuration)
+  {
+    if (auto driver = Driver()) driver->Peer.Notify(configuration);
+  }
+
   RpcResult<ScreenResponse> DriverLink::GetScreen()
   {
     auto driver = Driver();
@@ -214,6 +227,15 @@ namespace SecondShell::Session
   }
 
   DriverHelloResponse DriverLink::Accept(const shared_ptr<Connection>& connection)
+  {
+    auto response = Admit(connection);
+
+    //Before the driver hears that it is accepted, so it is configured before it does anything
+    if (response.IsAccepted) _events.raise(Accepted, this);
+    return response;
+  }
+
+  DriverHelloResponse DriverLink::Admit(const shared_ptr<Connection>& connection)
   {
     auto sessionId = connection->Transport->PeerSessionId();
     auto processId = connection->Transport->PeerProcessId();

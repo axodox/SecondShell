@@ -21,6 +21,7 @@ namespace SecondShell::Environment
     std::filesystem::path CapturesFolder() const;  //holds a folder per run
     std::filesystem::path CaptureFolder(std::string_view sessionName) const;
     std::filesystem::path LogFolder() const;
+    std::filesystem::path OutputFolder() const;  //the output of processes started with output, a file or more each
 
   private:
     std::filesystem::path Executable(std::string_view name) const;

@@ -90,6 +90,40 @@
       </StackPanel>
     </Grid>
 
+    <Grid Style="{StaticResource SettingsCardStyle}">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="*" />
+        <ColumnDefinition Width="Auto" />
+      </Grid.ColumnDefinitions>
+      <StackPanel VerticalAlignment="Center" Spacing="2">
+        <TextBlock Text="Output files of processes" Style="{StaticResource SettingsNameStyle}" />
+        <TextBlock Text="Programs the agent starts with their output collected, e.g. servers, write it to files of at most this size, then go on in the next" Style="{StaticResource SettingsDescriptionStyle}" />
+        <TextBlock x:Name="OutputFolderText" Style="{StaticResource SettingsPathStyle}" />
+      </StackPanel>
+      <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+        <NumberBox x:Name="OutputPartSizeBox" Minimum="1" Maximum="4096" SmallChange="10" LargeChange="100" SpinButtonPlacementMode="Inline"
+                   MinWidth="140" AutomationProperties.Name="Output file size in megabytes" ValueChanged="OnNumberChanged" />
+        <TextBlock Text="MB" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" />
+        <Button Content="Open folder" Click="OnOpenOutputFolderClick" />
+      </StackPanel>
+    </Grid>
+
+    <Grid Style="{StaticResource SettingsCardStyle}">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="*" />
+        <ColumnDefinition Width="Auto" />
+      </Grid.ColumnDefinitions>
+      <StackPanel VerticalAlignment="Center" Spacing="2">
+        <TextBlock Text="Space for captures and output files" Style="{StaticResource SettingsNameStyle}" />
+        <TextBlock Text="Beyond it, the oldest captures and output files are deleted; 0: no limit" Style="{StaticResource SettingsDescriptionStyle}" />
+      </StackPanel>
+      <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+        <NumberBox x:Name="StorageLimitBox" Minimum="0" Maximum="1048576" SmallChange="256" LargeChange="1024" SpinButtonPlacementMode="Inline"
+                   MinWidth="140" AutomationProperties.Name="Space for captures and output files in megabytes" ValueChanged="OnNumberChanged" />
+        <TextBlock Text="MB" VerticalAlignment="Center" Foreground="{StaticResource SecondaryTextBrush}" />
+      </StackPanel>
+    </Grid>
+
     <TextBlock Text="Commands" Style="{StaticResource SettingsSectionTitleStyle}" />
     <Grid Style="{StaticResource SettingsCardStyle}">
       <Grid.ColumnDefinitions>

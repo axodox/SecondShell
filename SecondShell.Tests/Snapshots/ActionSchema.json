@@ -1314,6 +1314,10 @@
           "description": "Without args: a command line for the shell, e.g. \"Get-ChildItem C:\\\\Temp | Select-Object -First 5\". With args, or with shell None: the program to run, e.g. \"cmd.exe\" or \"C:\\\\Tools\\\\tool.exe\" (in PowerShell also a script or cmdlet).",
           "type": "string"
         },
+        "output": {
+          "description": "With async: collect the program's output, e.g. a server's log, instead of giving it a window, and take input. Process.ReadOutput, Process.WaitForOutput and Process.WriteInput then work with it; the result has the file the output goes to, and the user sees it live in SecondShell.",
+          "type": "boolean"
+        },
         "shell": {
           "description": "PowerShell (Windows PowerShell), Pwsh (PowerShell 7), Cmd, or None (no shell: command is an executable); default: the user's setting, PowerShell unless they changed it.",
           "enum": [
@@ -1422,6 +1426,101 @@
       },
       "required": [
         "action"
+      ],
+      "type": "object"
+    },
+    {
+      "additionalProperties": false,
+      "description": "Reads the output of a process started with output (both streams, as they arrived): by default its last 50 lines. With from, the output from that offset on, e.g. next of the previous read, to follow it. Also tells whether it still runs, and its exit code.",
+      "properties": {
+        "action": {
+          "const": "Process.ReadOutput",
+          "type": "string"
+        },
+        "from": {
+          "description": "An offset, as next of an earlier result returned; 0 is the start. Older output than the recent part kept in memory is read from its files.",
+          "minimum": 0,
+          "type": "number"
+        },
+        "maxBytes": {
+          "description": "Most bytes to return, default 16384; more follows from next.",
+          "maximum": 1048576,
+          "minimum": 1,
+          "type": "number"
+        },
+        "pid": {
+          "description": "The process ID, e.g. from Process.Run or Process.Enumerate.",
+          "type": "number"
+        },
+        "tail": {
+          "description": "The last this many lines.",
+          "minimum": 1,
+          "type": "number"
+        }
+      },
+      "required": [
+        "action",
+        "pid"
+      ],
+      "type": "object"
+    },
+    {
+      "additionalProperties": false,
+      "description": "Waits until a line of the output of a process started with output contains the text, e.g. a server's \"Listening on\"; returns that line, and next to read on from. Fails at once if the process exits first.",
+      "properties": {
+        "action": {
+          "const": "Process.WaitForOutput",
+          "type": "string"
+        },
+        "from": {
+          "description": "Only look at output from this offset on; default 0: also what was written before the wait, as far as it is kept in memory.",
+          "minimum": 0,
+          "type": "number"
+        },
+        "pid": {
+          "description": "The process ID, e.g. from Process.Run or Process.Enumerate.",
+          "type": "number"
+        },
+        "text": {
+          "description": "Found ignoring case.",
+          "type": "string"
+        },
+        "timeout": {
+          "description": "Milliseconds to wait at most, default 10000; when it expires the sequence stops with a Timeout error.",
+          "minimum": 0,
+          "type": "number"
+        }
+      },
+      "required": [
+        "action",
+        "pid",
+        "text"
+      ],
+      "type": "object"
+    },
+    {
+      "additionalProperties": false,
+      "description": "Writes text to the input of a process started with output, as UTF-8; end lines with \\n, as the program reads them. With close, the input ends after it, which tells many programs that nothing more comes.",
+      "properties": {
+        "action": {
+          "const": "Process.WriteInput",
+          "type": "string"
+        },
+        "close": {
+          "description": "End the input after the text.",
+          "type": "boolean"
+        },
+        "pid": {
+          "description": "The process ID, e.g. from Process.Run or Process.Enumerate.",
+          "type": "number"
+        },
+        "text": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "pid"
       ],
       "type": "object"
     },

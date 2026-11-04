@@ -20,6 +20,11 @@ namespace SecondShell::Session
     //Keep the user's session unlocked behind the lock screen while the agent's session runs, so the agent's input
     //keeps working (Design.md, Working while the screen is locked). Off unless the user turns it on.
     bool WorkWhileLocked = false;
+
+    //The output of processes the agent starts with output goes to files of at most this many megabytes each
+    uint32_t OutputPartSize = 100;
+    //Captures and output files together, in megabytes; beyond it the oldest are deleted. 0: no limit
+    uint32_t StorageLimit = 1024;
   };
 
   //Persistent user settings, as settings.json in the data folder; missing or unreadable, the defaults.

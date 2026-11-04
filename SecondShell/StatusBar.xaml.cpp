@@ -4,6 +4,7 @@
 #include "StatusBar.g.cpp"
 #endif
 #include "ActionLogPanel.xaml.h"
+#include "ProcessesPanel.xaml.h"
 #include "ActionView.h"
 
 using namespace ::SecondShell::Actions;
@@ -50,6 +51,13 @@ namespace winrt::SecondShell::implementation
       _isLogExpanded = isExpanded;
       SizeLog();
       };
+
+    auto processes = get_self<implementation::ProcessesPanel>(ProcessesPanel());
+    processes->CloseRequested = [this] { ProcessesFlyout().Hide(); };
+    processes->ExpandChanged = [this](bool isExpanded) {
+      _isProcessesExpanded = isExpanded;
+      SizePanel(ProcessesPanel(), _isProcessesExpanded);
+      };
   }
 
   void StatusBar::UseServices(dependency_container* container)
@@ -59,6 +67,8 @@ namespace winrt::SecondShell::implementation
     _sessions = container->resolve<SessionManager>();
     _renderer = container->resolve<SessionRenderer>();
     _setupChecker = container->resolve<SetupChecker>();
+    _processOutput = container->resolve<ProcessOutputStore>();
+    get_self<implementation::ProcessesPanel>(ProcessesPanel())->UseStore(_processOutput, container->resolve<::SecondShell::Environment::AppEnvironment>()->OutputFolder());
     _queue = DispatcherQueue();
 
     _subscriptions.push_back(_actionLog->SequenceChanged([this](ActionLog*, const SequenceLogEntry& sequence) { Post([this, sequence] { ShowSequence(sequence); }); }));
@@ -73,6 +83,7 @@ namespace winrt::SecondShell::implementation
     _timer.Tick([this](auto&&, auto&&) {
       UpdateActivity();
       UpdateSession();
+      UpdateProcesses();
       });
     _timer.Start();
 
@@ -95,6 +106,27 @@ namespace winrt::SecondShell::implementation
     _isLogOpen = false;
     LogButton().ClearValue(Controls::Control::BackgroundProperty());
     LogButton().ClearValue(Controls::Control::BorderBrushProperty());
+  }
+
+  void StatusBar::OnProcessesOpening(const IInspectable& /*sender*/, const IInspectable& /*eventArgs*/)
+  {
+    _isProcessesOpen = true;
+    SizePanel(ProcessesPanel(), _isProcessesExpanded);
+    get_self<implementation::ProcessesPanel>(ProcessesPanel())->Refresh(true);
+  }
+
+  void StatusBar::OnProcessesClosed(const IInspectable& /*sender*/, const IInspectable& /*eventArgs*/)
+  {
+    _isProcessesOpen = false;
+  }
+
+  void StatusBar::UpdateProcesses()
+  {
+    auto processes = _processOutput->Processes();
+    ProcessCountText().Text(to_hstring(ranges::count_if(processes, [](auto& process) { return process.IsRunning; })));
+
+    //Live while open; the panel adds only what is new
+    if (_isProcessesOpen) get_self<implementation::ProcessesPanel>(ProcessesPanel())->Refresh();
   }
 
   void StatusBar::Post(function<void()> action)
@@ -253,12 +285,16 @@ namespace winrt::SecondShell::implementation
 
   void StatusBar::SizeLog()
   {
+    SizePanel(LogPanel(), _isLogExpanded);
+  }
+
+  void StatusBar::SizePanel(const FrameworkElement& panel, bool isExpanded)
+  {
     auto root = XamlRoot();
     if (!root) return;
 
     auto size = root.Size();
-    auto panel = LogPanel();
     panel.Width(min(_logWidth, size.Width - _logMargin));
-    panel.Height(_isLogExpanded ? size.Height - _windowChrome : min(_logHeight, size.Height - _windowChrome));
+    panel.Height(isExpanded ? size.Height - _windowChrome : min(_logHeight, size.Height - _windowChrome));
   }
 }

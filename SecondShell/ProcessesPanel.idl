@@ -1,0 +1,8 @@
+namespace SecondShell
+{
+  [default_interface]
+  runtimeclass ProcessesPanel : Microsoft.UI.Xaml.Controls.UserControl
+  {
+    ProcessesPanel();
+  }
+}

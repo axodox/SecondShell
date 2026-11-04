@@ -63,7 +63,10 @@ namespace SecondShell::Actions
     ProcessWaitForProcess,
     ProcessEnumerate,
     ClipboardRead,
-    ClipboardWrite
+    ClipboardWrite,
+    ProcessReadOutput,
+    ProcessWaitForOutput,
+    ProcessWriteInput
   );
 
   named_enum(ActionStatus,

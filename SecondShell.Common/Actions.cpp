@@ -427,6 +427,7 @@ namespace SecondShell::Actions
       { &ProcessRunAction::Args, "args", { .is_required = false, .schema = { .description = "Arguments of the program in command, each passed as it is, never parsed by the shell, e.g. [\"/c\", \"dir\"] with command \"cmd.exe\"." } } },
       { &ProcessRunAction::WorkingDirectory, "workingDirectory", { .is_required = false, .schema = { .description = "Default: the user's profile folder." } } },
       { &ProcessRunAction::Async, "async", { .is_required = false, .schema = { .description = "Start the program as Explorer would (console programs get a window, nothing is redirected) and return its process ID at once; Control.Join does not wait for it, Process.WaitForProcess does." } } },
+      { &ProcessRunAction::Output, "output", { .is_required = false, .schema = { .description = "With async: collect the program's output, e.g. a server's log, instead of giving it a window, and take input. Process.ReadOutput, Process.WaitForOutput and Process.WriteInput then work with it; the result has the file the output goes to, and the user sees it live in SecondShell." } } },
       { &ProcessRunAction::Timeout, "timeout", { .is_required = false, .schema = { .description = "Milliseconds to wait for the exit, default 10000; when it expires the sequence stops with a Timeout error and the process keeps running.", .minimum = 0 } } }
     });
 
@@ -434,6 +435,49 @@ namespace SecondShell::Actions
   {
     return ToMilliseconds(Timeout);
   }
+
+  expected<> ProcessRunAction::Validate() const
+  {
+    if (Output.value_or(false) && !Async.value_or(false)) return failure<>("output needs async: a synchronous run returns its output anyway.");
+    return {};
+  }
+
+  json_object_descriptor<ProcessReadOutputAction> ProcessReadOutputAction::json_description = describe_json_object<ProcessReadOutputAction, Action>(
+    { .name = "Process.ReadOutput", .description = "Reads the output of a process started with output (both streams, as they arrived): by default its last 50 lines. With from, the output from that offset on, e.g. next of the previous read, to follow it. Also tells whether it still runs, and its exit code." },
+    {
+      { &ProcessReadOutputAction::ProcessId, "pid", { .is_required = true, .schema = { .description = _processId } } },
+      { &ProcessReadOutputAction::Tail, "tail", { .is_required = false, .schema = { .description = "The last this many lines.", .minimum = 1 } } },
+      { &ProcessReadOutputAction::From, "from", { .is_required = false, .schema = { .description = "An offset, as next of an earlier result returned; 0 is the start. Older output than the recent part kept in memory is read from its files.", .minimum = 0 } } },
+      { &ProcessReadOutputAction::MaxBytes, "maxBytes", { .is_required = false, .schema = { .description = "Most bytes to return, default 16384; more follows from next.", .minimum = 1, .maximum = 1048576 } } }
+    });
+
+  expected<> ProcessReadOutputAction::Validate() const
+  {
+    if (Tail && From) return failure<>("give tail or from, not both.");
+    return {};
+  }
+
+  json_object_descriptor<ProcessWaitForOutputAction> ProcessWaitForOutputAction::json_description = describe_json_object<ProcessWaitForOutputAction, Action>(
+    { .name = "Process.WaitForOutput", .description = "Waits until a line of the output of a process started with output contains the text, e.g. a server's \"Listening on\"; returns that line, and next to read on from. Fails at once if the process exits first." },
+    {
+      { &ProcessWaitForOutputAction::ProcessId, "pid", { .is_required = true, .schema = { .description = _processId } } },
+      { &ProcessWaitForOutputAction::Text, "text", { .is_required = true, .schema = { .description = "Found ignoring case." } } },
+      { &ProcessWaitForOutputAction::From, "from", { .is_required = false, .schema = { .description = "Only look at output from this offset on; default 0: also what was written before the wait, as far as it is kept in memory.", .minimum = 0 } } },
+      { &ProcessWaitForOutputAction::Timeout, "timeout", { .is_required = false, .schema = { .description = _timeout, .minimum = 0 } } }
+    });
+
+  optional<milliseconds> ProcessWaitForOutputAction::WaitTimeout() const
+  {
+    return ToMilliseconds(Timeout);
+  }
+
+  json_object_descriptor<ProcessWriteInputAction> ProcessWriteInputAction::json_description = describe_json_object<ProcessWriteInputAction, Action>(
+    { .name = "Process.WriteInput", .description = "Writes text to the input of a process started with output, as UTF-8; end lines with \\n, as the program reads them. With close, the input ends after it, which tells many programs that nothing more comes." },
+    {
+      { &ProcessWriteInputAction::ProcessId, "pid", { .is_required = true, .schema = { .description = _processId } } },
+      { &ProcessWriteInputAction::Text, "text", { .is_required = false } },
+      { &ProcessWriteInputAction::Close, "close", { .is_required = false, .schema = { .description = "End the input after the text." } } }
+    });
 
   json_object_descriptor<ProcessStopAction> ProcessStopAction::json_description = describe_json_object<ProcessStopAction, Action>(
     { .name = "Process.Stop", .description = "Asks a process to exit gracefully: its windows get a close request, console processes get Ctrl+C. Returns its exit code; use Process.Kill if it does not exit." },
@@ -533,7 +577,20 @@ namespace SecondShell::Actions
       { &ProcessResult::StandardOutput, "stdout", { .is_required = false } },
       { &ProcessResult::StandardError, "stderr", { .is_required = false } },
       { &ProcessResult::IsOutputTruncated, "stdoutTruncated", { .is_required = false } },
-      { &ProcessResult::IsErrorTruncated, "stderrTruncated", { .is_required = false } }
+      { &ProcessResult::IsErrorTruncated, "stderrTruncated", { .is_required = false } },
+      { &ProcessResult::OutputFile, "outputFile", { .is_required = false, .schema = { .description = "Where the output goes; past its size limit it continues in the same name with .2, .3 before .log." } } }
+    });
+
+  json_object_descriptor<ProcessOutputResult> ProcessOutputResult::json_description = describe_json_object<ProcessOutputResult, ActionResult>(
+    { .name = "ProcessOutput" },
+    {
+      { &ProcessOutputResult::ProcessId, "pid" },
+      { &ProcessOutputResult::Text, "text" },
+      { &ProcessOutputResult::From, "from", { .schema = { .description = "The offset of the text." } } },
+      { &ProcessOutputResult::Next, "next", { .schema = { .description = "The offset after the text: from of the next read." } } },
+      { &ProcessOutputResult::IsRunning, "isRunning" },
+      { &ProcessOutputResult::ExitCode, "exitCode", { .is_required = false } },
+      { &ProcessOutputResult::IsTruncated, "truncated", { .is_required = false, .schema = { .description = "More output follows before next; read on from next." } } }
     });
 
   json_object_descriptor<ProcessListResult> ProcessListResult::json_description = describe_json_object<ProcessListResult, ActionResult>(
