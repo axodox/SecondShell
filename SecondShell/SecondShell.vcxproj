@@ -116,6 +116,10 @@
     <ClInclude Include="FrameReceiver.h" />
     <ClInclude Include="InteractiveInputForwarder.h" />
     <ClInclude Include="IDriverLink.h" />
+    <ClInclude Include="IInputAvailability.h" />
+    <ClInclude Include="LockScreenBridge.h" />
+    <ClInclude Include="LockScreenPolicy.h" />
+    <ClInclude Include="LoopbackClient.h" />
     <ClInclude Include="McpConnection.h" />
     <ClInclude Include="McpRequestHandler.h" />
     <ClInclude Include="OverlayElement.h" />
@@ -124,6 +128,7 @@
     <ClInclude Include="RdpHostWindow.h" />
     <ClInclude Include="SequenceRunner.h" />
     <ClInclude Include="SessionRenderer.h" />
+    <ClInclude Include="SessionLockWatcher.h" />
     <ClInclude Include="SessionManager.h" />
     <ClInclude Include="StaThread.h" />
     <ClInclude Include="ViewTransform.h" />
@@ -234,6 +239,9 @@
     <ClCompile Include="FrameReceiver.cpp" />
     <ClCompile Include="InteractiveInputForwarder.cpp" />
     <ClCompile Include="IDriverLink.cpp" />
+    <ClCompile Include="LockScreenBridge.cpp" />
+    <ClCompile Include="LockScreenPolicy.cpp" />
+    <ClCompile Include="LoopbackClient.cpp" />
     <ClCompile Include="McpConnection.cpp" />
     <ClCompile Include="McpRequestHandler.cpp" />
     <ClCompile Include="OverlayElement.cpp" />
@@ -245,6 +253,7 @@
     </ClCompile>
     <ClCompile Include="SequenceRunner.cpp" />
     <ClCompile Include="SessionRenderer.cpp" />
+    <ClCompile Include="SessionLockWatcher.cpp" />
     <ClCompile Include="SessionManager.cpp" />
     <ClCompile Include="StaThread.cpp" />
     <ClCompile Include="ViewTransform.cpp" />

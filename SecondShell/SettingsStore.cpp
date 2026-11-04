@@ -16,7 +16,8 @@ namespace SecondShell::Session
     { &Settings::CaptureFormat, "captureFormat", { .is_required = false } },
     { &Settings::InlineCaptureLimit, "inlineCaptureLimit", { .is_required = false, .schema = { .minimum = 0, .maximum = 100 } } },
     { &Settings::CaptureRetention, "captureRetention", { .is_required = false, .schema = { .minimum = 0, .maximum = 3650 } } },
-    { &Settings::DefaultShell, "defaultShell", { .is_required = false } }
+    { &Settings::DefaultShell, "defaultShell", { .is_required = false } },
+    { &Settings::WorkWhileLocked, "workWhileLocked", { .is_required = false } }
     });
 
   SettingsStore::SettingsStore(dependency_container* container) :

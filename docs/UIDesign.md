@@ -73,7 +73,7 @@ Expands over the window from its status bar button, and can expand to the window
 
 ## Settings
 
-Pages: **General** (session display and sign-in timeout, captures, default shell, password and setup), **Add to AI apps** (each client with its state: added, out of date, not added, not found; a snippet for other apps), **About**.
+Pages: **General** (session display and sign-in timeout, Keep working while the screen is locked (off by default; says when Remote Desktop is off on the PC), captures, default shell, password and setup), **Add to AI apps** (each client with its state: added, out of date, not added, not found; a snippet for other apps), **About**.
 
 ## Dialogs
 

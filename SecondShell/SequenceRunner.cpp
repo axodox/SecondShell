@@ -17,6 +17,16 @@ namespace SecondShell::Agent
 {
   const char* const _timeoutMessage = "The sequence did not complete within its timeout.";
 
+  //Input waits out the switch of the user's session to or from the connection that keeps it unlocked behind the lock
+  //screen, about 11 s (Findings.md 2.17), rather than failing; longer than this, and the agent hears about it
+  const milliseconds _inputResumeLimit{ 20000 };
+  const milliseconds _inputPollInterval{ 250 };
+  //Input refused just as the session locked: until the lock screen bridge reports that it is resuming
+  const milliseconds _inputRefusalGrace{ 2000 };
+  //Windows reports the session unlocked about 2 s before it takes input again when the user signs in at the PC
+  const milliseconds _inputSettleTime{ 500 };
+  const uint32_t _inputRetries = 6;
+
   struct SequenceRunner::RunState
   {
     uint32_t Sequence = 0;
@@ -42,6 +52,12 @@ namespace SecondShell::Agent
     {
       return !state.MouseButtons.empty() || !state.Keys.empty() || !state.TouchPoints.empty() || state.Pen.value_or(false);
     }
+
+    bool IsInput(const Action& action)
+    {
+      auto kind = action.Kind();
+      return kind == ActionKind::Mouse || kind == ActionKind::Keyboard || kind == ActionKind::Touch || kind == ActionKind::Pen;
+    }
   }
 
   SequenceRunner::SequenceRunner(dependency_container* container) :
@@ -53,7 +69,8 @@ namespace SecondShell::Agent
     _captureStore(container->resolve<CaptureStore>()),
     _settings(container->resolve<SettingsStore>()),
     _actionLog(container->resolve<ActionLog>()),
-    _visualization(container->resolve<VisualizationFeed>())
+    _visualization(container->resolve<VisualizationFeed>()),
+    _input(container->resolve<IInputAvailability>())
   { }
 
   RunSequenceResponse SequenceRunner::Run(const RunSequenceRequest& request, const ProgressCallback& progress, const CancellationToken& cancellation)
@@ -144,8 +161,54 @@ namespace SecondShell::Agent
     case ActionType::ProcessRun:
       return RunProcess(state, step);
     default:
-      return Execute(state, step);
+      return IsInput(*step) ? ExecuteInput(state, step) : Execute(state, step);
     }
+  }
+
+  value_ptr<ActionResult> SequenceRunner::ExecuteInput(RunState& state, const value_ptr<Action>& step)
+  {
+    if (auto stopped = WaitWhileResuming(state)) return stopped;
+
+    auto result = Execute(state, step);
+    auto isRefused = [&] { return result->Status == ActionStatus::Failed && result->Error == ErrorCode::InputUnavailable; };
+
+    //Refused as the session switched: again after the switch. The bridge may report the lock a moment after the
+    //refusal, and Windows may report the session unlocked a moment before it takes input again. Refused at its first
+    //event, the step did nothing; in the rare case the lock fell within it, it runs again from the start.
+    for (uint32_t attempt = 0; isRefused() && attempt < _inputRetries; attempt++)
+    {
+      auto graceEnd = steady_clock::now() + _inputRefusalGrace;
+      while (_input->Current() == InputAvailability::Unavailable && steady_clock::now() < graceEnd)
+      {
+        if (state.Stop.WaitFor(_inputPollInterval)) return ActionResult::Cancelled();
+      }
+      if (_input->Current() == InputAvailability::Unavailable) return result;
+
+      if (auto stopped = WaitWhileResuming(state)) return stopped;
+      if (state.Stop.WaitFor(_inputSettleTime)) return ActionResult::Cancelled();
+      if (Remaining(state.Deadline) == 0ms) return ActionResult::Failed(ErrorCode::Timeout, _timeoutMessage);
+
+      _logger.log(log_severity::information, "Running {} again, now that input is back.", step->Name());
+      result = Execute(state, step);
+    }
+    return result;
+  }
+
+  value_ptr<ActionResult> SequenceRunner::WaitWhileResuming(RunState& state)
+  {
+    if (_input->Current() != InputAvailability::Resuming) return nullptr;
+
+    _logger.log(log_severity::information, "Waiting for input: the user's session is being kept unlocked behind the lock screen.");
+    auto limit = steady_clock::now() + _inputResumeLimit;
+    while (_input->Current() == InputAvailability::Resuming)
+    {
+      //Never a wait of 0 ms, which waits forever
+      auto remaining = Remaining(state.Deadline);
+      if (remaining == 0ms) return ActionResult::Failed(ErrorCode::Timeout, _timeoutMessage);
+      if (steady_clock::now() >= limit) break;  //the step then fails with InputUnavailable, and the agent hears why
+      if (state.Stop.WaitFor(min(_inputPollInterval, remaining))) return ActionResult::Cancelled();
+    }
+    return nullptr;
   }
 
   value_ptr<ActionResult> SequenceRunner::Wait(RunState& state, milliseconds duration)

@@ -985,6 +985,56 @@ public:
   Axodox::Infrastructure::event_publisher<RdpClient*, const DisconnectEventArgs&> Disconnected;
 };
 
+//Lock, unlock and console/remote connect notifications of the host's own session (WTSRegisterSessionNotification on a
+//message-only window of its own STA thread), and its state now: locked, connected, on the PC's screen.
+class SessionLockWatcher
+{
+public:
+  OwnSessionState Current() const;
+
+  Axodox::Infrastructure::event_publisher<SessionLockWatcher*, OwnSessionChange> Changed;
+};
+
+//The RDP connection to the host's own session through 127.0.0.2 (Findings.md 2.17): an RdpHostWindow configured for
+//RdpTarget::OwnSession (no certificate warning, no auto-reconnect, sound stays on the PC), saved credentials only.
+class LoopbackClient
+{
+public:
+  bool Connect();  //false without saved credentials
+  void Disconnect();
+  void Release();  //the ended connection's control; not from its own event handlers
+
+  Axodox::Infrastructure::event_publisher<LoopbackClient*> LoginCompleted;
+  Axodox::Infrastructure::event_publisher<LoopbackClient*, long> Disconnected;
+};
+
+//When to keep the user's session unlocked behind the lock screen. Armed by an unlock at the PC, disarmed by its own
+//connection; a 5 s delay after the lock, 3 retries 15 s apart while the user is away. No Windows calls (unit tested).
+class LockScreenPolicy
+{
+public:
+  LockScreenAction SetActive(bool isActive, clock::time_point now, const OwnSessionState& state);
+  void OnLocked(clock::time_point now);
+  void OnUnlocked(const OwnSessionState& state);
+  LockScreenAction OnConsoleConnected();
+  void OnLoopbackConnected();
+  void OnLoopbackDisconnected(clock::time_point now, const OwnSessionState& state);
+  void OnConnectFailed(clock::time_point now, bool canRetry);
+  std::optional<clock::time_point> NextCheck() const;
+  LockScreenAction OnCheck(clock::time_point now, const OwnSessionState& state);
+  bool IsResuming() const;
+};
+
+//Feeds LockScreenPolicy (watcher, settings, session state, loopback events) and carries out its decisions, all on a
+//thread of its own, so no action runs inside an RDP event handler. Reports InputStatus (user present, input
+//Available/Resuming/Unavailable) for Check-Session and InputUnavailable messages.
+class LockScreenBridge
+{
+public:
+  explicit LockScreenBridge(Axodox::Infrastructure::dependency_container* container);
+  InputStatus Status() const;
+};
+
 //Writes and removes the driver's RunOnce entry.
 class DriverLauncher
 {
@@ -1317,6 +1367,17 @@ Where the code differs from the sketches above, and why (Findings.md 2.16):
 - **Add to AI apps** (`JsonConfigEditor`, `TomlConfigEditor`, `JsonFileIntegration`, `ClaudeCodeIntegration`, `CodexIntegration`, `IntegrationManager`, `CliRunner`, `TextDiff`, `AiAppsSettings`, `SessionDialogs::AskToChangeIntegration`): the editors change the text of the one entry (a small JSON scanner that skips strings and comments finds the section and the member; new members are indented as the file's first member is, with its line breaks), so the rest of the file stays byte for byte; Axodox's JSON objects are unordered, so parsing and writing the file again (as Asgard's `McpInstaller` does) would reorder it and drop comments. Writes keep `<file>.bak` and go through a temporary file; a file that exists but cannot be read throws, so it is never taken for an empty one. `CliRunner` runs a tool through `cmd /d /s /c` (it finds `.cmd` launchers), hidden, with its output captured, in a job object so a timeout ends its children too. The page lists every app with its state (Added, Out of date, Not added, Not found, Cannot read) and Add, Update or Remove behind the preview (the changed lines with two around them, or the command lines), run on a background thread; a failure shows in the app's card. `SecondShell.exe --integrate <id>` / `--unintegrate <id>` do the same without the window and preview, writing to the console they were started from (from cmd, `start /wait` waits for the exit code); an unknown id lists the ids, exit code 2.
 - **Uninstall** (`Uninstaller`, `App::RunUninstall`, `SessionDialogs::AskToUninstall` / `ShowUninstallReport`): `--uninstall` is parsed before the host opens its log, so `--delete-data` can delete the logs too; it writes to the console it was started from. The elevated setup takes its steps separately now (`--setup --child-sessions --smooth-view=off`), so turning the smooth view off enables nothing; `MachineConfiguration` deletes its `HKLM\SOFTWARE\SecondShell` key with its last value (only if it is empty: deleting a key takes its values with it). Tests use a test credential and temporary folders, never the data folder.
 - **Window**: when child sessions are off, the window asks with the one-time setup dialog once it has loaded (`SessionDialogs::AskToSetUp`: the checklist, and "Smooth session view (60 fps)", on, unless it is on already), and the session view shows "One-time setup needed" with Set up instead of "No session yet"; the status bar says "Setup needed". Set up runs the elevated setup on a background thread and checks again; a declined or failed setup is explained in the view.
+
+### 6.13 Working while the screen is locked
+
+Design.md, Working while the screen is locked; Findings.md 2.17.
+
+- **Pieces** (`SessionLockWatcher`, `LoopbackClient`, `LockScreenPolicy`, `LockScreenBridge`, section 6.3): `App::StartServices` resolves the bridge. It follows `SettingsStore::Changed` (`Settings::WorkWhileLocked`, `workWhileLocked`, off by default) and `SessionManager::StateChanged`: it is active while the setting is on and the session is `Ready`.
+- **Notifications**: `WTS_SESSION_LOCK` and `WTS_CONSOLE_DISCONNECT` count as a lock, `WTS_SESSION_UNLOCK` as an unlock, `WTS_CONSOLE_CONNECT` as the user signing in at the PC. "On the PC's screen" is `WTSGetActiveConsoleSessionId() == own session`; locked and connected come from `WTSSessionInfoEx`. The policy connects after a lock only when the session is locked on the PC's screen or disconnected: under someone's own Remote Desktop connection it is left alone.
+- **RDP**: `RdpHostWindow::Configure` takes an `RdpTarget`. For `OwnSession` the server is `127.0.0.2` (the client refuses `localhost` and `127.0.0.1` for a normal connection), `AuthenticationLevel` 0, `EnableAutoReconnect` off, `AudioRedirectionMode` 1 (play on the PC), no `ConnectToChildSession`; the size is the main display's (`SM_CXSCREEN`, `GetDpiForSystem`). `CredentialProvider::ApplySavedTo` sets the saved credentials and never prompts. A fresh control for each connection; the bridge releases an ended one from its own thread.
+- **Reporting**: `ActionExecutor` in the driver turns `E_ACCESSDENIED` from a mouse, keyboard, touch or pen action into `ErrorCode::InputUnavailable` (other `hresult_error`s now become `ActionFailed` with the action's name instead of reaching the RPC layer). `McpConnection` replaces the message with one from `LockScreenBridge::Status`: retry within seconds (`Resuming`), wait for the user (`Unavailable`), or retry now (`Available` again). `Check-Session` and `Initialize-Session` add `isUserPresent` and `input` to `SessionInfo`.
+- **Waiting** (`SequenceRunner::ExecuteInput`, `IInputAvailability`, implemented by `LockScreenInputAvailability` over the bridge, faked in tests): a mouse, keyboard, touch or pen step waits while input is `Resuming` (polled every 250 ms, at most 20 s, within the sequence's deadline, ended by Stop). Refused with `InputUnavailable`, it waits up to 2 s for the bridge to report `Resuming` (the lock notification may arrive after the refusal) and fails if input stays `Unavailable`; otherwise it waits out the switch, then 500 ms more, and runs the step again, up to 6 times: when the user signs in at the PC, Windows reports the session unlocked about 2 s before it takes input. Other steps never wait.
+- **Tests**: `LockScreenPolicyTests` play the sequences of the live tests: the delay, an unlock within it, a disconnect, its own lock and unlock, the user signing back in (including the connection ending before Windows reports the sign-in), retries and their reset, failures with and without retry, turning off, turning on while away, a session locked under someone's Remote Desktop connection, and `IsResuming`. `SettingsStoreTests` cover the setting.
 
 ## 7. Key flows
 

@@ -4,6 +4,7 @@
 #include "CaptureStore.h"
 #include "ClipboardSync.h"
 #include "IntegrationManager.h"
+#include "LockScreenBridge.h"
 #include "MachineSetup.h"
 #include "McpRequestHandler.h"
 #include "ProductInfo.h"
@@ -181,6 +182,7 @@ namespace winrt::SecondShell::implementation
     _container = make_unique<dependency_container>();
     _container->add<IDriverLink, DriverLink>();
     _container->add<IMachineConfiguration, MachineConfiguration>();
+    _container->add<IInputAvailability, LockScreenInputAvailability>();
   }
 
   bool App::StartServices()
@@ -203,6 +205,7 @@ namespace winrt::SecondShell::implementation
     thread([captures = _container->resolve<CaptureStore>()] { captures->RemoveOldCaptures(); }).detach();
     _container->resolve<DriverLink>()->Start();
     _container->resolve<ClipboardSync>();
+    _container->resolve<LockScreenBridge>();
     return true;
   }
 

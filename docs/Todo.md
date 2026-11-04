@@ -6,15 +6,14 @@ Features to consider; not yet implemented.
 
 A **Capture Screen** button in the title-bar toolbar, between **Take control** and **Stop**. It takes a full-resolution PNG screen capture of the session display and puts it on the clipboard.
 
-## Working while the screen is locked
+## Working while the screen is locked: what is left
 
-Investigate whether capture/control can be made to work while the machine's screen is locked for a long time — it currently returns access denied. Find out what access the capture and input paths lose at the lock screen and whether there is a supported way around it.
+Built: Keep working while the screen is locked, `InputUnavailable`, and `isUserPresent` / `input` in `Check-Session` (Design.md, Working while the screen is locked; Findings.md 2.17). Still open:
 
-Seen in an agent session (Ridge plugin work, 19–29 October): mouse and keyboard actions failed with `ActionFailed` "Access is denied" 10 times, during six separate absences of the user. Captures and `Process.Run` kept working; only input failed. `Initialize-Session` with `Reset` did not help. Even where it can't be made to work:
-
-- Give it an error code of its own (e.g. `InputUnavailable`) instead of a generic `ActionFailed`. `Check-Session` reported `Ready` with the driver connected the whole time, so the agent only found out when a click failed; it should report whether input is available.
-- Let the agent know when input works again, instead of it retrying.
-- Try whether UI Automation actions (invoke, toggle or set value on an element found by name) still work while locked, as they don't go through `SendInput`.
+- **Driver start as a service**: a LocalSystem service that starts the driver in the child session as soon as it signs in (`WTSQueryUserToken`, `CreateProcessAsUser`), instead of the `RunOnce` entry that waits behind Explorer's startup programs (20 to 74 s, Findings.md 2.16), and exits in the user's own session. It does not help input while locked (Findings.md 2.17). Needs the elevated setup to install it. A separate change.
+- **Telling the agent when input is back** without it asking: today it learns from `Check-Session` or the next `InputUnavailable` message.
+- **UI Automation actions** (invoke, toggle or set value on an element found by name): on hold. They do not cover canvas or 3D views, which need real mouse and touch input.
+- **The window** could show that the session is being kept unlocked behind the lock screen, e.g. in the status bar, for when the user comes back.
 
 ## Sequences longer than the client's timeout
 

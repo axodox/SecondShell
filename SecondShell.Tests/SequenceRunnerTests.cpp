@@ -70,12 +70,31 @@ namespace SecondShell::Tests
       vector<ExecuteActionRequest> _requests;
       int _resetCount = 0;
     };
+
+    //Whether input reaches the session, as the test sets it.
+    class FakeInputAvailability : public IInputAvailability
+    {
+    public:
+      atomic<InputAvailability> Value = InputAvailability::Available;
+
+      virtual InputAvailability Current() const override { return Value; }
+
+      //Becomes available after a while, as when the loopback connection has signed in
+      thread AvailableAfter(milliseconds delay)
+      {
+        return thread([this, delay] {
+          this_thread::sleep_for(delay);
+          Value = InputAvailability::Available;
+          });
+      }
+    };
   }
 
   TEST_CLASS(SequenceRunnerTests)
   {
     dependency_container _container;
     shared_ptr<FakeDriverLink> _driver = make_shared<FakeDriverLink>();
+    shared_ptr<FakeInputAvailability> _input = make_shared<FakeInputAvailability>();
     CancellationToken _noCancellation;
 
     static RunSequenceRequest Request(string_view text)
@@ -98,7 +117,103 @@ namespace SecondShell::Tests
     SequenceRunnerTests()
     {
       _container.add<IDriverLink>(_driver);
+      _container.add<IInputAvailability>(_input);
       UseDefaultSettings(_container);
+    }
+
+    TEST_METHOD(InputStepsWaitWhileTheSessionIsBeingUnlocked)
+    {
+      _input->Value = InputAvailability::Resuming;
+      auto unlocker = _input->AvailableAfter(300ms);
+
+      auto start = steady_clock::now();
+      auto response = Run(R"({"steps": [{"action": "Mouse.Click"}]})");
+      unlocker.join();
+
+      Assert::IsFalse(response.FailedStep.has_value());
+      Assert::IsTrue(steady_clock::now() - start >= 250ms, L"the click waits for input");
+      Assert::AreEqual(size_t(1), _driver->Requests().size(), L"sent once, after the wait");
+    }
+
+    TEST_METHOD(InputRefusedAsTheSessionLocksRunsAgainAfterTheSwitch)
+    {
+      thread unlocker;
+      _driver->Respond = [&](const Action&) {
+        if (_driver->Requests().size() > 1) return ActionResult::Succeeded();
+
+        //The session locks as the step runs: refused, and the bridge starts keeping the session unlocked
+        _input->Value = InputAvailability::Resuming;
+        unlocker = _input->AvailableAfter(300ms);
+        return ActionResult::Failed(ErrorCode::InputUnavailable, "Windows refused the input.");
+        };
+
+      auto response = Run(R"({"steps": [{"action": "Keyboard.Type", "text": "a"}]})");
+      unlocker.join();
+
+      Assert::IsFalse(response.FailedStep.has_value(), L"the agent sees no error");
+      Assert::AreEqual(size_t(2), _driver->Requests().size(), L"the step ran once more");
+    }
+
+    TEST_METHOD(InputRefusedJustAfterTheSwitchIsTriedAgain)
+    {
+      //The user signed in at the PC: Windows reports the session unlocked before it takes input again (Findings.md 2.17)
+      _driver->Respond = [&](const Action&) {
+        return _driver->Requests().size() <= 3 ? ActionResult::Failed(ErrorCode::InputUnavailable, "Windows refused the input.") : ActionResult::Succeeded();
+        };
+
+      auto response = Run(R"({"steps": [{"action": "Mouse.Move", "x": 10, "y": 10}]})");
+      Assert::IsFalse(response.FailedStep.has_value(), L"the agent sees no error");
+      Assert::AreEqual(size_t(4), _driver->Requests().size());
+    }
+
+    TEST_METHOD(InputRefusedForGoodFailsAfterAFewTries)
+    {
+      _driver->Respond = [](const Action&) { return ActionResult::Failed(ErrorCode::InputUnavailable, "Windows refused the input."); };
+
+      auto start = steady_clock::now();
+      auto response = Run(R"({"steps": [{"action": "Mouse.Move", "x": 10, "y": 10}]})");
+
+      Assert::IsTrue(response.Error == ErrorCode::InputUnavailable);
+      Assert::AreEqual(size_t(7), _driver->Requests().size(), L"the step and six retries");
+      Assert::IsTrue(steady_clock::now() - start < 6s);
+    }
+
+    TEST_METHOD(InputRefusedWhileUnavailableFails)
+    {
+      //Locked, and not kept unlocked: waiting would not help
+      _input->Value = InputAvailability::Unavailable;
+      _driver->Respond = [](const Action&) { return ActionResult::Failed(ErrorCode::InputUnavailable, "Windows refused the input."); };
+
+      auto start = steady_clock::now();
+      auto response = Run(R"({"steps": [{"action": "Mouse.Click"}]})");
+
+      Assert::AreEqual(0u, *response.FailedStep);
+      Assert::IsTrue(response.Error == ErrorCode::InputUnavailable);
+      Assert::AreEqual(size_t(1), _driver->Requests().size(), L"not run again");
+      Assert::IsTrue(steady_clock::now() - start < 3s, L"no long wait");
+    }
+
+    TEST_METHOD(OtherStepsDoNotWaitForInput)
+    {
+      _input->Value = InputAvailability::Resuming;
+
+      auto start = steady_clock::now();
+      auto response = Run(R"({"steps": [{"action": "Process.Enumerate"}]})");
+
+      Assert::IsFalse(response.FailedStep.has_value());
+      Assert::IsTrue(steady_clock::now() - start < 200ms, L"captures, processes, windows and the clipboard work while locked");
+    }
+
+    TEST_METHOD(TheSequenceTimeoutEndsTheWaitForInput)
+    {
+      _input->Value = InputAvailability::Resuming;
+
+      auto start = steady_clock::now();
+      auto response = Run(R"({"steps": [{"action": "Mouse.Click"}], "timeout": 300})");
+
+      Assert::IsTrue(response.Error == ErrorCode::Timeout);
+      Assert::IsTrue(steady_clock::now() - start < 2s);
+      Assert::AreEqual(size_t(0), _driver->Requests().size(), L"never sent");
     }
 
     TEST_METHOD(StepsRunInOrderWithProgress)

@@ -16,6 +16,10 @@ namespace SecondShell::Session
     uint32_t InlineCaptureLimit = 4;
     uint32_t CaptureRetention = 7;      //days
     Actions::ShellKind DefaultShell = Actions::ShellKind::PowerShell;
+
+    //Keep the user's session unlocked behind the lock screen while the agent's session runs, so the agent's input
+    //keeps working (Design.md, Working while the screen is locked). Off unless the user turns it on.
+    bool WorkWhileLocked = false;
   };
 
   //Persistent user settings, as settings.json in the data folder; missing or unreadable, the defaults.

@@ -90,6 +90,7 @@
     <ClCompile Include="JsonRpcMessageTests.cpp" />
     <ClCompile Include="JsonRpcPeerTests.cpp" />
     <ClCompile Include="JsonSnapshot.cpp" />
+    <ClCompile Include="LockScreenPolicyTests.cpp" />
     <ClCompile Include="LowPriorityTaskTests.cpp" />
     <ClCompile Include="McpProbe.cpp" />
     <ClCompile Include="McpProbeTests.cpp" />
@@ -162,6 +163,7 @@
     <ClCompile Include="..\SecondShell\ElevatedSetupLauncher.cpp" />
     <ClCompile Include="..\SecondShell\IDriverLink.cpp" />
     <ClCompile Include="..\SecondShell\JsonConfigEditor.cpp" />
+    <ClCompile Include="..\SecondShell\LockScreenPolicy.cpp" />
     <ClCompile Include="..\SecondShell\MachineSetup.cpp" />
     <ClCompile Include="..\SecondShell\SequenceRunner.cpp" />
     <ClCompile Include="..\SecondShell\SettingsStore.cpp" />

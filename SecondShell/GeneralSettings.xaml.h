@@ -2,6 +2,7 @@
 #include "GeneralSettings.g.h"
 #include "CredentialStore.h"
 #include "ElevatedSetupLauncher.h"
+#include "MachineConfiguration.h"
 #include "SettingsStore.h"
 #include "SetupChecker.h"
 #include "Uninstaller.h"
@@ -21,6 +22,7 @@ namespace winrt::SecondShell::implementation
 
     void OnChanged(const Windows::Foundation::IInspectable& sender, const Microsoft::UI::Xaml::Controls::SelectionChangedEventArgs& eventArgs);
     void OnInlineLimitChanged(const Microsoft::UI::Xaml::Controls::NumberBox& sender, const Microsoft::UI::Xaml::Controls::NumberBoxValueChangedEventArgs& eventArgs);
+    void OnWorkWhileLockedToggled(const Windows::Foundation::IInspectable& sender, const Microsoft::UI::Xaml::RoutedEventArgs& eventArgs);
     void OnOpenCaptureFolderClick(const Windows::Foundation::IInspectable& sender, const Microsoft::UI::Xaml::RoutedEventArgs& eventArgs);
     void OnForgetPasswordClick(const Windows::Foundation::IInspectable& sender, const Microsoft::UI::Xaml::RoutedEventArgs& eventArgs);
     void OnSetupClick(const Windows::Foundation::IInspectable& sender, const Microsoft::UI::Xaml::RoutedEventArgs& eventArgs);
@@ -34,6 +36,7 @@ namespace winrt::SecondShell::implementation
     std::shared_ptr<::SecondShell::Setup::ElevatedSetupLauncher> _setupLauncher;
     std::shared_ptr<::SecondShell::Environment::AppEnvironment> _environment;
     std::shared_ptr<::SecondShell::Setup::Uninstaller> _uninstaller;
+    std::shared_ptr<::SecondShell::Setup::IMachineConfiguration> _machine;
 
     std::vector<::SecondShell::Protocol::DisplaySettings> _resolutions;
     std::vector<uint32_t> _scales;
@@ -44,6 +47,7 @@ namespace winrt::SecondShell::implementation
     bool _isSettingUp = false;
 
     void Save();
+    void ShowWorkWhileLocked();
     void ShowPassword();
     void ShowSetup();
 

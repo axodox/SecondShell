@@ -20,5 +20,8 @@ namespace SecondShell::Tests
 
     virtual bool IsFrameIntervalOurs() const override { return IsOurs; }
     virtual void IsFrameIntervalOurs(bool value) override { IsOurs = value; }
+
+    bool RemoteDesktop = true;
+    virtual bool IsRemoteDesktopEnabled() const override { return RemoteDesktop; }
   };
 }

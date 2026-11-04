@@ -46,6 +46,16 @@ namespace SecondShell::Session
     _logger.log(log_severity::information, "Signing in as {} with {} credentials.", winrt::to_string(credentials.UserName), saved ? "saved" : "entered");
   }
 
+  bool CredentialProvider::ApplySavedTo(RdpHostWindow& window)
+  {
+    auto saved = _store->Load();
+    if (!saved) return false;
+
+    auto [userName, domain] = SplitUserName(saved->UserName);
+    window.SetCredentials(userName, domain, saved->Password.View());
+    return true;
+  }
+
   void CredentialProvider::OnSignInSucceeded()
   {
     _wasRejected = false;

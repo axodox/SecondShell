@@ -19,6 +19,9 @@ namespace SecondShell::Setup
     //Whether SecondShell set the frame interval, so it may remove it again.
     virtual bool IsFrameIntervalOurs() const = 0;
     virtual void IsFrameIntervalOurs(bool value) = 0;
+
+    //Whether this PC accepts Remote Desktop connections, by policy or by its own setting.
+    virtual bool IsRemoteDesktopEnabled() const = 0;
   };
 
   //The settings as Windows keeps them: WTS for child sessions, HKLM for the rest.
@@ -35,5 +38,7 @@ namespace SecondShell::Setup
 
     virtual bool IsFrameIntervalOurs() const override;
     virtual void IsFrameIntervalOurs(bool value) override;
+
+    virtual bool IsRemoteDesktopEnabled() const override;
   };
 }

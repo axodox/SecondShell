@@ -2,6 +2,7 @@
 #include "CaptureStore.h"
 #include "HostProtocol.h"
 #include "JsonRpcPeer.h"
+#include "LockScreenBridge.h"
 #include "PipeTransport.h"
 #include "SequenceRunner.h"
 #include "SessionManager.h"
@@ -18,7 +19,14 @@ namespace SecondShell::Agent
     std::shared_ptr<Session::SessionManager> _sessions;
     std::shared_ptr<SequenceRunner> _sequences;
     std::shared_ptr<CaptureStore> _captures;
+    std::shared_ptr<Session::LockScreenBridge> _lockScreen;
     Rpc::JsonRpcPeer _peer;
+
+    //The session, with whether the user is at the PC and whether input reaches the session.
+    Protocol::SessionInfo Info() const;
+
+    //Why input is unavailable, and whether retrying soon helps.
+    std::string InputUnavailableMessage() const;
 
     Rpc::RpcResult<Protocol::SessionResponse> InitializeSession(const Protocol::InitializeSessionRequest& request, const Rpc::CancellationToken& cancellation);
     Rpc::RpcResult<Protocol::SessionResponse> CheckSession(const Protocol::CheckSessionRequest& request, const Rpc::CancellationToken& cancellation);

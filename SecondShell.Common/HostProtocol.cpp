@@ -23,7 +23,9 @@ namespace SecondShell::Protocol
     { &SessionInfo::SessionId, "sessionId", { .is_required = false } },
     { &SessionInfo::Display, "display", { .is_required = false } },
     { &SessionInfo::IsDriverConnected, "isDriverConnected" },
-    { &SessionInfo::DriverProcessId, "driverPid", { .is_required = false } }
+    { &SessionInfo::DriverProcessId, "driverPid", { .is_required = false } },
+    { &SessionInfo::IsUserPresent, "isUserPresent", { .is_required = false, .schema = { .description = "Whether the user is at the PC: their own Windows session is unlocked on its screen. False: the PC is unattended." } } },
+    { &SessionInfo::Input, "input", { .is_required = false, .schema = { .description = "Whether input actions reach the session. Windows stops all input while the user's own session is locked. Resuming: SecondShell is keeping it unlocked behind the lock screen, and input actions wait the few seconds that takes. Unavailable: until the user signs in again; captures, windows, processes and the clipboard still work." } } }
     });
 
   json_object_descriptor<SessionResponse> SessionResponse::json_description = describe_json_object<SessionResponse>({
@@ -40,7 +42,7 @@ namespace SecondShell::Protocol
     });
 
   json_object_descriptor<CheckSessionRequest> CheckSessionRequest::json_description = describe_json_object<CheckSessionRequest>(
-    { .name = "session/check", .description = "Returns the state of the session: whether it is ready, its display settings and the driver's process ID." }, {});
+    { .name = "session/check", .description = "Returns the state of the session: whether it is ready, its display settings, the driver's process ID, whether the user is at the PC, and whether input reaches the session." }, {});
 
   json_object_descriptor<ShutdownSessionRequest> ShutdownSessionRequest::json_description = describe_json_object<ShutdownSessionRequest>(
     { .name = "session/shutdown", .description = "Logs the session off, closing all its applications." },
@@ -57,7 +59,7 @@ namespace SecondShell::Protocol
     });
 
   json_object_descriptor<RunSequenceArguments> RunSequenceArguments::json_description = describe_json_object<RunSequenceArguments>(
-    "Runs actions in order in the session, until one fails: input, captures, windows, processes, clipboard. Captures are returned as images.",
+    "Runs actions in order in the session, until one fails: input, captures, windows, processes, clipboard. Captures are returned as images. When the user locks the PC, input actions wait the few seconds SecondShell takes to keep input working; they fail with InputUnavailable when input does not come back soon (the message, and Check-Session, tell why).",
     {
       { &RunSequenceArguments::Steps, "steps", { .is_required = true, .schema = { .description = "The actions, run in order. Coordinates are session pixels.", .min_items = 1 } } },
       { &RunSequenceArguments::Timeout, "timeout", { .is_required = false, .schema = { .description = "Milliseconds for the whole sequence, default 60000.", .minimum = 0 } } },

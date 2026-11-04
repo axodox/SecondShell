@@ -99,6 +99,21 @@ namespace SecondShell::Driver
         return ActionResult::Failed(ErrorCode::ActionFailed, format("{} is not available yet.", action.Name()));
       }
     }
+    catch (const winrt::hresult_error& error)
+    {
+      //All input to this session is refused while the user's own session is locked (Findings.md 2.17); the host knows
+      //whether it comes back soon and says so
+      auto isInput = action.Kind() == ActionKind::Mouse || action.Kind() == ActionKind::Keyboard || action.Kind() == ActionKind::Touch || action.Kind() == ActionKind::Pen;
+      if (isInput && error.code() == E_ACCESSDENIED)
+      {
+        _logger.log(log_severity::warning, "{}: Windows refused the input.", action.Name());
+        return ActionResult::Failed(ErrorCode::InputUnavailable, "Windows refused the input: the user's own Windows session is locked, which stops all input to this session.");
+      }
+
+      auto message = winrt::to_string(error.message());
+      _logger.log(log_severity::error, "{} failed: {}", action.Name(), message);
+      return ActionResult::Failed(ErrorCode::ActionFailed, format("{} failed: {}", action.Name(), message));
+    }
     catch (const exception& exception)
     {
       _logger.log(log_severity::error, "{} failed: {}", action.Name(), exception.what());

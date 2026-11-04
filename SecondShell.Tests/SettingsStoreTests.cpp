@@ -36,6 +36,7 @@ namespace SecondShell::Tests
         settings.Display.Height = 1440;
         settings.DefaultShell = ShellKind::Cmd;
         settings.CaptureRetention = 30;
+        settings.WorkWhileLocked = true;
         });
       Assert::AreEqual(2560u, raised.Display.Width, L"Changed carries the new settings");
 
@@ -43,6 +44,7 @@ namespace SecondShell::Tests
       Assert::AreEqual(1440u, loaded.Display.Height);
       Assert::IsTrue(loaded.DefaultShell == ShellKind::Cmd);
       Assert::AreEqual(30u, loaded.CaptureRetention);
+      Assert::IsTrue(loaded.WorkWhileLocked);
       Assert::AreEqual(4u, loaded.InlineCaptureLimit, L"what was not changed keeps its default");
     }
 
@@ -53,6 +55,7 @@ namespace SecondShell::Tests
       Assert::IsTrue(settings.DefaultShell == ShellKind::Pwsh);
       Assert::AreEqual(180u, settings.SignInTimeout);
       Assert::AreEqual(1920u, settings.Display.Width);
+      Assert::IsFalse(settings.WorkWhileLocked, L"off unless the user turns it on");
     }
 
     TEST_METHOD(InvalidSettingsGiveTheDefaults)

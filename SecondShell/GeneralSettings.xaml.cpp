@@ -82,6 +82,7 @@ namespace winrt::SecondShell::implementation
     _setupLauncher = container->resolve<ElevatedSetupLauncher>();
     _environment = container->resolve<AppEnvironment>();
     _uninstaller = container->resolve<Uninstaller>();
+    _machine = container->resolve<IMachineConfiguration>();
     Refresh();
   }
 
@@ -99,6 +100,9 @@ namespace winrt::SecondShell::implementation
 
     _timeouts = { 60, 120, 180, 300, 600 };
     Show<uint32_t>(TimeoutBox(), _timeouts, settings.SignInTimeout, [](auto& seconds) { return Minutes(seconds); });
+
+    WorkWhileLockedSwitch().IsOn(settings.WorkWhileLocked);
+    ShowWorkWhileLocked();
 
     FormatBox().Items().Clear();
     for (auto format : _formats) FormatBox().Items().Append(box_value(FormatName(format)));
@@ -129,6 +133,18 @@ namespace winrt::SecondShell::implementation
     Save();
   }
 
+  void GeneralSettings::OnWorkWhileLockedToggled(const IInspectable& /*sender*/, const RoutedEventArgs& /*eventArgs*/)
+  {
+    Save();
+  }
+
+  void GeneralSettings::ShowWorkWhileLocked()
+  {
+    WorkWhileLockedDetail().Text(_machine->IsRemoteDesktopEnabled() ?
+      L"When you lock the PC, SecondShell signs your session in again out of sight, through Remote Desktop to this PC, so the agent keeps its mouse, keyboard and touch. The screen stays locked; signing in at the PC takes your session back. Uses the saved password." :
+      L"Needs Remote Desktop, which is turned off on this PC (Windows Settings, System, Remote Desktop). Without it, the agent's mouse, keyboard and touch stop while the screen is locked.");
+  }
+
   void GeneralSettings::Save()
   {
     if (_isShowing || !_settings) return;
@@ -140,6 +156,7 @@ namespace winrt::SecondShell::implementation
     auto inlineLimit = isnan(InlineLimitBox().Value()) ? 4u : uint32_t(clamp(InlineLimitBox().Value(), 0.0, 20.0));
     auto retention = Selected(RetentionBox(), _retentions);
     auto shell = _shells[max(ShellBox().SelectedIndex(), 0)];
+    auto workWhileLocked = WorkWhileLockedSwitch().IsOn();
 
     _settings->Update([&](Settings& settings) {
       settings.Display.Width = resolution.Width;
@@ -150,6 +167,7 @@ namespace winrt::SecondShell::implementation
       settings.InlineCaptureLimit = inlineLimit;
       settings.CaptureRetention = retention;
       settings.DefaultShell = shell;
+      settings.WorkWhileLocked = workWhileLocked;
       });
   }
 

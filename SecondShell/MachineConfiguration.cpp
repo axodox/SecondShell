@@ -9,6 +9,11 @@ namespace SecondShell::Setup
   const wchar_t* const _winStationsKey = L"SYSTEM\\CurrentControlSet\\Control\\Terminal Server\\WinStations";
   const wchar_t* const _frameIntervalValue = L"DWMFRAMEINTERVAL";
 
+  //Remote Desktop: a policy, if set, overrides the PC's own setting
+  const wchar_t* const _remoteDesktopPolicyKey = L"SOFTWARE\\Policies\\Microsoft\\Windows NT\\Terminal Services";
+  const wchar_t* const _remoteDesktopKey = L"SYSTEM\\CurrentControlSet\\Control\\Terminal Server";
+  const wchar_t* const _denyConnectionsValue = L"fDenyTSConnections";
+
   //SecondShell's own machine-wide notes; HKLM, as the elevated setup may run as another account
   const wchar_t* const _setupKey = L"SOFTWARE\\SecondShell";
   const wchar_t* const _frameIntervalOursValue = L"SetFrameInterval";
@@ -59,6 +64,13 @@ namespace SecondShell::Setup
     WriteDword(_winStationsKey, _frameIntervalValue, value);
     if (value) _logger.log(log_severity::information, "Set DWMFRAMEINTERVAL to {}.", *value);
     else _logger.log(log_severity::information, "Removed DWMFRAMEINTERVAL.");
+  }
+
+  bool MachineConfiguration::IsRemoteDesktopEnabled() const
+  {
+    auto deny = ReadDword(_remoteDesktopPolicyKey, _denyConnectionsValue);
+    if (!deny) deny = ReadDword(_remoteDesktopKey, _denyConnectionsValue);
+    return deny.value_or(1) == 0;
   }
 
   bool MachineConfiguration::IsFrameIntervalOurs() const

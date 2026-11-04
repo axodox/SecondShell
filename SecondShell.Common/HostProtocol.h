@@ -24,6 +24,14 @@ namespace SecondShell::Protocol
     Reset
   );
 
+  //Whether input reaches the session. Windows stops all input to it while the user's own session is locked
+  //(Findings.md 2.17).
+  named_enum(InputAvailability,
+    Available,
+    Resuming,    //the user's session locked, and SecondShell is keeping it unlocked behind the lock screen: seconds
+    Unavailable  //the user's session is locked: until the user signs in again
+  );
+
   named_enum(DisplayOrientation,
     Landscape,
     Portrait,
@@ -61,6 +69,10 @@ namespace SecondShell::Protocol
     std::optional<DisplaySettings> Display;
     bool IsDriverConnected = false;
     std::optional<uint32_t> DriverProcessId;
+
+    //Empty when SecondShell is not running
+    std::optional<bool> IsUserPresent;          //the user's own session is unlocked on the PC's screen; false: unattended
+    std::optional<InputAvailability> Input;
   };
 #pragma endregion
 

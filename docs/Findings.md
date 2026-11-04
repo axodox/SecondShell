@@ -223,6 +223,28 @@ Found while building and testing the window, process, clipboard, wait and displa
 
 **Consequences:** see Architecture.md 6.9.
 
+### 2.17 Input to the child session stops while the user's own session is locked (2026-11-04)
+
+Seen in use first: during the user's absences, every mouse and keyboard action failed with `ActionFailed` "Access is denied", while captures and `Process.Run` kept working and `Check-Session` reported `Ready` (Todo.md). Tested with a throwaway program (not kept): a temporary LocalSystem service starts two helpers in the child session, one as SYSTEM and one as the user (as the driver runs). They take turns every 2 s injecting a mouse move, a left-button drag and a wheel notch (`SendInput`), F24, and a one-finger touch swipe (`InjectTouchInput`). A low-level hook in each helper confirms which mouse and key events arrived (each tagged through `dwExtraInfo`), and the cursor must end where the drag ends. Each round logs the lock and connection state of the user's session and of the child session (`WTSSessionInfoEx`, `WTSClientProtocolType`) and the child session's input desktop.
+
+| The user's own session | Rounds (both helpers) | Mouse, keys, touch |
+|---|---|---|
+| Unlocked, on the PC's screen | every one | all arrived |
+| Locked (Win+L), about 75 s | 38 | none arrived |
+| Disconnected (`tsdiscon`, which locks it too), about 80 s | 38 | none arrived |
+| Unlocked, connected through Remote Desktop to `127.0.0.2` from the session itself, the PC's screen at the sign-in screen, about 60 s | 32 | all arrived |
+
+- **The caller's rights do not matter**: SYSTEM was blocked exactly like the user.
+- **How it fails**: `SendInput` reports every event sent, but none arrives; `GetCursorPos` and `InjectTouchInput` fail with access denied (5); `InputInjector` throws "Access is denied" (the driver's `ActionFailed`).
+- **Nothing in the child session shows it**: it reports itself unlocked and Active, its input desktop is `Default`, and captures show its desktop as usual.
+- **What counts is the user's session being unlocked**, not where it is shown: input also worked in two rounds caught while the user's session was briefly disconnected but still unlocked. Each switch between the PC's screen and the connection cost 3 to 5 s without input, while the user's session was locked during the sign-in.
+- **The SecondShell session survived** the disconnect and both switches: the same driver, `Ready` throughout.
+- **Loopback connection**: the Remote Desktop client refuses `localhost` and `127.0.0.1` for a normal connection, but `127.0.0.2` reaches the listener (bound to all addresses). Signing in as the same user moves the user's session from the PC's screen to the connection and unlocks it; the PC's screen shows the sign-in screen, a new console session. Signing in there moves the session back and ends the connection.
+
+**Consequences:** SecondShell keeps the agent's input working while the user is away by connecting to the user's own session through the loopback address when it locks (Design.md, Working while the screen is locked). A SYSTEM service does not help with input; it remains an option for starting the driver sooner (Handover.md, Open items).
+
+**As built** (same day, through the MCP server, a mouse move every 2 s): after Win+L the agent got `InputUnavailable` with `input` `Resuming` for 11 s (the 5 s delay, then 6 s for the loopback sign-in at 3840x2160, 150 %), then every move worked for the 32 s the user was away, with `isUserPresent` false. When the user signed in at the PC, Windows ended the connection about 1.5 s before it reported the sign-in; one round was `Unavailable` while the session switched back, and there was no reconnection. With input steps waiting (a second run): the move just after the lock waited 9.8 s and succeeded. When the user signed in at the PC, Windows reported the session unlocked (`WTSSessionInfoEx`) about 2 s before it took input again, so a single retry right away was refused once more; input steps now retry a few times, half a second apart. With that (a third run): the move just after the lock took 11.3 s, the one as the user signed in at the PC 2.1 s, and the agent saw no error. The first try after the loopback sign-in was refused too, about 0.5 s after Windows reported the session unlocked, and the retry went through. In none of the three runs did the user see a Remote Desktop window or a message, also not when the connection ended at the user's sign-in.
+
 ## 3. Proposed architecture
 
 ```

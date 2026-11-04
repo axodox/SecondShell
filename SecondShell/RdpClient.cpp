@@ -43,7 +43,7 @@ namespace SecondShell::Session
       _window.reset();
       _window = make_unique<RdpHostWindow>([this](string_view name, long argument) { OnEvent(name, argument); });
 
-      _window->Configure(display.Width, display.Height, display.Scale);
+      _window->Configure(RdpTarget::ChildSession, display.Width, display.Height, display.Scale);
       _credentials->ApplyTo(*_window);
       _window->Connect();
       });

@@ -132,10 +132,14 @@ namespace SecondShell::Session
     if (_window) DestroyWindow(_window);
   }
 
-  void RdpHostWindow::Configure(uint32_t width, uint32_t height, uint32_t scale)
+  void RdpHostWindow::Configure(RdpTarget target, uint32_t width, uint32_t height, uint32_t scale)
   {
+    auto isChildSession = target == RdpTarget::ChildSession;
+
+    //The client refuses "localhost" and 127.0.0.1 for a normal connection; any other loopback address reaches this
+    //machine (Findings.md 2.17)
     CComQIPtr<Rdp::IMsRdpClient9> client(_control);
-    winrt::check_hresult(client->put_Server(CComBSTR(L"localhost")));
+    winrt::check_hresult(client->put_Server(CComBSTR(isChildSession ? L"localhost" : L"127.0.0.2")));
     winrt::check_hresult(client->put_DesktopWidth(width));
     winrt::check_hresult(client->put_DesktopHeight(height));
 
@@ -145,10 +149,28 @@ namespace SecondShell::Session
     winrt::check_hresult(advanced->put_EnableCredSspSupport(VARIANT_TRUE));
     winrt::check_hresult(advanced->put_RedirectClipboard(VARIANT_FALSE));
 
-    //The child session, with the session's own display scaling
+    if (!isChildSession)
+    {
+      //The certificate is this machine's own, self-signed one, and nobody could answer a warning about it
+      winrt::check_hresult(advanced->put_AuthenticationLevel(0));
+
+      //The connection gives way when the user signs in at the PC; the control must not take the session back
+      winrt::check_hresult(advanced->put_EnableAutoReconnect(VARIANT_FALSE));
+
+      //Sound keeps playing on this PC, as if the session were still on its screen
+      CComPtr<Rdp::IMsRdpClientSecuredSettings> secured;
+      winrt::check_hresult(client->get_SecuredSettings2(&secured));
+      winrt::check_hresult(secured->put_AudioRedirectionMode(1));
+    }
+
+    //The session's own display scaling
     CComQIPtr<Rdp::IMsRdpExtendedSettings> extended(_control);
-    CComVariant isChildSession{ true }, desktopScale{ ULONG(scale) }, deviceScale{ ULONG(100) };
-    winrt::check_hresult(extended->put_Property(CComBSTR(L"ConnectToChildSession"), &isChildSession));
+    CComVariant desktopScale{ ULONG(scale) }, deviceScale{ ULONG(100) };
+    if (isChildSession)
+    {
+      CComVariant isChild{ true };
+      winrt::check_hresult(extended->put_Property(CComBSTR(L"ConnectToChildSession"), &isChild));
+    }
     winrt::check_hresult(extended->put_Property(CComBSTR(L"DesktopScaleFactor"), &desktopScale));
     winrt::check_hresult(extended->put_Property(CComBSTR(L"DeviceScaleFactor"), &deviceScale));
 

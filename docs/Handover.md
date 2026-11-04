@@ -119,7 +119,7 @@ The child session's desktop drawn live in the SecondShell window, letterboxed, f
 ## Open items, not blocking
 
 - **PowerShell error text** quotes the UTF-8/progress prelude line along with the command. A fix is offered and not done: run the command as `& ([scriptblock]::Create('...'))`.
-- **Driver start after sign-in** varies from about 20 s to 74 s; it waits for Explorer's startup programs (Findings.md 2.16). The `Initialize-Session` default timeout is now 3 minutes. The user decided to leave it, since the session normally stays running. Options if needed: `UserInitMprLogonScript`, or a logon-triggered scheduled task.
+- **Driver start after sign-in** varies from about 20 s to 74 s; it waits for Explorer's startup programs (Findings.md 2.16). The `Initialize-Session` default timeout is now 3 minutes. The user decided to leave it, since the session normally stays running. Options if needed: `UserInitMprLogonScript`, a logon-triggered scheduled task, or a LocalSystem service that starts the driver as the child session signs in (Todo.md).
 - **Rejected-password path** not verified (reasons 3847/4615); "Forget saved password" belongs to the settings (stage 9).
 - **Pre-existing warnings**: C4459 `Error` in Ws2tcpip.h (the driver's pch), C4310 / C4458 from Axodox headers.
 

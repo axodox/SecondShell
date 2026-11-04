@@ -79,7 +79,8 @@ namespace SecondShell::Actions
     Timeout,
     InvalidArgument,
     ActionFailed,
-    SetupRequired
+    SetupRequired,
+    InputUnavailable  //Windows refused input: the user's own session is locked (Findings.md 2.17)
   );
 
   named_enum(MouseButton,

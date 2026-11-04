@@ -36,6 +36,18 @@
       <ComboBox x:Name="TimeoutBox" Grid.Column="1" Style="{StaticResource SettingsComboBoxStyle}" AutomationProperties.Name="Sign-in timeout" SelectionChanged="OnChanged" />
     </Grid>
 
+    <Grid Style="{StaticResource SettingsCardStyle}">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="*" />
+        <ColumnDefinition Width="Auto" />
+      </Grid.ColumnDefinitions>
+      <StackPanel VerticalAlignment="Center" Spacing="2">
+        <TextBlock Text="Keep working while the screen is locked" Style="{StaticResource SettingsNameStyle}" />
+        <TextBlock x:Name="WorkWhileLockedDetail" Style="{StaticResource SettingsDescriptionStyle}" />
+      </StackPanel>
+      <ToggleSwitch x:Name="WorkWhileLockedSwitch" Grid.Column="1" VerticalAlignment="Center" MinWidth="0" OnContent="On" OffContent="Off" AutomationProperties.Name="Keep working while the screen is locked" Toggled="OnWorkWhileLockedToggled" />
+    </Grid>
+
     <TextBlock Text="Captures" Style="{StaticResource SettingsSectionTitleStyle}" />
     <Grid Style="{StaticResource SettingsCardStyle}">
       <Grid.ColumnDefinitions>

@@ -21,6 +21,10 @@ namespace SecondShell::Session
     //On the RDP thread, before connecting. Asks for the credentials if none are saved; throws if the user cancels.
     void ApplyTo(RdpHostWindow& window);
 
+    //Only the saved credentials, never the prompt: for connections made while nobody is at the screen. False if none
+    //are saved. A rejection here deletes nothing; the child session's own sign-in is the judge of the password.
+    bool ApplySavedTo(RdpHostWindow& window);
+
     void OnSignInSucceeded();
 
     //The sign-in did not complete: the connection ended with the RDP control's disconnect reason, or 0 when the sign-in

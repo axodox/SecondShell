@@ -94,11 +94,29 @@ Every SecondShell program that runs in the child session (the driver) must make 
 3. Only after the host has accepted it does the driver touch input, the screen or the clipboard.
 
 This prevents a misdirected start from moving the user's real mouse or showing windows on the user's desktop. That happened once in testing, with COM starting a test program in the user's session (Findings.md 2.7). The same guard, based on a file instead of the pipe, was verified with test programs started both by COM and as a startup app.
+
+### Working while the screen is locked
+
+While the user's own session is locked or disconnected, Windows stops all input to its child session: injected mouse, keyboard, touch and pen input is dropped or refused, for the user's account and for SYSTEM alike, although the child session still reports itself unlocked and captures keep working (Findings.md 2.17). An agent working while the user is away would lose its input at the first lock.
+
+With **Keep working while the screen is locked** on (Settings, General; off by default), SecondShell keeps the user's session unlocked behind the lock screen while the agent's session runs:
+
+- **Lock**: when the user's session locks, or is disconnected, at the PC, SecondShell waits 5 s (a lock taken back at once changes nothing), then signs the user's session in again through Remote Desktop to `127.0.0.2`, this PC itself, with the saved password. Windows moves the session off the PC's screen, which keeps showing the lock screen, and unlocks it; the agent's input works again within seconds.
+- **Out of sight**: the connection is the RDP ActiveX control inside SecondShell, in a window that is never shown, like the child session's connection: no window, taskbar button or dialog, also when the connection ends. It uses the main display's size and scaling, so the user's windows keep their places as far as possible, and sound keeps playing on the PC. Auto-reconnect is off: the control never takes the session back by itself.
+- **Return**: when the user signs in at the PC, Windows moves the session back to the screen and ends the connection, which SecondShell then releases. Only a lock after the user has unlocked at the PC starts it again; its own connection's lock and unlock, and the brief lock while the user signs back in, do not.
+- **Lost connection**: if the connection ends while the user is still away, or cannot start, SecondShell tries again after 15 s, up to 3 times. Without a saved password, or with Remote Desktop turned off on the PC, it does nothing, and the log says why.
+- **Off**: turning the setting off, or the agent's session ending, ends the connection, which leaves the user's session disconnected and locked.
+- **The agent waits instead of failing**: while input is `Resuming`, an input step waits until input is back, at most 20 s and within the sequence's timeout; an input step refused during a switch runs again after it, a few times, half a second apart (when the user signs in at the PC, Windows reports the session unlocked about 2 s before it takes input). Steps other than input never wait. Measured, the switch takes about 11 s (Findings.md 2.17), so the agent sees a slower sequence, not an error.
+- **The agent is told**: an input action that cannot wait it out, because input is `Unavailable` (the setting is off and the user is away) or did not come back within 20 s, fails with `InputUnavailable`, and its message says why. `Check-Session` reports `isUserPresent` (false: the PC is unattended) and `input` (`Available`, `Resuming` or `Unavailable`).
+- **Requirements**: Remote Desktop allowed on the PC (Settings says so when it is not), and the saved password.
+
+**Security**: the PC's screen stays locked throughout, so nobody at the PC can use the session without signing in. But while the user is away their session is unlocked, reachable only through the connection inside SecondShell, and SecondShell uses the saved password to unlock it whenever the user locks the PC. That is why it is off by default; on a managed PC the organization's policy decides whether it is acceptable. Policies that end idle Remote Desktop sessions end this connection too.
+
 ## MCP tools
 
 - `Initialize-Session`: initializes a new session and starts the second shell process. Display settings and capture settings (see `Configure-Capture`) can be specified, otherwise the defaults will be used. Waits until the login is complete, or until its timeout expires (default 3 minutes).
 
-- `Check-Session`: checks the status of the current session and returns information about the session, such as whether it is active, the display settings, and the process ID of the second shell process. Normally it can be assumed after initialization that the session is active, and running a sequence will check the session status anyways and return an error if the session is not active.
+- `Check-Session`: checks the status of the current session and returns information about the session, such as whether it is active, the display settings, and the process ID of the second shell process. Normally it can be assumed after initialization that the session is active, and running a sequence will check the session status anyways and return an error if the session is not active. It also reports `isUserPresent` (the user's own session is unlocked on the PC's screen; false: the PC is unattended) and `input`: `Available`, `Resuming` (the user's session locked and is being kept unlocked behind the lock screen: input steps wait the few seconds that takes) or `Unavailable` (until the user signs in again; see Working while the screen is locked).
 
 - `Shutdown-Session`: closes the current session and terminates the second shell process.
 
@@ -166,7 +184,7 @@ All coordinates, sizes and regions in actions and results are in **session pixel
   - Session tools (`Initialize-Session`, `Shutdown-Session`, etc.) have default timeouts too.
   - Whichever timeout expires first stops the sequence with a `Timeout` error.
 
-- **Error codes**: `SessionNotActive`, `UserInterrupted`, `AgentInputDisabled`, `Timeout`, `InvalidArgument` (e.g. unknown window ID or coordinates outside the screen), `ActionFailed` (the action itself failed; the message has the details).
+- **Error codes**: `SessionNotActive`, `UserInterrupted`, `AgentInputDisabled`, `Timeout`, `InvalidArgument` (e.g. unknown window ID or coordinates outside the screen), `ActionFailed` (the action itself failed; the message has the details), `SetupRequired`, `InputUnavailable` (Windows refused an input action because the user's own session is locked, and input is not coming back within seconds; the message says why, see Working while the screen is locked).
 
 ### Control
 
@@ -397,6 +415,7 @@ The child session needs the user's Windows password to sign in, because single s
 - **Target name**: never `termsrv/*`, `localhost` or similar RDP target names. Those change how RDP signs in to the child session, and the Windows Simulator refuses to run when they exist.
 - **First sign-in**: the password is requested with the standard Windows credential prompt (`CredUIPromptForWindowsCredentials`), shown by the SecondShell window in the foreground. It is saved only after the sign-in has succeeded.
 - **Rejected password**: if a stored password is rejected (e.g. after a password change), it is deleted and the user is prompted again.
+- **Use**: signing in to the child session; and, with Keep working while the screen is locked on, signing the user's own session in again behind the lock screen (saved password only, never a prompt; see Working while the screen is locked). A rejection there deletes nothing.
 - **Handling**: only `SecondShell.exe` ever handles the password. It is never passed to the MCP server or into the child session, never written to logs or command lines, and is kept in memory only for the duration of the connection attempt, then cleared.
 - **Removal**: the SecondShell window has a "Forget saved password" command.
 
@@ -404,7 +423,7 @@ The child session needs the user's Windows password to sign in, because single s
 
 - All communication uses local named pipes, created with `PIPE_REJECT_REMOTE_CLIENTS` and an access list that allows only the current user.
 - `SecondShell.exe` accepts in-session connections only from processes whose session ID (`GetNamedPipeClientSessionId`) is the current child session.
-- No network ports are opened.
+- No network ports are opened. With Keep working while the screen is locked on, SecondShell connects to this PC's own Remote Desktop listener through the loopback address `127.0.0.2`.
 
 ### Privileges
 
