@@ -105,7 +105,7 @@ The child session's desktop drawn live in the SecondShell window, letterboxed, f
 ### Notes
 
 - `MainWindow::UseServices(container)`: not `Connect`, which the XAML compiler's `IComponentConnector` takes. The window, `StatusBar` and `ActionLogPanel` subscribe to their services themselves; `App` only builds the window and ties the session's end to it.
-- UI Automation reaches the toolbar and dialog buttons by name ("Take control", "Stop", "Give back control", "Action log", "Reset", "Keep open"); the probe tests use it (`HostWindow`), and so can manual scripts.
+- UI Automation reaches the toolbar and dialog buttons by name ("Take control", "Capture screen", "Stop", "Give back control", "Action log", "Reset", "Keep open", "Restart now", "Later"); the probe tests use it (`HostWindow`), and so can manual scripts.
 - Test window for frame rates: `Spikes/exchange/animate.py` (tkinter, repaints as fast as it can; run in the session with `pythonw.exe`). `DWMFRAMEINTERVAL` = 15 is set on this machine.
 - The icon is drawn by `Assets/make_icon.py`.
 

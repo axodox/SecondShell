@@ -119,6 +119,7 @@
     <ClInclude Include="IInputAvailability.h" />
     <ClInclude Include="LockScreenBridge.h" />
     <ClInclude Include="LockScreenPolicy.h" />
+    <ClInclude Include="PendingRestart.h" />
     <ClInclude Include="SessionEventLog.h" />
     <ClInclude Include="LoopbackClient.h" />
     <ClInclude Include="McpConnection.h" />
@@ -242,6 +243,7 @@
     <ClCompile Include="IDriverLink.cpp" />
     <ClCompile Include="LockScreenBridge.cpp" />
     <ClCompile Include="LockScreenPolicy.cpp" />
+    <ClCompile Include="PendingRestart.cpp" />
     <ClCompile Include="SessionEventLog.cpp" />
     <ClCompile Include="LoopbackClient.cpp" />
     <ClCompile Include="McpConnection.cpp" />

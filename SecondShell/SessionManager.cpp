@@ -30,6 +30,7 @@ namespace SecondShell::Session
     _credentials(container->resolve<CredentialProvider>()),
     _existingSessionPrompt(container->resolve<ExistingSessionPrompt>()),
     _driverLauncher(container->resolve<DriverLauncher>()),
+    _setupChecker(container->resolve<Setup::SetupChecker>()),
     _driverLink(container->resolve<DriverLink>()),
     _rdpClient(container->resolve<RdpClient>()),
     _loginCompletedSubscription(_rdpClient->LoginCompleted({ this, &SessionManager::OnLoginCompleted })),
@@ -59,6 +60,7 @@ namespace SecondShell::Session
     if (Info().State == SessionState::Ready && _driverLink->IsConnected()) return nullopt;
 
     if (!_childSessions->IsEnabled()) return ProtocolErrors::Make(ErrorCode::SetupRequired, "Child sessions are not enabled on this machine. The user can enable them once in the SecondShell window (Set up), which needs administrator rights.");
+    if (_setupChecker->Status().IsRestartNeeded) return ProtocolErrors::Make(ErrorCode::SetupRequired, "Child sessions were enabled since Windows started, and work only after it restarts. Ask the user to restart the PC; the SecondShell window offers it.");
 
     auto settings = _settings->Current();
     auto deadline = steady_clock::now() + (request.Timeout ? milliseconds(*request.Timeout) : seconds(settings.SignInTimeout));

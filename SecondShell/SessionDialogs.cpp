@@ -191,6 +191,17 @@ namespace SecondShell::Ui
     co_return box_value(smoothView && smoothView.IsChecked().Value()).as<IReference<bool>>();
   }
 
+  IAsyncOperation<bool> SessionDialogs::AskToRestart(XamlRoot root)
+  {
+    auto content = Content();
+    content.Children().Append(Paragraph("Child sessions are enabled, but Windows starts them only after it restarts. Until then the agent's desktop cannot start."));
+    content.Children().Append(Paragraph("Save your work first: apps are asked to close, as when you restart from Start.", L"MutedTextBrush"));
+
+    auto dialog = Dialog(root, L"Restart to finish the setup", content, L"Restart now", L"Later");
+    dialog.DefaultButton(ContentDialogButton::Primary);
+    co_return co_await dialog.ShowAsync() == ContentDialogResult::Primary;
+  }
+
   IAsyncOperation<bool> SessionDialogs::AskToChangeIntegration(XamlRoot root, hstring title, hstring action, IntegrationChange change)
   {
     auto content = Content();

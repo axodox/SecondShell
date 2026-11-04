@@ -23,5 +23,8 @@ namespace SecondShell::Tests
 
     bool RemoteDesktop = true;
     virtual bool IsRemoteDesktopEnabled() const override { return RemoteDesktop; }
+
+    std::optional<uint32_t> Boot = 7;
+    virtual std::optional<uint32_t> BootId() const override { return Boot; }
   };
 }

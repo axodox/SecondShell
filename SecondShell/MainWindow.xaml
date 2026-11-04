@@ -52,7 +52,7 @@
         </Border>
       </StackPanel>
 
-      <!-- Toolbar: take or give back control, stop, settings -->
+      <!-- Toolbar: take or give back control, capture the screen, stop, settings -->
       <StackPanel x:Name="Toolbar" Grid.Column="2" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
         <Button x:Name="TakeControlButton" IsEnabled="False" AutomationProperties.Name="Take control" Style="{StaticResource ToolbarButtonStyle}" Click="OnTakeControlClick" ToolTipService.ToolTip="Use the session with your own mouse and keyboard; the agent waits">
           <StackPanel Orientation="Horizontal" Spacing="7">
@@ -74,6 +74,13 @@
             <SolidColorBrush x:Key="ButtonBorderBrushPressed" Color="Transparent" />
           </Button.Resources>
           <TextBlock Text="Give back control" />
+        </Button>
+
+        <Button x:Name="CaptureScreenButton" IsEnabled="False" AutomationProperties.Name="Capture screen" Style="{StaticResource ToolbarButtonStyle}" Click="OnCaptureScreenClick" ToolTipService.ToolTip="Copy the session's screen to your clipboard, as a PNG at full resolution">
+          <StackPanel Orientation="Horizontal" Spacing="7">
+            <FontIcon x:Name="CaptureScreenIcon" Glyph="&#xE722;" FontSize="13" VerticalAlignment="Center" />
+            <TextBlock x:Name="CaptureScreenText" Text="Capture screen" VerticalAlignment="Center" />
+          </StackPanel>
         </Button>
 
         <Button x:Name="StopButton" IsEnabled="False" AutomationProperties.Name="Stop" Style="{StaticResource ToolbarButtonStyle}" Click="OnStopClick" FontWeight="SemiBold" ToolTipService.ToolTip="Stop the agent: its sequence ends, held input is released, and it waits until you give control back">

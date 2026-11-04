@@ -23,6 +23,11 @@ namespace SecondShell::Setup
     if (!_configuration->AreChildSessionsEnabled()) _configuration->EnableChildSessions();
   }
 
+  optional<uint32_t> MachineSetup::BootId() const
+  {
+    return _configuration->BootId();
+  }
+
   bool MachineSetup::IsSmoothSessionViewOn() const
   {
     auto interval = _configuration->FrameInterval();

@@ -198,9 +198,9 @@ namespace winrt::SecondShell::implementation
   void GeneralSettings::ShowSetup()
   {
     auto status = _setupChecker->Status();
-    ChildSessionsTitle().Text(status.AreChildSessionsEnabled ? L"Child sessions enabled" : L"Child sessions not enabled");
-    ChildSessionsDetail().Text(status.AreChildSessionsEnabled ? L"Set up once for this PC" : L"The agent's desktop needs them; enabling them needs administrator rights once");
-    SetupButton().Content(box_value(status.AreChildSessionsEnabled ? L"Check again" : L"Set up…"));
+    ChildSessionsTitle().Text(status.IsRestartNeeded ? L"Child sessions enabled, restart needed" : status.AreChildSessionsEnabled ? L"Child sessions enabled" : L"Child sessions not enabled");
+    ChildSessionsDetail().Text(status.IsRestartNeeded ? L"Windows starts them after it restarts" : status.AreChildSessionsEnabled ? L"Set up once for this PC" : L"The agent's desktop needs them; enabling them needs administrator rights once");
+    SetupButton().Content(box_value(status.IsRestartNeeded ? L"Restart…" : status.AreChildSessionsEnabled ? L"Check again" : L"Set up…"));
     SetupButton().IsEnabled(!_isSettingUp);
 
     //A frame interval set by someone else is theirs: SecondShell neither changes nor removes it
@@ -214,6 +214,12 @@ namespace winrt::SecondShell::implementation
 
   void GeneralSettings::OnSetupClick(const IInspectable& /*sender*/, const RoutedEventArgs& /*eventArgs*/)
   {
+    if (_setupChecker->Status().IsRestartNeeded)
+    {
+      OfferRestart();
+      return;
+    }
+
     if (_setupChecker->Status().AreChildSessionsEnabled)
     {
       _setupChecker->Check();
@@ -272,7 +278,7 @@ namespace winrt::SecondShell::implementation
     auto queue = DispatcherQueue();
     co_await resume_background();
     _setupLauncher->Run(owner, request);
-    _setupChecker->Check();
+    auto status = _setupChecker->Check();
     co_await wil::resume_foreground(queue);
 
     //Shown as it is now, whether the user approved the prompt or not
@@ -280,5 +286,13 @@ namespace winrt::SecondShell::implementation
     _isShowing = true;
     ShowSetup();
     _isShowing = false;
+
+    if (request.EnableChildSessions && status.IsRestartNeeded) OfferRestart();
+  }
+
+  fire_and_forget GeneralSettings::OfferRestart()
+  {
+    auto self = get_strong();
+    if (co_await ::SecondShell::Ui::SessionDialogs::AskToRestart(XamlRoot())) ::SecondShell::Setup::RestartWindows();
   }
 }

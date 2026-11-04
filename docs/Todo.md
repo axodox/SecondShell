@@ -2,10 +2,6 @@
 
 Features to consider; not yet implemented.
 
-## Capture Screen button
-
-A **Capture Screen** button in the title-bar toolbar, between **Take control** and **Stop**. It takes a full-resolution PNG screen capture of the session display and puts it on the clipboard.
-
 ## Working while the screen is locked: what is left
 
 Built: Keep working while the screen is locked, `InputUnavailable`, and `isUserPresent` / `input` in `Check-Session` (Design.md, Working while the screen is locked; Findings.md 2.17). Still open:
@@ -29,18 +25,6 @@ Twice, `Initialize-Session` returned `Ready` with the driver connected, and the 
 ## Tighter window resize (optional)
 
 Change the host window's resize logic so it leaves no empty space around the display view. This must not interfere with window swapping.
-
-## Idle: show time since last active
-
-While the agent is idle, show how long since it was last active (e.g. "3 h", "1 min", or similar).
-
-## Log window performance with many entries
-
-The log window is slow with ~2000 entries. Investigate and improve (e.g. UI virtualization / incremental rendering) so a large log stays responsive.
-
-## Prompt for restart after enabling child sessions
-
-After changing the registry settings that enable child sessions, the app should ask the user to restart — otherwise it fails.
 
 ## AppVeyor CI
 

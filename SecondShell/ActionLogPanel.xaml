@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- The action log (docs/UIDesign.md, Log flyout): filters and search, then one group per sequence, newest first -->
+<!-- The action log (docs/UIDesign.md, Log flyout): filters and search, then one group per sequence, newest first. The
+     groups are rows of a repeater, which builds only the rows on the screen. -->
 <UserControl
   x:Class="SecondShell.ActionLogPanel"
   xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
@@ -42,9 +43,19 @@
     </Grid>
 
     <ScrollViewer Grid.Row="1" HorizontalScrollMode="Disabled" VerticalScrollBarVisibility="Auto">
-      <StackPanel x:Name="Groups" Spacing="6" Padding="8,0,8,10">
+      <Grid Padding="8,0,8,10">
+        <ItemsRepeater x:Name="Rows" ElementPrepared="OnRowPrepared" ElementClearing="OnRowClearing">
+          <ItemsRepeater.Layout>
+            <StackLayout />
+          </ItemsRepeater.Layout>
+          <ItemsRepeater.ItemTemplate>
+            <DataTemplate>
+              <ContentControl HorizontalContentAlignment="Stretch" IsTabStop="False" />
+            </DataTemplate>
+          </ItemsRepeater.ItemTemplate>
+        </ItemsRepeater>
         <TextBlock x:Name="EmptyText" Text="No agent actions yet." Margin="10" Foreground="{StaticResource MutedTextBrush}" FontSize="12" />
-      </StackPanel>
+      </Grid>
     </ScrollViewer>
   </Grid>
 </UserControl>

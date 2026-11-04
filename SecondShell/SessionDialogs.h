@@ -21,6 +21,9 @@ namespace SecondShell::Ui
     //The one-time setup: what to set up, or nothing for "Not now".
     static winrt::Windows::Foundation::IAsyncOperation<winrt::Windows::Foundation::IReference<bool>> AskToSetUp(winrt::Microsoft::UI::Xaml::XamlRoot root, Setup::SetupStatus status);
 
+    //After child sessions were enabled: true to restart Windows now, which they need before they work.
+    static winrt::Windows::Foundation::IAsyncOperation<bool> AskToRestart(winrt::Microsoft::UI::Xaml::XamlRoot root);
+
     //The integration preview: the change to an AI app's configuration before it is made. True: make it.
     //What to remove besides the AI apps' entries: nothing for Cancel, else flags: 1 the password, 2 the data folder.
     static winrt::Windows::Foundation::IAsyncOperation<winrt::Windows::Foundation::IReference<int32_t>> AskToUninstall(winrt::Microsoft::UI::Xaml::XamlRoot root);

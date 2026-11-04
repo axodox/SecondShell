@@ -7,6 +7,7 @@
 #include "HostProtocol.h"
 #include "RdpClient.h"
 #include "SettingsStore.h"
+#include "SetupChecker.h"
 
 namespace SecondShell::Session
 {
@@ -41,6 +42,7 @@ namespace SecondShell::Session
     std::shared_ptr<CredentialProvider> _credentials;
     std::shared_ptr<ExistingSessionPrompt> _existingSessionPrompt;
     std::shared_ptr<DriverLauncher> _driverLauncher;
+    std::shared_ptr<Setup::SetupChecker> _setupChecker;
     std::shared_ptr<DriverLink> _driverLink;
     std::shared_ptr<RdpClient> _rdpClient;
     Axodox::Infrastructure::event_subscription _loginCompletedSubscription;

@@ -53,6 +53,7 @@ namespace winrt::SecondShell::implementation
 
     //The elevated setup, then the setup shown as it is.
     fire_and_forget RunSetup(::SecondShell::Setup::SetupRequest request);
+    fire_and_forget OfferRestart();
 
     //Asks what to remove, removes it, and says what it did (Design.md, Uninstall).
     fire_and_forget Uninstall();

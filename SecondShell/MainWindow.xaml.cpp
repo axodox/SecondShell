@@ -3,6 +3,7 @@
 #if __has_include("MainWindow.g.cpp")
 #include "MainWindow.g.cpp"
 #endif
+#include "CaptureActions.h"
 #include "ProductInfo.h"
 #include "SequenceRunner.h"
 #include "SessionDialogs.h"
@@ -10,6 +11,7 @@
 #include "SettingsView.xaml.h"
 #include "SetupChecker.h"
 #include "StatusBar.xaml.h"
+#include <winrt/Windows.Storage.Streams.h>
 
 using namespace ::SecondShell::Actions;
 using namespace ::SecondShell::Agent;
@@ -26,13 +28,18 @@ using namespace winrt::Microsoft::UI::Input;
 using namespace winrt::Microsoft::UI::Windowing;
 using namespace winrt::Microsoft::UI::Xaml;
 using namespace winrt::Microsoft::UI::Xaml::Input;
+using namespace winrt::Windows::ApplicationModel::DataTransfer;
 using namespace winrt::Windows::Foundation;
+using namespace winrt::Windows::Storage::Streams;
 
 namespace winrt::SecondShell::implementation
 {
   //Agents send their sequences one after the other; so long after one the agent still counts as active
   const milliseconds _agentIdleShown{ 8000 };
   const double _agentIdleOpacity = 0.6;
+
+  const milliseconds _captureTimeout{ 10000 };
+  const milliseconds _captureFeedbackShown{ 1500 };
 
   //Initialize-Session waits at most this long for the user to answer
   const minutes _existingSessionAnswerTimeout{ 5 };
@@ -84,6 +91,11 @@ namespace winrt::SecondShell::implementation
     _agentIdleTimer.IsRepeating(false);
     _agentIdleTimer.Tick([this](auto&&, auto&&) { AgentIndicator().Visibility(Visibility::Collapsed); });
 
+    _captureFeedbackTimer = DispatcherQueue().CreateTimer();
+    _captureFeedbackTimer.Interval(_captureFeedbackShown);
+    _captureFeedbackTimer.IsRepeating(false);
+    _captureFeedbackTimer.Tick([this](auto&&, auto&&) { ShowCaptureFeedback(L"\uE722", L"Capture screen"); });
+
     AppWindow().Closing({ this, &MainWindow::OnClosing });
 
     //E.g. Alt+Tab: the releases go to the next window, so the session would keep the keys held
@@ -98,6 +110,8 @@ namespace winrt::SecondShell::implementation
     _agentControl = container->resolve<AgentControl>();
     _inputForwarder = container->resolve<InteractiveInputForwarder>();
     _renderer = container->resolve<SessionRenderer>();
+    _driver = container->resolve<IDriverLink>();
+    _visualization = container->resolve<VisualizationFeed>();
     get_self<implementation::StatusBar>(StatusBar())->UseServices(container);
     get_self<implementation::SettingsView>(SettingsPanel())->UseServices(container);
     _activityCards = make_unique<ActivityCards>(container, ActivityCardsPanel());
@@ -119,7 +133,9 @@ namespace winrt::SecondShell::implementation
     //Asked once the window is up; until then a dialog has nowhere to show
     Content().as<FrameworkElement>().Loaded([weak = get_weak()](auto&&, auto&&) {
       auto self = weak.get();
-      if (self && !self->_setupChecker->Status().IsReady()) self->OfferSetup();
+      if (!self) return;
+      if (self->_setupChecker->Status().IsRestartNeeded) self->OfferRestart();
+      else if (!self->_setupChecker->Status().IsReady()) self->OfferSetup();
       });
 
     auto sessions = container->resolve<SessionManager>();
@@ -146,12 +162,17 @@ namespace winrt::SecondShell::implementation
     };
 
     _sessionState = state;
-    auto isSetupNeeded = !_setupChecker->Status().IsReady() && (state == SessionState::Stopped || state == SessionState::Failed);
+    auto setup = _setupChecker->Status();
+    auto isSetupNeeded = !setup.IsReady() && (state == SessionState::Stopped || state == SessionState::Failed);
 
     Status status;
     if (_isSettingUp)
     {
       status = { L"Setting up", L"Approve the administrator prompt to enable child sessions.", true };
+    }
+    else if (isSetupNeeded && setup.IsRestartNeeded)
+    {
+      status = { L"Restart needed", _setupProblem.empty() ? L"Child sessions are enabled; Windows starts them after it restarts." : _setupProblem.c_str(), false };
     }
     else if (isSetupNeeded)
     {
@@ -186,13 +207,15 @@ namespace winrt::SecondShell::implementation
     SessionStatusTitle().Text(status.Title);
     SessionStatusDetail().Text(status.Detail);
     SetUpButton().Visibility(isSetupNeeded && !_isSettingUp ? Visibility::Visible : Visibility::Collapsed);
+    SetUpButton().Content(box_value(setup.IsRestartNeeded ? L"Restart…" : L"Set up…"));
 
     ShowControlMode(_agentControl->Mode());
   }
 
   void MainWindow::OnSetUpClick(const IInspectable& /*sender*/, const RoutedEventArgs& /*eventArgs*/)
   {
-    OfferSetup();
+    if (_setupChecker->Status().IsRestartNeeded) OfferRestart();
+    else OfferSetup();
   }
 
   void MainWindow::OnSettingsClick(const IInspectable& /*sender*/, const RoutedEventArgs& /*eventArgs*/)
@@ -241,10 +264,24 @@ namespace winrt::SecondShell::implementation
     co_await wil::resume_foreground(queue);
 
     _isSettingUp = false;
-    if (status.IsReady()) _setupProblem.clear();
+    if (status.IsReady() || status.IsRestartNeeded) _setupProblem.clear();
     else if (outcome == SetupOutcome::Declined) _setupProblem = L"The setup was cancelled. Child sessions need administrator rights once; choose Set up to try again.";
     else _setupProblem = L"The setup did not enable child sessions; the log has the details.";
     ShowSessionState(_sessionState);
+
+    if (status.IsRestartNeeded) OfferRestart();
+  }
+
+  fire_and_forget MainWindow::OfferRestart()
+  {
+    auto self = get_strong();
+    if (!co_await SessionDialogs::AskToRestart(Content().XamlRoot())) co_return;
+
+    if (!RestartWindows())
+    {
+      _setupProblem = L"Windows did not restart; restart it from Start.";
+      ShowSessionState(_sessionState);
+    }
   }
 
   void MainWindow::OnClosing(const Microsoft::UI::Windowing::AppWindow& /*sender*/, const AppWindowClosingEventArgs& eventArgs)
@@ -295,6 +332,7 @@ namespace winrt::SecondShell::implementation
     TakeControlButton().IsEnabled(_isSessionReady);
     GiveBackButton().Visibility(isAgent ? Visibility::Collapsed : Visibility::Visible);
     StopButton().IsEnabled(_isSessionReady && isAgent);
+    CaptureScreenButton().IsEnabled(_isSessionReady);
 
     UserControlNotice().Visibility(isUser ? Visibility::Visible : Visibility::Collapsed);
 
@@ -333,6 +371,76 @@ namespace winrt::SecondShell::implementation
   void MainWindow::OnStopClick(const IInspectable& /*sender*/, const RoutedEventArgs& /*eventArgs*/)
   {
     _agentControl->Stop();
+  }
+
+  void MainWindow::OnCaptureScreenClick(const IInspectable& /*sender*/, const RoutedEventArgs& /*eventArgs*/)
+  {
+    CaptureScreen();
+  }
+
+  fire_and_forget MainWindow::CaptureScreen()
+  {
+    auto self = get_strong();
+    CaptureScreenButton().IsEnabled(false);
+    _captureFeedbackTimer.Stop();
+
+    //As the agent's Capture.Screen, at the session's own resolution, so the view flashes as it does for the agent
+    auto action = make_value<CaptureScreenAction>();
+    action->Format = ImageFormat::Png;
+    action->Tag = "user";
+    auto visualId = _visualization->OnActionStarted(*action);
+
+    auto queue = DispatcherQueue();
+    co_await resume_background();
+    ::SecondShell::Rpc::CancellationToken noCancellation;
+    auto response = _driver->Execute(ExecuteActionRequest{ 0, value_ptr<Action>(action) }, _captureTimeout, noCancellation);
+    co_await wil::resume_foreground(queue);
+
+    value_ptr<ActionResult> result;
+    if (auto executed = get_if<ExecuteActionResponse>(&response)) result = executed->Result;
+    else result = ActionResult::Failed(ErrorCode::ActionFailed, get<::SecondShell::Rpc::JsonRpcError>(response).Message);
+    if (!result) result = ActionResult::Failed(ErrorCode::ActionFailed, "The driver returned no result.");
+    _visualization->OnActionFinished(visualId, *action, *result);
+
+    auto capture = dynamic_cast<CaptureResult*>(result.get());
+    auto isCopied = false;
+    if (capture && !capture->Image.Data.empty())
+    {
+      try
+      {
+        InMemoryRandomAccessStream stream;
+        DataWriter writer{ stream };
+        writer.WriteBytes(capture->Image.Data);
+        co_await writer.StoreAsync();
+        writer.DetachStream();
+        stream.Seek(0);
+
+        //Kept on the clipboard after SecondShell exits
+        DataPackage package;
+        package.SetBitmap(RandomAccessStreamReference::CreateFromStream(stream));
+        Clipboard::SetContent(package);
+        Clipboard::Flush();
+        isCopied = true;
+      }
+      catch (const hresult_error& error)
+      {
+        logger{ "MainWindow" }.log(log_severity::warning, "Could not put the capture on the clipboard: {}", to_string(error.message()));
+      }
+    }
+    else
+    {
+      logger{ "MainWindow" }.log(log_severity::warning, "Could not capture the screen: {}", result->Message.value_or("no image"));
+    }
+
+    CaptureScreenButton().IsEnabled(_isSessionReady);
+    ShowCaptureFeedback(isCopied ? L"\uE73E" : L"\uE783", isCopied ? L"Copied" : L"Failed");
+    _captureFeedbackTimer.Start();
+  }
+
+  void MainWindow::ShowCaptureFeedback(const wchar_t* glyph, const wchar_t* text)
+  {
+    CaptureScreenIcon().Glyph(glyph);
+    CaptureScreenText().Text(text);
   }
 
   void MainWindow::OnSessionPointerMoved(const IInspectable& /*sender*/, const PointerRoutedEventArgs& eventArgs)

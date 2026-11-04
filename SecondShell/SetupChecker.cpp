@@ -12,7 +12,8 @@ namespace SecondShell::Setup
     StatusChanged(_events),
     _machineSetup(container->resolve<MachineSetup>()),
     _driverLauncher(container->resolve<DriverLauncher>()),
-    _environment(container->resolve<AppEnvironment>())
+    _environment(container->resolve<AppEnvironment>()),
+    _pendingRestart(_environment->DataFolder() / "restart-pending")
   { }
 
   SetupStatus SetupChecker::Check()
@@ -22,12 +23,18 @@ namespace SecondShell::Setup
     SetupStatus status{ _machineSetup->AreChildSessionsEnabled(), _machineSetup->IsSmoothSessionViewOn(), _machineSetup->IsSmoothSessionViewOurs() };
     {
       lock_guard lock{ _mutex };
+
+      //Enabled while SecondShell runs: by its setup, or by anyone else
+      auto bootId = _machineSetup->BootId();
+      if (_status && !_status->AreChildSessionsEnabled && status.AreChildSessionsEnabled) _pendingRestart.Note(bootId);
+      status.IsRestartNeeded = status.AreChildSessionsEnabled && _pendingRestart.IsPending(bootId);
+
       auto isChanged = _status != status;
       _status = status;
       if (!isChanged) return status;
     }
 
-    _logger.log(log_severity::information, "Child sessions {}; smooth session view {}.", status.AreChildSessionsEnabled ? "enabled" : "not enabled", status.IsSmoothSessionViewOn ? "on" : "off");
+    _logger.log(log_severity::information, "Child sessions {}{}; smooth session view {}.", status.AreChildSessionsEnabled ? "enabled" : "not enabled", status.IsRestartNeeded ? ", after Windows restarts" : "", status.IsSmoothSessionViewOn ? "on" : "off");
     _events.raise(StatusChanged, this, status);
     return status;
   }

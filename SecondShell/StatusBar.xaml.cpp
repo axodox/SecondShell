@@ -191,7 +191,7 @@ namespace winrt::SecondShell::implementation
     _bars.Show(isThinking ? Activity::Thinking : Activity::Idle);
     ActivityText().Text(isThinking ? L"Agent thinking" : L"Agent idle");
     ActivityText().Foreground(ActionView::Resource<Brush>(L"SessionTextBrush"));
-    ActivityDetailText().Text(isThinking ? to_hstring(std::format("last step {} s ago", duration_cast<seconds>(now - ended).count())) : L"");
+    ActivityDetailText().Text(to_hstring(isThinking ? std::format("last step {} s ago", duration_cast<seconds>(now - ended).count()) : "last active " + FormatAge(now - ended) + " ago"));
   }
 
   void StatusBar::UpdateSession()
@@ -213,7 +213,7 @@ namespace winrt::SecondShell::implementation
         SessionText().Text(L"Session failed to start");
         break;
       default:
-        SessionText().Text(_setupChecker->Status().IsReady() ? L"No session" : L"Setup needed: child sessions are not enabled");
+        SessionText().Text(_setupChecker->Status().IsRestartNeeded ? L"Restart needed: child sessions start after Windows restarts" : _setupChecker->Status().IsReady() ? L"No session" : L"Setup needed: child sessions are not enabled");
         break;
       }
       return;

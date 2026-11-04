@@ -14,6 +14,10 @@ namespace SecondShell::Setup
   const wchar_t* const _remoteDesktopKey = L"SYSTEM\\CurrentControlSet\\Control\\Terminal Server";
   const wchar_t* const _denyConnectionsValue = L"fDenyTSConnections";
 
+  //Increased by Windows on every boot; readable by every user
+  const wchar_t* const _bootKey = L"SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Memory Management\\PrefetchParameters";
+  const wchar_t* const _bootIdValue = L"BootId";
+
   //SecondShell's own machine-wide notes; HKLM, as the elevated setup may run as another account
   const wchar_t* const _setupKey = L"SOFTWARE\\SecondShell";
   const wchar_t* const _frameIntervalOursValue = L"SetFrameInterval";
@@ -71,6 +75,11 @@ namespace SecondShell::Setup
     auto deny = ReadDword(_remoteDesktopPolicyKey, _denyConnectionsValue);
     if (!deny) deny = ReadDword(_remoteDesktopKey, _denyConnectionsValue);
     return deny.value_or(1) == 0;
+  }
+
+  optional<uint32_t> MachineConfiguration::BootId() const
+  {
+    return ReadDword(_bootKey, _bootIdValue);
   }
 
   bool MachineConfiguration::IsFrameIntervalOurs() const

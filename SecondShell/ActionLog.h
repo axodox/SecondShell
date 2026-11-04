@@ -69,6 +69,9 @@ namespace SecondShell::Agent
   //A duration as the user reads it: "200 ms", "1.5 s", "12 s", "1 min 30 s".
   std::string FormatDuration(std::chrono::milliseconds duration);
 
+  //How long ago, coarser the longer: "40 s", "12 min", "3 h", "2 days".
+  std::string FormatAge(std::chrono::system_clock::duration age);
+
   //Every sequence the agent ran and its steps, for the status bar, the log flyout and the log file. Text typed with
   //"sensitive" is redacted.
   class ActionLog

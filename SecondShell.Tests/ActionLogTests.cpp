@@ -36,6 +36,18 @@ namespace SecondShell::Tests
     }
 
   public:
+    TEST_METHOD(AgesAreCoarserTheLongerAgo)
+    {
+      using namespace std::chrono_literals;
+      Assert::AreEqual(string("0 s"), FormatAge(-3s), L"a clock set back is no time");
+      Assert::AreEqual(string("40 s"), FormatAge(40s));
+      Assert::AreEqual(string("1 min"), FormatAge(119s));
+      Assert::AreEqual(string("59 min"), FormatAge(59min + 59s));
+      Assert::AreEqual(string("3 h"), FormatAge(3h + 40min));
+      Assert::AreEqual(string("47 h"), FormatAge(47h));
+      Assert::AreEqual(string("2 days"), FormatAge(48h));
+    }
+
     TEST_METHOD(SummariesListTheArgumentsByName)
     {
       auto click = make_value<MouseClickAction>();

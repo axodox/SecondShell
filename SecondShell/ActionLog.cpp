@@ -198,6 +198,15 @@ namespace SecondShell::Agent
     return FormatMilliseconds(double(duration.count()));
   }
 
+  string FormatAge(system_clock::duration age)
+  {
+    auto value = max(duration_cast<seconds>(age).count(), 0ll);
+    if (value < 60) return format("{} s", value);
+    if (value < 3600) return format("{} min", value / 60);
+    if (value < 48 * 3600) return format("{} h", value / 3600);
+    return format("{} days", value / 86400);
+  }
+
   ActionLog::ActionLog() :
     SequenceChanged(_events),
     ActionStarted(_events),

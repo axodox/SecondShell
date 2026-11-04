@@ -23,6 +23,8 @@ namespace SecondShell::Ui
 
   //The details of a step line up after its time column
   const double _detailIndent = 52;
+  const double _groupSpacing = 6;
+  const double _groupRadius = 8;
   const size_t _titleVerbs = 3;
 
   namespace
@@ -273,27 +275,28 @@ namespace SecondShell::Ui
     }
   }
 
-  Border SequenceView::Build(const SequenceLogEntry& sequence, const StepFilter& filter)
+  Border SequenceView::HeaderRow(const SequenceLogEntry& sequence, bool isFirst)
   {
-    StackPanel steps;
-    steps.Padding({ 6, 0, 6, 6 });
-    for (auto& step : sequence.Steps)
-    {
-      if (filter(step)) steps.Children().Append(Step(sequence, step));
-    }
-    if (steps.Children().Size() == 0) return nullptr;
+    Border row;
+    row.Margin({ 0, isFirst ? 0.0 : _groupSpacing, 0, 0 });
+    row.CornerRadius({ _groupRadius, _groupRadius, 0, 0 });
+    row.BorderThickness({ 1, 1, 1, 0 });
+    row.Background(ActionView::Resource<Brush>(L"GroupBrush"));
+    row.BorderBrush(ActionView::Resource<Brush>(L"GroupBorderBrush"));
+    row.Child(Header(sequence));
+    return row;
+  }
 
-    StackPanel content;
-    content.Children().Append(Header(sequence));
-    content.Children().Append(steps);
-
-    Border group;
-    group.CornerRadius({ 8, 8, 8, 8 });
-    group.BorderThickness({ 1, 1, 1, 1 });
-    group.Background(ActionView::Resource<Brush>(L"GroupBrush"));
-    group.BorderBrush(ActionView::Resource<Brush>(L"GroupBorderBrush"));
-    group.Child(content);
-    return group;
+  Border SequenceView::StepRow(const SequenceLogEntry& sequence, const ActionLogEntry& step, bool isLast)
+  {
+    Border row;
+    row.Padding({ 6, 0, 6, isLast ? 6.0 : 0.0 });
+    row.CornerRadius({ 0, 0, isLast ? _groupRadius : 0, isLast ? _groupRadius : 0 });
+    row.BorderThickness({ 1, 0, 1, isLast ? 1.0 : 0.0 });
+    row.Background(ActionView::Resource<Brush>(L"GroupBrush"));
+    row.BorderBrush(ActionView::Resource<Brush>(L"GroupBorderBrush"));
+    row.Child(Step(sequence, step));
+    return row;
   }
 
   string SequenceView::Title(const SequenceLogEntry& sequence)

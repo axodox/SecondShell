@@ -5,6 +5,8 @@
 #include "AgentControl.h"
 #include "ElevatedSetupLauncher.h"
 #include "ExistingSessionPrompt.h"
+#include "IDriverLink.h"
+#include "VisualizationFeed.h"
 #include "InteractiveInputForwarder.h"
 #include "SessionRenderer.h"
 #include "SetupChecker.h"
@@ -29,6 +31,7 @@ namespace winrt::SecondShell::implementation
     void OnTakeControlClick(const Windows::Foundation::IInspectable& sender, const Microsoft::UI::Xaml::RoutedEventArgs& eventArgs);
     void OnGiveBackClick(const Windows::Foundation::IInspectable& sender, const Microsoft::UI::Xaml::RoutedEventArgs& eventArgs);
     void OnStopClick(const Windows::Foundation::IInspectable& sender, const Microsoft::UI::Xaml::RoutedEventArgs& eventArgs);
+    void OnCaptureScreenClick(const Windows::Foundation::IInspectable& sender, const Microsoft::UI::Xaml::RoutedEventArgs& eventArgs);
     void OnSetUpClick(const Windows::Foundation::IInspectable& sender, const Microsoft::UI::Xaml::RoutedEventArgs& eventArgs);
     void OnSettingsClick(const Windows::Foundation::IInspectable& sender, const Microsoft::UI::Xaml::RoutedEventArgs& eventArgs);
     void OnBackClick(const Windows::Foundation::IInspectable& sender, const Microsoft::UI::Xaml::RoutedEventArgs& eventArgs);
@@ -48,6 +51,9 @@ namespace winrt::SecondShell::implementation
     std::shared_ptr<::SecondShell::Agent::AgentControl> _agentControl;
     std::shared_ptr<::SecondShell::Agent::InteractiveInputForwarder> _inputForwarder;
     std::shared_ptr<::SecondShell::Rendering::SessionRenderer> _renderer;
+    std::shared_ptr<::SecondShell::Session::IDriverLink> _driver;
+    std::shared_ptr<::SecondShell::Agent::VisualizationFeed> _visualization;
+    Microsoft::UI::Dispatching::DispatcherQueueTimer _captureFeedbackTimer{ nullptr };
     std::unique_ptr<::SecondShell::Ui::ActivityCards> _activityCards;
     std::shared_ptr<::SecondShell::Setup::SetupChecker> _setupChecker;
     std::shared_ptr<::SecondShell::Setup::ElevatedSetupLauncher> _setupLauncher;
@@ -69,12 +75,19 @@ namespace winrt::SecondShell::implementation
     //The one-time setup (Design.md, Repair): asked when the window opens and from Set up; runs elevated.
     fire_and_forget OfferSetup();
 
+    //Child sessions work only after Windows restarts once they are enabled: offered after the setup, and from Restart.
+    fire_and_forget OfferRestart();
+
     //Closing while the agent works asks first (docs/UIDesign.md, Dialogs).
     void OnClosing(const Microsoft::UI::Windowing::AppWindow& sender, const Microsoft::UI::Windowing::AppWindowClosingEventArgs& eventArgs);
     fire_and_forget ConfirmClose(::SecondShell::Agent::SequenceLogEntry sequence);
 
     //What to do with a child session from before, asked in a dialog; on the caller's thread.
     std::optional<::SecondShell::Protocol::ExistingSessionPolicy> AskAboutExistingSession(const ::SecondShell::Session::ExistingSession& session);
+
+    //Capture screen: the session's screen at full resolution, as PNG, on the user's clipboard.
+    fire_and_forget CaptureScreen();
+    void ShowCaptureFeedback(const wchar_t* glyph, const wchar_t* text);
 
     bool ForwardPointer(const Microsoft::UI::Xaml::Input::PointerRoutedEventArgs& eventArgs);
     void ForwardKey(const Microsoft::UI::Xaml::Input::KeyRoutedEventArgs& eventArgs, bool isPressed);

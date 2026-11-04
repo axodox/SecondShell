@@ -47,7 +47,7 @@ The overlay's cursor and highlights use the agent colour (today they are pink: c
 
 ## Window
 
-- **Title bar**, drawn by the window: the app mark, name and version; then the toolbar: **Take control** (becomes **Give back control**, amber, while the user has it), **Stop** (disabled while the user has control), the display (resolution and scale, a dropdown), **Reset session**, **Settings**; then the system's caption buttons.
+- **Title bar**, drawn by the window: the app mark, name and version; then the toolbar: **Take control** (becomes **Give back control**, amber, while the user has it), **Capture screen** (copies the session's screen to the user's clipboard as a full-resolution PNG; the view flashes as for the agent's captures, and the button reads "Copied" for a moment), **Stop** (disabled while the user has control), the display (resolution and scale, a dropdown), **Reset session**, **Settings**; then the system's caption buttons.
 - **Session**: letterboxed; resizing the window never resizes the session. Its frame shows who is in control: violet while the agent works, amber while the user has control.
 - **Interactive mode**: a notice at the top of the session ("You're in control", what goes where, Give back). The view runs at the host screen's refresh rate so that it feels native (Findings.md, open questions); while the agent is in control this matters less.
 
@@ -55,14 +55,14 @@ The overlay's cursor and highlights use the agent colour (today they are pink: c
 
 From left to right:
 
-1. **Activity**: animated bars while a sequence runs, with the agent's description of the sequence (a `description` on `Run-Sequence`; "Agent working" without one) and "step x of y". Between sequences the bars slow down and dim for a few seconds ("Agent thinking"), then go quiet ("Agent idle"). While the user has control: "You're in control" in amber.
+1. **Activity**: animated bars while a sequence runs, with the agent's description of the sequence (a `description` on `Run-Sequence`; "Agent working" without one) and "step x of y". Between sequences the bars slow down and dim for a few seconds ("Agent thinking"), then go quiet ("Agent idle", with how long ago the agent was last active: "last active 12 min ago", coarser the longer ago: s, min, h, days). While the user has control: "You're in control" in amber.
 2. **The current action**: a spinner while it runs, then its result (check, cross); the action name in the agent colour; its arguments as rectangles, the name dim and the value bright (strings in quotes, sensitive text as dots); keys as keycaps (`Ctrl` + `Shift` + `Esc`). It brightens briefly when it changes, then settles. A failure follows as "failed: reason" in the failure colour. Durations read "60 s", "200 ms".
 3. **Session**: state, frame rate, clipboard sync while the user has control.
 4. **Log**: a button with the entry count (and a dot after a failure) that opens the log flyout.
 
 ## Log flyout
 
-Expands over the window from its status bar button, and can expand to the window's height.
+Expands over the window from its status bar button, and can expand to the window's height. It keeps every sequence the host remembers (200): only the rows on the screen are built, and an update rebuilds only the rows that changed, so thousands of steps stay quick.
 
 - Filters (All, Failed, Captures, Commands) and search.
 - One group per sequence, titled by the agent's description, or by a title made from its steps without one ("Focus, click, type and 6 more"), never "Sequence 14"; then its number, step count, duration and state.
@@ -81,3 +81,4 @@ Pages: **General** (session display and sign-in timeout, Keep working while the 
 - **Closing while the agent works**: stops the sequence and signs the session out. Close and sign out, or Keep open.
 - **Integration preview**: the change to an AI client's configuration file before it is written, with the backup's name and whether to restart the client.
 - **One-time setup**: what is missing (child sessions not enabled), that it needs administrator rights once; an option "Smooth session view (60 fps)", on, with a line on what it changes machine-wide. Set up, or Not now.
+- **Restart to finish the setup**: after child sessions were enabled, Windows must restart before they work; save your work first. Restart now, or Later (the session view then says "Restart needed" with a Restart button, and so does Settings).

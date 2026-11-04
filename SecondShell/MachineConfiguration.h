@@ -22,6 +22,9 @@ namespace SecondShell::Setup
 
     //Whether this PC accepts Remote Desktop connections, by policy or by its own setting.
     virtual bool IsRemoteDesktopEnabled() const = 0;
+
+    //A number Windows increases with every boot; empty if it cannot be read.
+    virtual std::optional<uint32_t> BootId() const = 0;
   };
 
   //The settings as Windows keeps them: WTS for child sessions, HKLM for the rest.
@@ -40,5 +43,7 @@ namespace SecondShell::Setup
     virtual void IsFrameIntervalOurs(bool value) override;
 
     virtual bool IsRemoteDesktopEnabled() const override;
+
+    virtual std::optional<uint32_t> BootId() const override;
   };
 }

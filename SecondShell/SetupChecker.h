@@ -1,6 +1,7 @@
 #pragma once
 #include "DriverLauncher.h"
 #include "MachineSetup.h"
+#include "PendingRestart.h"
 
 namespace SecondShell::Setup
 {
@@ -9,10 +10,11 @@ namespace SecondShell::Setup
     bool AreChildSessionsEnabled = false;
     bool IsSmoothSessionViewOn = false;  //optional: reported, never required
     bool IsSmoothSessionViewOurs = false;  //set by SecondShell, so it can turn it off
+    bool IsRestartNeeded = false;  //child sessions were enabled since Windows started: they work after a restart
 
     bool operator==(const SetupStatus&) const = default;
 
-    bool IsReady() const { return AreChildSessionsEnabled; }
+    bool IsReady() const { return AreChildSessionsEnabled && !IsRestartNeeded; }
   };
 
   //The checks on every start (Design.md, Setup and repair): fixes per-user problems at once, without elevation, and
@@ -25,7 +27,8 @@ namespace SecondShell::Setup
   public:
     explicit SetupChecker(Axodox::Infrastructure::dependency_container* container);
 
-    //Checks again, e.g. after the elevated setup ran; raises StatusChanged if anything changed.
+    //Checks again, e.g. after the elevated setup ran; raises StatusChanged if anything changed. Child sessions found
+    //enabled after they were not need a restart, which is noted until Windows restarts.
     SetupStatus Check();
     SetupStatus Status() const;
 
@@ -35,6 +38,7 @@ namespace SecondShell::Setup
     std::shared_ptr<MachineSetup> _machineSetup;
     std::shared_ptr<Session::DriverLauncher> _driverLauncher;
     std::shared_ptr<Environment::AppEnvironment> _environment;
+    PendingRestart _pendingRestart;
 
     mutable std::mutex _mutex;
     std::optional<SetupStatus> _status;

@@ -13,6 +13,9 @@ namespace SecondShell::Setup
     bool AreChildSessionsEnabled() const;
     void EnableChildSessions();
 
+    //Of the running boot, to tell whether Windows restarted since (PendingRestart).
+    std::optional<uint32_t> BootId() const;
+
     //About 60 fps in Remote Desktop sessions instead of 30 (Design.md, Smooth session view).
     bool IsSmoothSessionViewOn() const;
     bool IsSmoothSessionViewOurs() const;

@@ -165,6 +165,7 @@
     <ClCompile Include="..\SecondShell\IDriverLink.cpp" />
     <ClCompile Include="..\SecondShell\JsonConfigEditor.cpp" />
     <ClCompile Include="..\SecondShell\LockScreenPolicy.cpp" />
+    <ClCompile Include="..\SecondShell\PendingRestart.cpp" />
     <ClCompile Include="..\SecondShell\SessionEventLog.cpp" />
     <ClCompile Include="..\SecondShell\MachineSetup.cpp" />
     <ClCompile Include="..\SecondShell\SequenceRunner.cpp" />

@@ -2,6 +2,7 @@
 #include "ElevatedSetupLauncher.h"
 #include "FakeMachineConfiguration.h"
 #include "MachineSetup.h"
+#include "PendingRestart.h"
 
 using namespace Axodox::Infrastructure;
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
@@ -59,6 +60,25 @@ namespace SecondShell::Tests
 
       _machine->Interval = 33;
       Assert::IsFalse(Setup()->IsSmoothSessionViewOn(), L"slower than 15 ms is not smooth");
+    }
+
+    TEST_METHOD(ARestartIsPendingUntilTheNextBoot)
+    {
+      auto file = filesystem::temp_directory_path() / format("SecondShell.Tests.{}", GetCurrentProcessId()) / "restart-pending";
+      PendingRestart restart{ file };
+      Assert::IsFalse(restart.IsPending(7), L"nothing noted");
+
+      restart.Note(7);
+      Assert::IsTrue(restart.IsPending(7), L"still the boot in which child sessions were enabled");
+      Assert::IsTrue(restart.IsPending(7), L"asked again");
+
+      Assert::IsFalse(restart.IsPending(8), L"Windows restarted");
+      Assert::IsFalse(filesystem::exists(file), L"the note goes");
+      Assert::IsFalse(restart.IsPending(7), L"and stays gone");
+
+      restart.Note(nullopt);
+      Assert::IsFalse(filesystem::exists(file), L"without a boot ID nothing can be told, so nothing is noted");
+      filesystem::remove_all(file.parent_path());
     }
 
     TEST_METHOD(SetupArgumentsRoundTrip)

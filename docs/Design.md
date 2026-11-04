@@ -464,7 +464,7 @@ Normal use never needs elevation. Machine-wide setup needs it once per machine, 
 
 `SecondShell.exe` checks, without elevation:
 
-- **Machine-wide**: child sessions are enabled (`WTSIsChildSessionsEnabled`). This is the only required step that needs elevation.
+- **Machine-wide**: child sessions are enabled (`WTSIsChildSessionsEnabled`). This is the only required step that needs elevation. They start only after Windows restarts once they are enabled, although `WTSIsChildSessionsEnabled` reports them enabled at once: when the host sees them become enabled, it notes the boot ID (`BootId` under `HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management\PrefetchParameters`, which Windows increases on every boot) in `restart-pending` in the data folder. Until the boot ID changes, setup is not ready: the window offers to restart (`ExitWindowsEx`, which asks applications to close as Start does), Settings says so, and `Initialize-Session` fails with `SetupRequired`, asking the agent to have the user restart.
 - **Machine-wide, optional**: the smooth session view (below) is on. Its absence is not a problem: it is reported, not repaired.
 - **Per-user**:
   - no leftover driver `RunOnce` entry exists (deleted if found, see Starting the driver);
