@@ -107,6 +107,12 @@ namespace SecondShell::Tests
 
       Assert::IsFalse(output.Find("listening", found->Next).has_value(), L"from an offset on");
       Assert::IsFalse(output.Find("missing", 0).has_value());
+
+      //Colors around part of the text do not hide it, and the line comes without them
+      output.Append("\n\x1B[32m  Local:\x1B[39m   http://localhost:\x1B[1m5173\x1B[22m/\n");
+      auto colored = output.Find("local:   http://localhost:5173", 0);
+      Assert::IsTrue(colored.has_value());
+      Assert::AreEqual(string("  Local:   http://localhost:5173/"), colored->Text);
     }
 
     TEST_METHOD(WaitsEndWithOutputOrTheExit)

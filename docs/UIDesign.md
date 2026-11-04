@@ -77,10 +77,10 @@ Expands over the window from its status bar button, and can expand to the window
 Like the log flyout, from its status bar button, and can expand to the window's height.
 
 - Filters as in the log: **All**, **Running**, **Finished**, and search (command, program or PID).
-- On the left the processes the agent started with output in this run, newest first: the command, the PID, running or its exit code. Under **Earlier**, the output files of the others in the output folder, also of earlier runs, newest first (at most 100): the program, the PID, when it started and the size. The newest is selected until the user picks another.
+- On the left the processes the agent started with output in this run, newest first: the command, the PID, running or its exit code. Under **Earlier**, the output files of this run's processes no longer kept in memory, newest first: the program, the PID, when it started and the size. Like the log, it starts empty when SecondShell starts; files of earlier runs stay in the output folder (Settings, Open folder). The newest is selected, and marked, until the user picks another.
 - An earlier one shows the end of its file (its last 10,000 lines, from at most its last 4 MB, across its parts); it does not change.
-- On the right the selected one's output, in the monospace font, a line per row, following the new lines while scrolled to the end. It keeps the last 10,000 lines of each process (the file has all of it); a gap the window missed shows as a line saying how much more is in the file. Only the rows on the screen are built, so a busy process stays quick.
-- In the header: PID, state and line count; **Copy** (the lines shown) and **Open file** (the output file, all of it).
+- On the right the selected one's output, in the monospace font, a line per row, in its colors as Windows Terminal shows them (its default scheme, Campbell; 256 and 24-bit colors; bold, dim, italic, underline, strikethrough, inverse; a color carries on to the next lines until reset), following the new lines while scrolled to the end. It keeps the last 10,000 lines of each process (the file has all of it); a gap the window missed shows as a line saying how much more is in the file. Only the rows on the screen are built, so a busy process stays quick.
+- In the header: PID, state and line count; **Copy** (the lines shown, without color codes) and **Open file** (the output file, all of it).
 
 ## Settings
 

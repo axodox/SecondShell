@@ -58,6 +58,7 @@
     <ClInclude Include="CommonApi.h" />
     <ClInclude Include="ProductInfo.h" />
     <ClInclude Include="Action.h" />
+    <ClInclude Include="AnsiText.h" />
     <ClInclude Include="ActionCatalog.h" />
     <ClInclude Include="ActionEnums.h" />
     <ClInclude Include="ActionResult.h" />
@@ -99,6 +100,7 @@
     </ClCompile>
     <ClCompile Include="ProductInfo.cpp" />
     <ClCompile Include="ActionCatalog.cpp" />
+    <ClCompile Include="AnsiText.cpp" />
     <ClCompile Include="Actions.cpp" />
     <ClCompile Include="ActionValues.cpp" />
     <ClCompile Include="DriverProtocol.cpp" />

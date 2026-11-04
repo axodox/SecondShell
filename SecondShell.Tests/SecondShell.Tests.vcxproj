@@ -73,6 +73,7 @@
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="ActionTests.cpp" />
+    <ClCompile Include="AnsiTextTests.cpp" />
     <ClCompile Include="AreaTextReaderTests.cpp" />
     <ClCompile Include="CancellationTokenTests.cpp" />
     <ClCompile Include="ChangedLinesTests.cpp" />

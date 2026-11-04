@@ -4,6 +4,7 @@
 #include "ProcessesPanel.g.cpp"
 #endif
 #include "ActionView.h"
+#include <winrt/Microsoft.UI.Xaml.Documents.h>
 #include <winrt/Microsoft.UI.Xaml.Automation.h>
 
 using namespace ::SecondShell::Agent;
@@ -52,10 +53,6 @@ namespace winrt::SecondShell::implementation
       return text;
     }
 
-    hstring LineText(const IInspectable& item)
-    {
-      return unbox_value_or<hstring>(item, L"");
-    }
 
     ListViewItem Row(string_view title, string_view detail, const wchar_t* detailBrush, string_view key)
     {
@@ -100,7 +97,11 @@ namespace winrt::SecondShell::implementation
     if (version == _version && !isHistoryChecked) return;
     _version = version;
 
-    if (isHistoryChecked) _history = ProcessOutputStore::History(_outputFolder);
+    if (isHistoryChecked)
+    {
+      _history = ProcessOutputStore::History(_outputFolder);
+      erase_if(_history, [this](auto& file) { return file.Started < _since; });
+    }
     ShowEntries();
     auto selected = Selected();
     if (selected && selected->Live) ShowLines(false);
@@ -231,41 +232,36 @@ namespace winrt::SecondShell::implementation
     auto entry = Selected();
     if (!entry)
     {
-      _lines.Clear();
+      SetLines({});
       return;
     }
 
     //An earlier process: the end of its file, once
     if (entry->File)
     {
-      if (!isReset) return;
-
-      vector<IInspectable> items;
-      for (auto& line : ProcessOutputStore::ReadTail(*entry->File)) items.push_back(box_value(to_hstring(line)));
-      _lines.ReplaceAll(items);
+      if (isReset) SetLines(ProcessOutputStore::ReadTail(*entry->File));
       _firstLine = 0;
       return;
     }
 
     //From the last line shown, which may have grown
     auto processId = entry->Live->ProcessId;
-    auto from = isReset || _lines.Size() == 0 ? 0 : _firstLine + _lines.Size() - 1;
+    auto from = isReset || _rawLines.empty() ? 0 : _firstLine + _rawLines.size() - 1;
     auto chunk = _store->Lines(processId, from);
 
     //The store keeps the last lines only; what it dropped goes here too
-    while (!isReset && _lines.Size() > 0 && _firstLine < chunk.Oldest)
+    while (!isReset && !_rawLines.empty() && _firstLine < chunk.Oldest)
     {
       _lines.RemoveAt(0);
+      _rawLines.pop_front();
+      _lineStyles.pop_front();
       _firstLine++;
     }
 
-    auto end = _firstLine + _lines.Size();
-    if (isReset || _lines.Size() == 0 || chunk.First > end)
+    auto end = _firstLine + _rawLines.size();
+    if (isReset || _rawLines.empty() || chunk.First > end)
     {
-      vector<IInspectable> items;
-      items.reserve(chunk.Lines.size());
-      for (auto& line : chunk.Lines) items.push_back(box_value(to_hstring(line)));
-      _lines.ReplaceAll(items);
+      SetLines(chunk.Lines);
       _firstLine = chunk.First;
       return;
     }
@@ -275,22 +271,126 @@ namespace winrt::SecondShell::implementation
       auto number = chunk.First + index;
       if (number + 1 < end) continue;
 
-      auto text = to_hstring(chunk.Lines[index]);
+      auto& line = chunk.Lines[index];
       if (number + 1 == end)
       {
-        if (LineText(_lines.GetAt(_lines.Size() - 1)) != text) _lines.SetAt(_lines.Size() - 1, box_value(text));
+        if (_rawLines.back() == line) continue;
+
+        //It grew: its colors from the same start
+        _rawLines.back() = line;
+        _nextStyle = NextStyle(_lineStyles.back(), line);
+        _lines.SetAt(_lines.Size() - 1, box_value(to_hstring(line)));
       }
       else
       {
-        _lines.Append(box_value(text));
+        _lineStyles.push_back(_nextStyle);
+        _nextStyle = NextStyle(_nextStyle, line);
+        _rawLines.push_back(line);
+        _lines.Append(box_value(to_hstring(line)));
       }
     }
   }
 
+  ::SecondShell::Text::TextStyle ProcessesPanel::NextStyle(const ::SecondShell::Text::TextStyle& start, const string& line)
+  {
+    ::SecondShell::Text::AnsiParser parser{ start };
+    parser.Parse(line);
+    return parser.Style();
+  }
+
+  void ProcessesPanel::SetLines(const vector<string>& lines)
+  {
+    //Each line's colors start where the previous one's ended, as in a terminal
+    _rawLines.assign(lines.begin(), lines.end());
+    _lineStyles.clear();
+    _nextStyle = {};
+
+    vector<IInspectable> items;
+    items.reserve(lines.size());
+    for (auto& line : lines)
+    {
+      _lineStyles.push_back(_nextStyle);
+      if (line.find('\x1B') != string::npos) _nextStyle = NextStyle(_nextStyle, line);
+      items.push_back(box_value(to_hstring(line)));
+    }
+    _lines.ReplaceAll(items);
+  }
+
+  void ProcessesPanel::OnLinePrepared(const ItemsRepeater& /*sender*/, const ItemsRepeaterElementPreparedEventArgs& eventArgs)
+  {
+    auto block = eventArgs.Element().try_as<TextBlock>();
+    auto index = size_t(eventArgs.Index());
+    if (!block || index >= _rawLines.size()) return;
+
+    block.TextHighlighters().Clear();
+    block.Inlines().Clear();
+
+    //Plain lines, most of them, as plain text
+    auto& line = _rawLines[index];
+    auto& start = _lineStyles[index];
+    if (line.find('\x1B') == string::npos && start == ::SecondShell::Text::TextStyle{})
+    {
+      block.Text(to_hstring(line));
+      return;
+    }
+
+    int32_t position = 0;
+    for (auto& span : ::SecondShell::Text::AnsiParser(start).Parse(line))
+    {
+      auto text = to_hstring(span.Text);
+      auto& style = span.Style;
+
+      Documents::Run run;
+      run.Text(text);
+
+      //Inverse swaps the colors; dim mixes the text color halfway into the background
+      std::optional<uint32_t> foreground = style.IsInverse ? std::optional<uint32_t>(style.Background.value_or(_backgroundColor)) : style.Foreground;
+      std::optional<uint32_t> background = style.IsInverse ? std::optional<uint32_t>(style.Foreground.value_or(_foregroundColor)) : style.Background;
+      if (style.IsDim) foreground = Blend(foreground.value_or(_foregroundColor), _backgroundColor);
+      if (foreground) run.Foreground(Brush(*foreground));
+      if (style.IsBold) run.FontWeight(Microsoft::UI::Text::FontWeights::Bold());
+      if (style.IsItalic) run.FontStyle(Windows::UI::Text::FontStyle::Italic);
+      if (style.IsUnderlined || style.IsStruck)
+      {
+        uint32_t decorations = 0;
+        if (style.IsUnderlined) decorations |= uint32_t(Windows::UI::Text::TextDecorations::Underline);
+        if (style.IsStruck) decorations |= uint32_t(Windows::UI::Text::TextDecorations::Strikethrough);
+        run.TextDecorations(Windows::UI::Text::TextDecorations(decorations));
+      }
+      block.Inlines().Append(run);
+
+      //A run has no background of its own: a highlighter paints it
+      if (background)
+      {
+        Documents::TextHighlighter highlighter;
+        highlighter.Background(Brush(*background));
+        highlighter.Ranges().Append(Documents::TextRange{ position, int32_t(text.size()) });
+        block.TextHighlighters().Append(highlighter);
+      }
+      position += int32_t(text.size());
+    }
+  }
+
+  Media::SolidColorBrush ProcessesPanel::Brush(uint32_t color)
+  {
+    //Not through operator[]: a default brush is a real, transparent one, not an empty handle
+    if (auto brush = _brushes.find(color); brush != _brushes.end()) return brush->second;
+
+    Media::SolidColorBrush brush{ Windows::UI::Color{ 255, uint8_t(color >> 16), uint8_t(color >> 8), uint8_t(color) } };
+    _brushes.emplace(color, brush);
+    return brush;
+  }
+
+  uint32_t ProcessesPanel::Blend(uint32_t color, uint32_t background)
+  {
+    uint32_t result = 0;
+    for (auto shift : { 16, 8, 0 }) result |= ((((color >> shift) & 0xFF) + ((background >> shift) & 0xFF)) / 2) << shift;
+    return result;
+  }
   void ProcessesPanel::ShowDetail()
   {
     auto entry = Selected();
-    CopyButton().IsEnabled(entry && _lines.Size() > 0);
+    CopyButton().IsEnabled(entry && !_rawLines.empty());
 
     string detail;
     filesystem::path file;
@@ -303,7 +403,7 @@ namespace winrt::SecondShell::implementation
     {
       auto parts = entry->File->Parts.size();
       detail = std::format("PID {}{}started {}{}{}{}{}its last {} lines", entry->File->ProcessId, _separator, LocalTime(entry->File->Started), _separator,
-        parts > 1 ? std::format("{} files, ", parts) : "", Size(entry->File->Size), _separator, _lines.Size());
+        parts > 1 ? std::format("{} files, ", parts) : "", Size(entry->File->Size), _separator, _rawLines.size());
       file = entry->File->Parts.empty() ? entry->File->File : entry->File->Parts.back();
     }
 
@@ -330,15 +430,12 @@ namespace winrt::SecondShell::implementation
 
   void ProcessesPanel::OnCopyClick(const IInspectable& /*sender*/, const RoutedEventArgs& /*eventArgs*/)
   {
-    wstring text;
-    for (auto line : _lines)
-    {
-      text += LineText(line);
-      text += L"\r\n";
-    }
+    //Without the escape codes, as the agent reads it
+    string text;
+    for (auto& line : _rawLines) text += ::SecondShell::Text::StripEscapes(line) + "\r\n";
 
     DataPackage package;
-    package.SetText(text);
+    package.SetText(to_hstring(text));
     Clipboard::SetContent(package);
   }
 

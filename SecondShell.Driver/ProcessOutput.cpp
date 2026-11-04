@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "ProcessOutput.h"
+#include "AnsiText.h"
 
 using namespace Axodox::Infrastructure;
 using namespace std;
@@ -221,19 +222,26 @@ namespace SecondShell::Desktop
     if (text.empty()) return nullopt;
 
     lock_guard lock{ _mutex };
-    auto start = from > _tailStart ? size_t(min(from, _size) - _tailStart) : 0;
-    auto match = search(_tail.begin() + ptrdiff_t(start), _tail.end(), text.begin(), text.end(), [](char left, char right) { return Lower(left) == Lower(right); });
-    if (match == _tail.end()) return nullopt;
 
-    auto position = size_t(match - _tail.begin());
-    auto lineStart = position == 0 ? 0 : _tail.rfind('\n', position - 1);
-    lineStart = lineStart == string::npos || position == 0 ? 0 : lineStart + 1;
-    auto lineEnd = _tail.find('\n', position + text.size());
-    auto next = lineEnd == string::npos ? _tail.size() : lineEnd + 1;
+    //Line by line, without the escape codes which may color a part of the text
+    auto position = from > _tailStart ? size_t(min(from, _size) - _tailStart) : 0;
+    while (position < _tail.size())
+    {
+      auto end = _tail.find('\n', position);
+      auto lineEnd = end == string::npos ? _tail.size() : end;
+      auto line = Text::StripEscapes(string_view(_tail).substr(position, lineEnd - position));
+      if (line.ends_with('\r')) line.pop_back();
 
-    auto line = _tail.substr(lineStart, (lineEnd == string::npos ? _tail.size() : lineEnd) - lineStart);
-    if (line.ends_with('\r')) line.pop_back();
-    return OutputChunk{ _tailStart + lineStart, move(line), _tailStart + next, _tailStart + next < _size };
+      if (search(line.begin(), line.end(), text.begin(), text.end(), [](char left, char right) { return Lower(left) == Lower(right); }) != line.end())
+      {
+        auto next = _tailStart + (end == string::npos ? _tail.size() : end + 1);
+        return OutputChunk{ _tailStart + position, move(line), next, next < _size };
+      }
+
+      if (end == string::npos) break;
+      position = end + 1;
+    }
+    return nullopt;
   }
 
   bool ProcessOutput::WaitForChange(uint64_t size, milliseconds timeout) const

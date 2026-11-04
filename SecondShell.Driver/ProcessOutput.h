@@ -53,7 +53,8 @@ namespace SecondShell::Desktop
     //The last lines.
     OutputChunk Tail(uint32_t lines, size_t maxBytes) const;
 
-    //The first line from an offset on which contains the text, ignoring case, as far as the tail reaches.
+    //The first line from an offset on which contains the text, ignoring case and escape codes, as far as the tail
+    //reaches; the line without its escape codes.
     std::optional<OutputChunk> Find(std::string_view text, uint64_t from) const;
 
     //Until the output grows beyond a size or the process ends; false if neither happened within the timeout.

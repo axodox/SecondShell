@@ -128,6 +128,35 @@ namespace SecondShell::Desktop
       return name.empty() ? L"process" : name.substr(0, 40);
     }
 
+    //The driver's environment, with what asks programs for colors although their output is not a terminal: npm, Node
+    //and most JavaScript tools, cargo, Python's rich and pytest, and tools following CLICOLOR. Variables already set
+    //stay as they are.
+    wstring ColorEnvironment()
+    {
+      static const pair<wstring_view, wstring_view> colors[] = {
+        { L"FORCE_COLOR", L"1" }, { L"CLICOLOR_FORCE", L"1" }, { L"CARGO_TERM_COLOR", L"always" }, { L"PY_COLORS", L"1" }
+      };
+
+      vector<wstring> variables;
+      auto block = GetEnvironmentStringsW();
+      for (auto entry = block; *entry; entry += wcslen(entry) + 1) variables.emplace_back(entry);
+      FreeEnvironmentStringsW(block);
+
+      for (auto& [name, value] : colors)
+      {
+        auto isSet = ranges::any_of(variables, [&](const wstring& variable) {
+          return variable.size() > name.size() && variable[name.size()] == L'=' && _wcsnicmp(variable.c_str(), name.data(), name.size()) == 0;
+          });
+        if (!isSet) variables.push_back(format(L"{}={}", name, value));
+      }
+
+      //Sorted by name, ignoring case, as Windows keeps environment blocks
+      ranges::sort(variables, [](const wstring& left, const wstring& right) { return _wcsicmp(left.c_str(), right.c_str()) < 0; });
+      wstring result;
+      for (auto& variable : variables) result += variable + L'\0';
+      return result + L'\0';
+    }
+
     string Join(const vector<string>& args)
     {
       string result;
@@ -398,7 +427,8 @@ namespace SecondShell::Desktop
     startup.lpAttributeList = attributes;
 
     PROCESS_INFORMATION information{};
-    auto isStarted = CreateProcessW(nullptr, commandLine.data(), nullptr, nullptr, TRUE, CREATE_NO_WINDOW | EXTENDED_STARTUPINFO_PRESENT, nullptr, workingDirectory.c_str(), &startup.StartupInfo, &information);
+    auto environment = ColorEnvironment();
+    auto isStarted = CreateProcessW(nullptr, commandLine.data(), nullptr, nullptr, TRUE, CREATE_NO_WINDOW | EXTENDED_STARTUPINFO_PRESENT | CREATE_UNICODE_ENVIRONMENT, environment.data(), workingDirectory.c_str(), &startup.StartupInfo, &information);
     auto error = GetLastError();
     DeleteProcThreadAttributeList(attributes);
     if (!isStarted) throw runtime_error(format("The process could not start: {}", ErrorMessage(error)));

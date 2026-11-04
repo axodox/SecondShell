@@ -75,13 +75,13 @@
           <Grid>
             <!-- Anchored at the end: while it shows the last line, it follows the new ones -->
             <ScrollViewer x:Name="OutputScroller" HorizontalScrollMode="Auto" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" VerticalAnchorRatio="1" Padding="10,6">
-              <ItemsRepeater x:Name="Lines">
+              <ItemsRepeater x:Name="Lines" ElementPrepared="OnLinePrepared">
                 <ItemsRepeater.Layout>
                   <StackLayout />
                 </ItemsRepeater.Layout>
                 <ItemsRepeater.ItemTemplate>
                   <DataTemplate>
-                    <TextBlock Text="{Binding}" FontFamily="{StaticResource MonoFontFamily}" FontSize="12" TextWrapping="NoWrap" />
+                    <TextBlock FontFamily="{StaticResource MonoFontFamily}" FontSize="12" TextWrapping="NoWrap" />
                   </DataTemplate>
                 </ItemsRepeater.ItemTemplate>
               </ItemsRepeater>

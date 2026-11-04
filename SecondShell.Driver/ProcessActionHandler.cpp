@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "ProcessActionHandler.h"
+#include "AnsiText.h"
 
 using namespace Axodox::Infrastructure;
 using namespace SecondShell::Actions;
@@ -116,7 +117,7 @@ namespace SecondShell::Driver
     {
       auto result = make_value<ProcessOutputResult>();
       result->ProcessId = processId;
-      result->Text = move(chunk.Text);
+      result->Text = Text::StripEscapes(chunk.Text);  //colors are for the user; the files keep them
       result->From = chunk.From;
       result->Next = chunk.Next;
       result->IsRunning = output.IsRunning();
@@ -146,7 +147,7 @@ namespace SecondShell::Driver
       auto isRunning = output->IsRunning();
       if (auto found = output->Find(action.Text, action.From.value_or(0))) return OutputResult(action.ProcessId, *output, move(*found));
 
-      auto lastLines = output->Tail(_failureTailLines, _defaultReadBytes).Text;
+      auto lastLines = Text::StripEscapes(output->Tail(_failureTailLines, _defaultReadBytes).Text);
       if (!isRunning)
       {
         auto exitCode = output->ExitCode();
