@@ -3,7 +3,8 @@
 
 using namespace Axodox::Infrastructure;
 using namespace std;
-using namespace std::chrono;
+using std::chrono::milliseconds;
+using std::chrono::steady_clock;
 using namespace winrt::Windows::UI::Input::Preview::Injection;
 
 namespace SecondShell::Input

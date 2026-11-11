@@ -7,6 +7,7 @@ param(
   [string[]]$Configurations = @("Debug"),
   [string[]]$Platforms = @("x64"),
   [switch]$SkipTests,
+  [string]$Targets = "",  #solution targets to build instead of all, e.g. "SecondShell;SecondShell_Mcp;SecondShell_Driver"
   [switch]$SessionTests
 )
 
@@ -42,7 +43,8 @@ foreach ($platform in $Platforms)
   {
     Write-Host "Building $configuration $platform..." -ForegroundColor Magenta
     #The 64-bit compilers for every platform, also for ARM64, whose default is the 32-bit ones
-    & $msbuild (Join-Path $root "SecondShell.sln") -p:Configuration=$configuration -p:Platform=$platform -p:PreferredToolArchitecture=x64 -m -v:m -nologo
+    $targetArguments = if ($Targets) { @("-t:$Targets") } else { @() }
+    & $msbuild (Join-Path $root "SecondShell.sln") @targetArguments -p:Configuration=$configuration -p:Platform=$platform -p:PreferredToolArchitecture=x64 -m -v:m -nologo
     if ($LASTEXITCODE -ne 0) { throw "Building $configuration $platform failed." }
   }
 }

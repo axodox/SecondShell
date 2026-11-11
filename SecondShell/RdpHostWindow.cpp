@@ -1,7 +1,8 @@
 #include "pch.h"
 #include "RdpHostWindow.h"
 
-#import "C:\\Windows\\System32\\mstscax.dll" raw_interfaces_only named_guids rename_namespace("Rdp")
+//The types it would exclude by itself, as the Windows headers have them (C4192)
+#import "C:\\Windows\\System32\\mstscax.dll" raw_interfaces_only named_guids rename_namespace("Rdp") exclude("__MIDL_IWinTypes_0009", "_RemotableHandle", "wireHWND")
 
 using namespace std;
 

@@ -22,6 +22,14 @@
     </ProjectReference>
   </ItemGroup>
 
+  <!-- Axodox.Common's headers are a dependency's: their warnings are its own to fix, so they do not count here -->
+  <ItemDefinitionGroup Condition="'$(AxodoxCommon-Location)'==''">
+    <ClCompile>
+      <ExternalWarningLevel>TurnOffAllWarnings</ExternalWarningLevel>
+      <AdditionalOptions>/external:I"$(AxodoxCommonPackageDir)include" %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+  </ItemDefinitionGroup>
+
   <Target Name="EnsureSecondShellPackages" BeforeTargets="PrepareForBuild">
     <Error Condition="!Exists('$(CppWinRTPackageDir)') Or !Exists('$(WilPackageDir)') Or !Exists('$(AxodoxCommonPackageDir)')" Text="NuGet packages are missing. Run build.ps1 (or: .tools\nuget.exe restore Build\packages.config -PackagesDirectory packages) once." />
   </Target>

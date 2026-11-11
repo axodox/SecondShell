@@ -1,4 +1,4 @@
-#The AppVeyor build (appveyor.yml): builds Release for x64 and ARM64, runs the unit tests (x64), and makes the signed
+#The AppVeyor build (appveyor.yml): builds Release for x64 and ARM64 (the unit tests run locally), and makes the signed
 #packages in artifacts (package.ps1), versioned with the build number. The signing certificate comes from the project's
 #secure variables: SECONDSHELL_CERT_PFX (Packaging\key.pfx, base64) and SECONDSHELL_CERT_PW (its password); without
 #them the packages are unsigned.
@@ -25,7 +25,9 @@ if ($env:SECONDSHELL_CERT_PFX)
 
 try
 {
-  & (Join-Path $root "build.ps1") -Configurations Release -Platforms x64, ARM64
+  #The programs which ship and their libraries only: neither the unit tests nor the tools, as the free plan allows an hour
+  #a build; the tests run with build.ps1 locally
+  & (Join-Path $root "build.ps1") -Configurations Release -Platforms x64, ARM64 -SkipTests -Targets "SecondShell;SecondShell_Mcp;SecondShell_Driver"
   if (-not $?) { throw "The build failed." }
 
   & (Join-Path $root "package.ps1") -Platforms x64, ARM64 -SkipBuild -Revision $revision -ReleaseTag $tag

@@ -10,7 +10,11 @@
 using namespace ::SecondShell::Agent;
 using namespace ::SecondShell::Ui;
 using namespace std;
-using namespace std::chrono;
+using std::chrono::current_zone;
+using std::chrono::floor;
+using std::chrono::minutes;
+using std::chrono::system_clock;
+using std::chrono::zoned_time;
 using namespace winrt::Microsoft::UI::Xaml;
 using namespace winrt::Microsoft::UI::Xaml::Controls;
 using namespace winrt::Windows::ApplicationModel::DataTransfer;

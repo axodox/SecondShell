@@ -26,7 +26,7 @@ namespace SecondShell::Tests
 
       Assert::AreEqual(size_t(5), spans.size());
       Assert::AreEqual(string("ERROR"), spans[0].Text);
-      Assert::IsTrue(spans[0].Style.IsBold && spans[0].Style.Foreground == 0xC50F1F, L"bold red, as Campbell has it");
+      Assert::IsTrue(spans[0].Style.IsBold && spans[0].Style.Foreground == 0xC50F1Fu, L"bold red, as Campbell has it");
       Assert::IsTrue(spans[1].Style == TextStyle{}, L"reset");
       Assert::IsTrue(spans[2].Style.Foreground == PaletteColor(208));
       Assert::IsTrue(spans[3].Style.Foreground == 0x010203u);
@@ -38,17 +38,17 @@ namespace SecondShell::Tests
       AnsiParser parser;
       parser.Parse("\x1B[33mwarning: the next line is yellow too");
       auto spans = parser.Parse("still yellow");
-      Assert::IsTrue(spans.at(0).Style.Foreground == 0xC19C00);
+      Assert::IsTrue(spans.at(0).Style.Foreground == 0xC19C00u);
 
       AnsiParser fromStart{ parser.Style() };
-      Assert::IsTrue(fromStart.Parse("from the saved style").at(0).Style.Foreground == 0xC19C00);
+      Assert::IsTrue(fromStart.Parse("from the saved style").at(0).Style.Foreground == 0xC19C00u);
     }
 
     TEST_METHOD(BrightAndBackgroundColors)
     {
       AnsiParser parser;
       auto spans = parser.Parse("\x1B[92;44mok\x1B[7mswap\x1B[27;49m");
-      Assert::IsTrue(spans[0].Style.Foreground == 0x16C60C && spans[0].Style.Background == 0x0037DA);
+      Assert::IsTrue(spans[0].Style.Foreground == 0x16C60Cu && spans[0].Style.Background == 0x0037DAu);
       Assert::IsTrue(spans[1].Style.IsInverse);
       Assert::IsTrue(parser.Style().Background == nullopt && !parser.Style().IsInverse);
     }

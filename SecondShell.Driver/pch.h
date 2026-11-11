@@ -1,6 +1,8 @@
 #pragma once
 #include <winsock2.h>
 #include <windows.h>
+//Before the WinRT ABI headers: their AsyncInfo.h declares a global Error, which a parameter of Ws2tcpip.h shadows (C4459)
+#include <ws2tcpip.h>
 #include <unknwn.h>
 #include <d3d11_4.h>
 #include <dwmapi.h>
