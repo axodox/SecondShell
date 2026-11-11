@@ -1,14 +1,19 @@
 #Builds the packages (Design.md, Deployment): per platform, the portable zip (a SecondShell folder with the executables,
 #the self-contained Windows App SDK and the Visual C++ runtime, its own binaries signed), a zip of their symbols, and an
 #MSIX package of the same folder; then an MSIX bundle of the platforms, and its .appinstaller file for GitHub releases.
+#Signed as unpaint is: with Packaging\key.pfx, the self-signed CN=Axodox certificate (valid until 2036-11-11), whose
+#password is in the SECONDSHELL_CERT_PW environment variable; without it, with a CN=Axodox code-signing certificate
+#from the user's store; without either, unsigned.
 #Examples:
-#  .\package.ps1                                   (Release, x64 and ARM64, signed with the CN=Axodox certificate)
+#  .\package.ps1                                   (Release, x64 and ARM64, signed, timestamped)
 #  .\package.ps1 -Platforms x64 -SkipBuild
-#  .\package.ps1 -CertificateSubject ""            (unsigned)
+#  .\package.ps1 -CertificateSubject "" -CertificateFile ""   (unsigned)
 param(
   [string[]]$Platforms = @("x64", "ARM64"),
+  [string]$CertificateFile = (Join-Path $PSScriptRoot "Packaging\key.pfx"),
+  [string]$CertificatePassword = $env:SECONDSHELL_CERT_PW,
   [string]$CertificateSubject = "CN=Axodox",
-  [string]$TimestampUrl = "",
+  [string]$TimestampUrl = "http://timestamp.digicert.com",
   [switch]$SkipBuild
 )
 
@@ -34,15 +39,29 @@ $packageVersion = "$version.0"
 function Sign([string[]]$files)
 {
   if (-not $certificate) { return }
-  $arguments = @("sign", "/fd", "SHA256", "/sha1", $certificate.Thumbprint, "/s", "My")
+  $arguments = @("sign", "/fd", "SHA256")
+  if ($pfx) { $arguments += @("/f", $pfx, "/p", $CertificatePassword) }
+  else { $arguments += @("/sha1", $certificate.Thumbprint, "/s", "My") }
   if ($TimestampUrl) { $arguments += @("/tr", $TimestampUrl, "/td", "SHA256") }
   & $signTool.FullName @arguments @files | Out-Host
   if ($LASTEXITCODE -ne 0) { throw "Signing failed: $files" }
 }
 
-#The newest valid code-signing certificate with the subject, from the user's store
+#The certificate file, if its password is known; else the newest valid code-signing certificate with the subject, from
+#the user's store
 $certificate = $null
-if ($CertificateSubject)
+$pfx = $null
+if ($CertificateFile -and (Test-Path $CertificateFile) -and $CertificatePassword)
+{
+  $certificate = Get-PfxCertificate -FilePath $CertificateFile -Password (ConvertTo-SecureString $CertificatePassword -AsPlainText -Force)
+  $pfx = $CertificateFile
+}
+elseif ($CertificateFile -and (Test-Path $CertificateFile))
+{
+  Write-Warning "$CertificateFile needs its password in SECONDSHELL_CERT_PW (or -CertificatePassword); trying the certificate store."
+}
+
+if (-not $certificate -and $CertificateSubject)
 {
   $certificate = Get-ChildItem Cert:\CurrentUser\My -CodeSigningCert | Where-Object { $_.Subject -eq $CertificateSubject -and $_.NotAfter -gt (Get-Date) -and $_.HasPrivateKey } |
     Sort-Object NotAfter -Descending | Select-Object -First 1
@@ -55,9 +74,13 @@ $excludedFolders = @("PointerRecords")
 $ownBinaries = @("SecondShell.exe", "SecondShell.Driver.exe", "SecondShell.Mcp.exe", "SecondShell.Common.dll", "Axodox.Common.dll")
 
 New-Item $artifacts -ItemType Directory -Force | Out-Null
-#The certificate's public part, for installing the self-signed packages: trust it once (administrator), in
-#Cert:\LocalMachine\TrustedPeople
-if ($certificate) { Export-Certificate -Cert $certificate -FilePath (Join-Path $artifacts "SecondShell.cer") | Out-Null }
+#The certificate's public part and the script which installs a package with it: a self-signed package installs once
+#its certificate is trusted, in Cert:\LocalMachine\TrustedPeople (administrator, once per PC)
+if ($certificate)
+{
+  Export-Certificate -Cert $certificate -FilePath (Join-Path $artifacts "SecondShell.cer") | Out-Null
+  Copy-Item (Join-Path $root "Packaging\Install.ps1") $artifacts
+}
 
 #The bundle takes the packages of this run's platforms only
 Remove-Item (Join-Path $artifacts "bundle") -Recurse -Force -ErrorAction SilentlyContinue

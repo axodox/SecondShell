@@ -22,3 +22,6 @@ Spikes/results/
 
 #Packages, made by package.ps1
 artifacts/
+
+#The package signing certificate's private key (Design.md, MSIX): kept on the signing PC
+Packaging/key.pfx
