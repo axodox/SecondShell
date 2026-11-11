@@ -33,6 +33,18 @@ Write-Host "Restoring packages..." -ForegroundColor Magenta
 $sourceArguments = if ($env:APPVEYOR) { @() } else { @("-Source", "https://api.nuget.org/v3/index.json") }
 #On AppVeyor, the image's own nuget, which the account feed's credentials were set up for
 $restoreNuget = if ($env:APPVEYOR -and (Get-Command nuget.exe -ErrorAction SilentlyContinue)) { (Get-Command nuget.exe).Source } else { $nuget }
+if ($env:APPVEYOR)
+{
+  #Which feeds the build worker has, and which of them with credentials (never the credentials themselves)
+  $config = Join-Path $env:APPDATA "NuGet\NuGet.Config"
+  if (Test-Path $config)
+  {
+    $xml = [xml](Get-Content $config -Raw)
+    foreach ($source in $xml.configuration.packageSources.add) { Write-Host "NuGet source: $($source.key) = $($source.value)" }
+    foreach ($credential in $xml.configuration.packageSourceCredentials.ChildNodes) { Write-Host "NuGet credentials for: $($credential.Name)" }
+  }
+  else { Write-Host "No $config" }
+}
 & $restoreNuget restore (Join-Path $root "Build\packages.config") -PackagesDirectory (Join-Path $root "packages") @sourceArguments -NonInteractive -Verbosity quiet
 if ($LASTEXITCODE -ne 0)
 {
