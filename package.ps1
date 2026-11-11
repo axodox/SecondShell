@@ -104,7 +104,8 @@ $certificate = $null
 $pfx = $null
 if ($CertificateFile -and (Test-Path $CertificateFile) -and $CertificatePassword)
 {
-  $certificate = Get-PfxCertificate -FilePath $CertificateFile -Password (ConvertTo-SecureString $CertificatePassword -AsPlainText -Force)
+  #(Get-PfxCertificate takes a password only from PowerShell 6.1 on; CI runs Windows PowerShell 5.1)
+  $certificate = New-Object Security.Cryptography.X509Certificates.X509Certificate2 -ArgumentList (Resolve-Path $CertificateFile).Path, $CertificatePassword
   $pfx = $CertificateFile
 }
 elseif ($CertificateFile -and (Test-Path $CertificateFile))
@@ -131,7 +132,7 @@ New-Item $artifacts -ItemType Directory -Force | Out-Null
 #its certificate is trusted, in Cert:\LocalMachine\TrustedPeople (administrator, once per PC)
 if ($certificate)
 {
-  Export-Certificate -Cert $certificate -FilePath (Join-Path $artifacts "SecondShell.cer") | Out-Null
+  [IO.File]::WriteAllBytes((Join-Path $artifacts "SecondShell.cer"), $certificate.Export([Security.Cryptography.X509Certificates.X509ContentType]::Cert))
   Copy-Item (Join-Path $root "Packaging\Install.ps1") $artifacts
 }
 
