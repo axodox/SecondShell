@@ -23,7 +23,7 @@ deploy:
   description: 'Install: put the files in one folder and run Install.ps1 (powershell -ExecutionPolicy Bypass -File .\Install.ps1). The first install trusts the self-signed certificate, with one administrator prompt.'
   prerelease: false
   auth_token:
-    secure: cJH8jFWP1GRslj2mqEaIfx/IdyTss+sj0c81d9fAXE/Eq9wCsPju+gM3CkNE0+wc
+    secure: qxs/vhS05EMu+UlQiSOKUhF7GnuiSmaf2rGpYGlxHiVubDIM3MvCkA9fJx2KlbQ6
   artifact: Packages
   on:
     SECONDSHELL_RELEASE_KIND: release
@@ -33,7 +33,7 @@ deploy:
   description: 'A build of the $(APPVEYOR_REPO_BRANCH) branch, for testing. Install: put the files in one folder and run Install.ps1 (powershell -ExecutionPolicy Bypass -File .\Install.ps1). The first install trusts the self-signed certificate, with one administrator prompt.'
   prerelease: true
   auth_token:
-    secure: cJH8jFWP1GRslj2mqEaIfx/IdyTss+sj0c81d9fAXE/Eq9wCsPju+gM3CkNE0+wc
+    secure: qxs/vhS05EMu+UlQiSOKUhF7GnuiSmaf2rGpYGlxHiVubDIM3MvCkA9fJx2KlbQ6
   artifact: Packages
   on:
     SECONDSHELL_RELEASE_KIND: prerelease
