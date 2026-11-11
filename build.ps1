@@ -31,8 +31,14 @@ Write-Host "Restoring packages..." -ForegroundColor Magenta
 #nuget.org; on AppVeyor the sources the build worker has, which include the account's own NuGet feed (appveyor.yml,
 #signed in), with prereleases of Axodox.Common built from its branches
 $sourceArguments = if ($env:APPVEYOR) { @() } else { @("-Source", "https://api.nuget.org/v3/index.json") }
-& $nuget restore (Join-Path $root "Build\packages.config") -PackagesDirectory (Join-Path $root "packages") @sourceArguments -NonInteractive -Verbosity quiet
-if ($LASTEXITCODE -ne 0) { throw "Package restore failed." }
+#On AppVeyor, the image's own nuget, which the account feed's credentials were set up for
+$restoreNuget = if ($env:APPVEYOR -and (Get-Command nuget.exe -ErrorAction SilentlyContinue)) { (Get-Command nuget.exe).Source } else { $nuget }
+& $restoreNuget restore (Join-Path $root "Build\packages.config") -PackagesDirectory (Join-Path $root "packages") @sourceArguments -NonInteractive -Verbosity quiet
+if ($LASTEXITCODE -ne 0)
+{
+  if ($env:APPVEYOR) { & $restoreNuget sources list | Out-Host }
+  throw "Package restore failed."
+}
 
 #Build
 foreach ($platform in $Platforms)
