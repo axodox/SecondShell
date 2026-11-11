@@ -43,7 +43,8 @@ foreach ($platform in $Platforms)
   {
     Write-Host "Building $configuration $platform..." -ForegroundColor Magenta
     #The 64-bit compilers for every platform, also for ARM64, whose default is the 32-bit ones
-    $targetArguments = if ($Targets) { @("-t:$Targets") } else { @() }
+    #An array also with one item: Windows PowerShell would splat a lone string character by character
+    [string[]]$targetArguments = @(); if ($Targets) { $targetArguments += "-t:$Targets" }
     & $msbuild (Join-Path $root "SecondShell.sln") @targetArguments -p:Configuration=$configuration -p:Platform=$platform -p:PreferredToolArchitecture=x64 -m -v:m -nologo
     if ($LASTEXITCODE -ne 0) { throw "Building $configuration $platform failed." }
   }
