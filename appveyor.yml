@@ -1,5 +1,5 @@
-#The AppVeyor build, as unpaint's: every push builds and packages (ci.ps1); master's builds are published as GitHub
-#releases. The project's settings hold the secure variables SECONDSHELL_CERT_PFX and SECONDSHELL_CERT_PW (the signing
+#The AppVeyor build, as unpaint's: every push builds and packages (ci.ps1), and is published as a GitHub release
+#(master's) or prerelease (other branches'). The project's settings hold the secure variables SECONDSHELL_CERT_PFX and SECONDSHELL_CERT_PW (the signing
 #certificate); Axodox.Common prereleases come from axodox-common's public project feed (build.ps1).
 version: '{build}'
 image: Visual Studio 2022
@@ -9,27 +9,31 @@ build_script:
 - ps: .\ci.ps1
 test: off
 artifacts:
-- path: artifacts\SecondShell-*.msixbundle
-  name: Packages
-- path: artifacts\SecondShell-*.zip
-  name: Packages
-- path: artifacts\SecondShell.appinstaller
-  name: Packages
-- path: artifacts\SecondShell.cer
-  name: Packages
-- path: artifacts\Install.ps1
+#The release's files (ci.ps1): the bundle, the zips, SecondShell.appinstaller, SecondShell.cer and Install.ps1
+- path: artifacts\release\*
   name: Packages
 #For Partner Center, when the project's variables have the Store's identity (Packaging\Store.md); not in the releases
 - path: artifacts\store\SecondShell-*.msixupload
   name: Store
+#Every build is a GitHub release: master's as releases, other branches' as prereleases (ci.ps1 sets the tag and the kind)
 deploy:
 - provider: GitHub
   tag: $(SECONDSHELL_RELEASE_TAG)
-  release: SecondShell $(APPVEYOR_BUILD_VERSION)
+  release: SecondShell $(SECONDSHELL_RELEASE_TAG)
   description: 'Install: put the files in one folder and run Install.ps1 (powershell -ExecutionPolicy Bypass -File .\Install.ps1). The first install trusts the self-signed certificate, with one administrator prompt.'
   prerelease: false
   auth_token:
     secure: cJH8jFWP1GRslj2mqEaIfx/IdyTss+sj0c81d9fAXE/Eq9wCsPju+gM3CkNE0+wc
   artifact: Packages
   on:
-    branch: master
+    SECONDSHELL_RELEASE_KIND: release
+- provider: GitHub
+  tag: $(SECONDSHELL_RELEASE_TAG)
+  release: SecondShell $(SECONDSHELL_RELEASE_TAG)
+  description: 'A build of the $(APPVEYOR_REPO_BRANCH) branch, for testing. Install: put the files in one folder and run Install.ps1 (powershell -ExecutionPolicy Bypass -File .\Install.ps1). The first install trusts the self-signed certificate, with one administrator prompt.'
+  prerelease: true
+  auth_token:
+    secure: cJH8jFWP1GRslj2mqEaIfx/IdyTss+sj0c81d9fAXE/Eq9wCsPju+gM3CkNE0+wc
+  artifact: Packages
+  on:
+    SECONDSHELL_RELEASE_KIND: prerelease
