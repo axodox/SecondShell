@@ -30,7 +30,9 @@ try
   & (Join-Path $root "build.ps1") -Configurations Release -Platforms x64, ARM64 -SkipTests -Targets "SecondShell;SecondShell_Mcp;SecondShell_Driver"
   if (-not $?) { throw "The build failed." }
 
-  & (Join-Path $root "package.ps1") -Platforms x64, ARM64 -SkipBuild -Revision $revision -ReleaseTag $tag
+  #The Store's upload too, once the project's variables have the identity Partner Center reserved (Packaging\Store.md)
+  & (Join-Path $root "package.ps1") -Platforms x64, ARM64 -SkipBuild -Revision $revision -ReleaseTag $tag `
+    -StoreName "$env:SECONDSHELL_STORE_NAME" -StorePublisher "$env:SECONDSHELL_STORE_PUBLISHER" -StorePublisherDisplayName "$env:SECONDSHELL_STORE_PUBLISHER_DISPLAY_NAME"
   if (-not $?) { throw "Packaging failed." }
 }
 finally

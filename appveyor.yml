@@ -19,6 +19,9 @@ artifacts:
   name: Packages
 - path: artifacts\Install.ps1
   name: Packages
+#For Partner Center, when the project's variables have the Store's identity (Packaging\Store.md); not in the releases
+- path: artifacts\store\SecondShell-*.msixupload
+  name: Store
 deploy:
 - provider: GitHub
   tag: $(SECONDSHELL_RELEASE_TAG)

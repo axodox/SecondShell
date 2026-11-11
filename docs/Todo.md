@@ -23,7 +23,7 @@ Change the host window's resize logic so it leaves no empty space around the dis
 
 ## Microsoft Store shipping
 
-Prepare for shipping through the Microsoft Store — Store-signed packaging, identity/manifest reserved in Partner Center, and whatever submission requirements apply.
+Prepared (`Packaging\Store.md`): the Store's upload, the certification kit's results, the justifications and the notes for certification. Left: reserving the name in Partner Center and setting its identity in AppVeyor, a privacy policy, checking whether child sessions work on Windows Home, and the Store's answer on `unvirtualizedResources`.
 
 ## Tray icon shows agent activity
 

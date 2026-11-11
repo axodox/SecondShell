@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- The MSIX package (Design.md, Deployment, MSIX); package.ps1 fills in $Version$ and $Architecture$.
+<!-- The MSIX package (Design.md, Deployment, MSIX); package.ps1 fills in the identity (Axodox.SecondShell by CN=Axodox for
+     the self-signed package, the reserved one for the Store), $Version$ and $Architecture$.
      Full trust, write virtualization off (so the driver's RunOnce entry reaches Explorer and the data folder is the real
      one, as in the portable build), and an App Execution Alias per program, which AI apps and the RunOnce entry use. -->
 <Package
@@ -12,11 +13,11 @@
   xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
   IgnorableNamespaces="uap uap5 desktop desktop4 desktop6 rescap">
 
-  <Identity Name="Axodox.SecondShell" Publisher="CN=Axodox" Version="$Version$" ProcessorArchitecture="$Architecture$" />
+  <Identity Name="$Name$" Publisher="$Publisher$" Version="$Version$" ProcessorArchitecture="$Architecture$" />
 
   <Properties>
     <DisplayName>SecondShell</DisplayName>
-    <PublisherDisplayName>Axodox</PublisherDisplayName>
+    <PublisherDisplayName>$PublisherDisplayName$</PublisherDisplayName>
     <Logo>Assets\StoreLogo.png</Logo>
     <desktop6:RegistryWriteVirtualization>disabled</desktop6:RegistryWriteVirtualization>
     <desktop6:FileSystemWriteVirtualization>disabled</desktop6:FileSystemWriteVirtualization>
