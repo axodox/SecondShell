@@ -25,6 +25,11 @@ namespace SecondShell::Session
     uint32_t OutputPartSize = 100;
     //Captures and output files together, in megabytes; beyond it the oldest are deleted. 0: no limit
     uint32_t StorageLimit = 1024;
+
+    //Packaged: the driver starts with the package's startup task only (removed with the app, but with the startup apps,
+    //so up to a minute or more after sign-in); off, a scheduled task too, while SecondShell runs (seconds). The portable
+    //build always uses the scheduled task
+    bool DriverStartupTask = true;
   };
 
   //Persistent user settings, as settings.json in the data folder; missing or unreadable, the defaults.

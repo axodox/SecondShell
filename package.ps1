@@ -16,7 +16,9 @@ param(
   [string]$CertificateSubject = "CN=Axodox",
   [string]$TimestampUrl = "http://timestamp.digicert.com",
   [switch]$SkipBuild,
-  [string]$BinFolder = ""  #with -SkipBuild and one platform: the build to package, instead of bin\<platform>\Release
+  [string]$BinFolder = "",  #with -SkipBuild and one platform: the build to package, instead of bin\<platform>\Release
+  [int]$Revision = 0,       #the package version's fourth part: CI's build number, so each build installs over the last
+  [string]$ReleaseTag = ""  #the GitHub release the bundle is published in; default v<version>
 )
 
 $ErrorActionPreference = "Stop"
@@ -37,7 +39,8 @@ $kitBin = Join-Path ${env:ProgramFiles(x86)} "Windows Kits\10\bin"
 $signTool = Get-ChildItem $kitBin -Filter signtool.exe -Recurse | Where-Object { $_.FullName -match "\\x64\\" } | Sort-Object FullName -Descending | Select-Object -First 1
 $makeAppx = Get-ChildItem $kitBin -Filter makeappx.exe -Recurse | Where-Object { $_.FullName -match "\\x64\\" } | Sort-Object FullName -Descending | Select-Object -First 1
 $makePri = Get-ChildItem $kitBin -Filter makepri.exe -Recurse | Where-Object { $_.FullName -match "\\x64\\" } | Sort-Object FullName -Descending | Select-Object -First 1
-$packageVersion = "$version.0"
+$packageVersion = "$version.$Revision"
+if (-not $ReleaseTag) { $ReleaseTag = "v$version" }
 
 function Sign([string[]]$files)
 {
@@ -145,8 +148,8 @@ foreach ($platform in $Platforms)
   $priConfig = Join-Path $artifacts "$platform\priconfig.xml"
   & $makePri.FullName createconfig /cf $priConfig /dq en-US /pv 10.0.0 /o | Out-Null
   [regex]::Replace((Get-Content $priConfig -Raw), '(?s)<packaging>.*?</packaging>\s*', '') | Set-Content $priConfig -Encoding utf8
-  & $makePri.FullName new /pr $priStage /cf $priConfig /mn (Join-Path $layout "AppxManifest.xml") /of (Join-Path $layout "resources.pri") /o | Out-Host
-  if ($LASTEXITCODE -ne 0) { throw "Indexing the package's resources failed for $platform." }
+  $priOutput = & $makePri.FullName new /pr $priStage /cf $priConfig /mn (Join-Path $layout "AppxManifest.xml") /of (Join-Path $layout "resources.pri") /o
+  if ($LASTEXITCODE -ne 0) { $priOutput | Out-Host; throw "Indexing the package's resources failed for $platform." }
 
   $msix = Join-Path $artifacts "bundle\SecondShell-$version-$platform.msix"
   New-Item (Split-Path $msix) -ItemType Directory -Force | Out-Null
@@ -163,7 +166,7 @@ if ($LASTEXITCODE -ne 0) { throw "Bundling the MSIX packages failed." }
 Sign @($bundle)
 
 $appInstaller = Join-Path $artifacts "SecondShell.appinstaller"
-(Get-Content (Join-Path $root "Packaging\SecondShell.appinstaller") -Raw).Replace('$Version$', $packageVersion).Replace('$Bundle$', "$releases/download/v$version/SecondShell-$version.msixbundle").Replace('$Self$', "$releases/latest/download/SecondShell.appinstaller") |
+(Get-Content (Join-Path $root "Packaging\SecondShell.appinstaller") -Raw).Replace('$Version$', $packageVersion).Replace('$Bundle$', "$releases/download/$ReleaseTag/SecondShell-$version.msixbundle").Replace('$Self$', "$releases/latest/download/SecondShell.appinstaller") |
   Set-Content $appInstaller -Encoding utf8 -NoNewline
 Write-Host ("{0}: {1:N1} MB, and {2}" -f (Split-Path $bundle -Leaf), ((Get-Item $bundle).Length / 1MB), (Split-Path $appInstaller -Leaf)) -ForegroundColor Green
 

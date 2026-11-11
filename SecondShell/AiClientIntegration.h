@@ -1,4 +1,5 @@
 #pragma once
+#include "McpLaunch.h"
 
 namespace SecondShell::Integrations
 {

@@ -58,9 +58,10 @@ namespace
 //exits at once if there is no host, or the host is in this session (not a child session), or the host refuses it.
 int WINAPI wWinMain(HINSTANCE /*instance*/, HINSTANCE /*previousInstance*/, PWSTR commandLine, int /*showCommand*/)
 {
-  //At a sign-in without a host, e.g. the user's own after a restart, there is nothing to do: not even a log line
+  //Without a host, e.g. at the user's own sign-in after a restart (the startup task passes no arguments), there is
+  //nothing to do: not even a log line
   auto isLogon = wstring_view(commandLine).find(L"--logon") != wstring_view::npos;
-  if (isLogon && !IsHostListening()) return 0;
+  if (!IsHostListening()) return 0;
 
   //Coordinates are physical pixels of the session
   SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);

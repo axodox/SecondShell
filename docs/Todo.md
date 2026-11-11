@@ -21,10 +21,6 @@ Twice, `Initialize-Session` returned `Ready` with the driver connected, and the 
 
 Change the host window's resize logic so it leaves no empty space around the display view. This must not interfere with window swapping.
 
-## AppVeyor CI
-
-Set up an AppVeyor pipeline that builds (x64 and ARM64), runs the tests, and produces the packaging artifacts (zips, MSIX bundle, `.appinstaller`).
-
 ## Microsoft Store shipping
 
 Prepare for shipping through the Microsoft Store — Store-signed packaging, identity/manifest reserved in Partner Center, and whatever submission requirements apply.

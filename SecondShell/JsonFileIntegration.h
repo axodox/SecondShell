@@ -1,6 +1,7 @@
 #pragma once
 #include "AiClientIntegration.h"
 #include "JsonConfigEditor.h"
+#include "McpLaunch.h"
 
 namespace SecondShell::Integrations
 {
@@ -21,7 +22,7 @@ namespace SecondShell::Integrations
   class JsonFileIntegration : public AiClientIntegration
   {
   public:
-    JsonFileIntegration(JsonFileClient client, std::filesystem::path mcpExecutable);
+    JsonFileIntegration(JsonFileClient client, McpLaunch launch);
 
     virtual std::string_view Id() const override;
     virtual std::string_view Name() const override;
@@ -36,7 +37,7 @@ namespace SecondShell::Integrations
 
   private:
     JsonFileClient _client;
-    std::filesystem::path _mcpExecutable;
+    McpLaunch _launch;
 
     JsonEntry Entry() const;
     bool IsInstalled() const;
@@ -46,12 +47,13 @@ namespace SecondShell::Integrations
     std::optional<std::string> EntryName(const JsonConfigEditor& editor) const;
   };
 
-  //Whether an entry's "command" runs this SecondShell.Mcp.exe; JSON text of the entry.
-  bool RunsExecutable(std::string_view entry, const std::filesystem::path& executable);
-  //Whether it runs a SecondShell.Mcp.exe, wherever it is.
+  //Whether an entry's "command" and "args" start the server as the launch does; JSON text of the entry.
+  bool RunsLaunch(std::string_view entry, const McpLaunch& launch);
+  //Whether it runs a SecondShell.Mcp.exe, wherever it is, directly or through cmd.
   bool RunsAnyMcpServer(std::string_view entry);
-  //A JSON string of the text.
+  //A JSON string of the text, and a JSON array of the texts.
   std::string JsonString(std::string_view text);
+  std::string JsonArray(const std::vector<std::string>& texts);
 
   inline const char* const _entryName = "secondshell";
 }

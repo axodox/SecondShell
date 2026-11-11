@@ -19,7 +19,8 @@ namespace SecondShell::Session
     { &Settings::DefaultShell, "defaultShell", { .is_required = false } },
     { &Settings::WorkWhileLocked, "workWhileLocked", { .is_required = false } },
     { &Settings::OutputPartSize, "outputPartSize", { .is_required = false, .schema = { .minimum = 1, .maximum = 4096 } } },
-    { &Settings::StorageLimit, "storageLimit", { .is_required = false, .schema = { .minimum = 0, .maximum = 1048576 } } }
+    { &Settings::StorageLimit, "storageLimit", { .is_required = false, .schema = { .minimum = 0, .maximum = 1048576 } } },
+    { &Settings::DriverStartupTask, "driverStartupTask", { .is_required = false } }
     });
 
   SettingsStore::SettingsStore(dependency_container* container) :

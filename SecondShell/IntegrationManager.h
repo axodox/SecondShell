@@ -11,10 +11,10 @@ namespace SecondShell::Integrations
 
   public:
     explicit IntegrationManager(Axodox::Infrastructure::dependency_container* container);
-    IntegrationManager(std::vector<std::shared_ptr<AiClientIntegration>> integrations, std::filesystem::path mcpExecutable);  //tests
+    IntegrationManager(std::vector<std::shared_ptr<AiClientIntegration>> integrations, McpLaunch launch);  //tests
 
     //All of them, as configured for the folders and the MCP server given; tests use their own folders.
-    static std::vector<std::shared_ptr<AiClientIntegration>> Create(const UserFolders& folders, const std::filesystem::path& mcpExecutable);
+    static std::vector<std::shared_ptr<AiClientIntegration>> Create(const UserFolders& folders, const McpLaunch& launch);
 
     const std::vector<std::shared_ptr<AiClientIntegration>>& Integrations() const;
     std::shared_ptr<AiClientIntegration> Find(std::string_view id) const;
@@ -23,7 +23,7 @@ namespace SecondShell::Integrations
     std::string Snippet() const;
 
   private:
-    std::filesystem::path _mcpExecutable;
+    McpLaunch _launch;
     std::vector<std::shared_ptr<AiClientIntegration>> _integrations;
   };
 }

@@ -12,9 +12,17 @@ namespace SecondShell::Integrations
     return format("\"{}\"", json_escape_string(text));
   }
 
+  string JsonArray(const vector<string>& texts)
+  {
+    string result = "[";
+    for (auto& text : texts) result += (result.size() > 1 ? ", " : "") + JsonString(text);
+    return result + "]";
+  }
+
   namespace
   {
-    optional<path> CommandOf(string_view entry)
+    //The entry's "command" and "args" (none: empty)
+    optional<pair<string, vector<string>>> CommandOf(string_view entry)
     {
       auto json = json_value::from_string(entry);
       if (!json || json->type() != json_type::object) return nullopt;
@@ -22,30 +30,34 @@ namespace SecondShell::Integrations
       auto& object = json->as<json_object>();
       auto command = object.value.find("command");
       if (command == object.value.end() || !command->second || command->second->type() != json_type::string) return nullopt;
-      return path{ winrt::to_hstring(command->second->as<json_string>().value).c_str() }.lexically_normal();
+
+      vector<string> args;
+      if (auto list = object.value.find("args"); list != object.value.end() && list->second && list->second->type() == json_type::array)
+      {
+        for (auto& item : list->second->as<json_array>().value)
+        {
+          if (item && item->type() == json_type::string) args.push_back(item->as<json_string>().value);
+        }
+      }
+      return pair{ command->second->as<json_string>().value, move(args) };
     }
   }
 
-  bool RunsExecutable(string_view entry, const path& executable)
+  bool RunsLaunch(string_view entry, const McpLaunch& launch)
   {
-    //Paths as Windows compares them: whatever the case, and the separators
     auto command = CommandOf(entry);
-    return command && _wcsicmp(command->c_str(), executable.lexically_normal().c_str()) == 0;
+    return command && launch.Matches(command->first, command->second);
   }
 
   bool RunsAnyMcpServer(string_view entry)
   {
-    //A shell finds it without its extension too
     auto command = CommandOf(entry);
-    if (!command) return false;
-
-    auto name = command->filename().wstring();
-    return _wcsicmp(name.c_str(), L"SecondShell.Mcp.exe") == 0 || _wcsicmp(name.c_str(), L"SecondShell.Mcp") == 0;
+    return command && McpLaunch::IsAnyServer(command->first, command->second);
   }
 
-  JsonFileIntegration::JsonFileIntegration(JsonFileClient client, path mcpExecutable) :
+  JsonFileIntegration::JsonFileIntegration(JsonFileClient client, McpLaunch launch) :
     _client(move(client)),
-    _mcpExecutable(move(mcpExecutable))
+    _launch(move(launch))
   { }
 
   string_view JsonFileIntegration::Id() const
@@ -73,7 +85,7 @@ namespace SecondShell::Integrations
       JsonConfigEditor editor{ text };
       auto name = EntryName(editor);
       if (!name) return IntegrationState::NotAdded;
-      return RunsExecutable(*editor.Entry(_client.Section, *name), _mcpExecutable) ? IntegrationState::Added : IntegrationState::Outdated;
+      return RunsLaunch(*editor.Entry(_client.Section, *name), _launch) ? IntegrationState::Added : IntegrationState::Outdated;
     }
     catch (const runtime_error&)
     {
@@ -86,8 +98,12 @@ namespace SecondShell::Integrations
     auto before = ReadConfigFile(_client.ConfigFile);
     JsonConfigEditor editor{ before };
 
-    //An entry that is there keeps its other settings: only the command changes
-    if (auto name = EntryName(editor)) editor.SetEntryProperty(_client.Section, *name, "command", JsonString(winrt::to_string(_mcpExecutable.wstring())));
+    //An entry that is there keeps its other settings: only the command and its arguments change
+    if (auto name = EntryName(editor))
+    {
+      editor.SetEntryProperty(_client.Section, *name, "command", JsonString(_launch.Command));
+      editor.SetEntryProperty(_client.Section, *name, "args", JsonArray(_launch.Args));
+    }
     else editor.SetEntry(_client.Section, _entryName, Entry());
     return { _client.ConfigFile, before, editor.Text(), _client.RestartNote };
   }
@@ -115,8 +131,8 @@ namespace SecondShell::Integrations
   {
     JsonEntry entry;
     if (_client.HasTypeField) entry.Properties.emplace_back("type", JsonString("stdio"));
-    entry.Properties.emplace_back("command", JsonString(winrt::to_string(_mcpExecutable.wstring())));
-    entry.Properties.emplace_back("args", "[]");
+    entry.Properties.emplace_back("command", JsonString(_launch.Command));
+    entry.Properties.emplace_back("args", JsonArray(_launch.Args));
     return entry;
   }
 

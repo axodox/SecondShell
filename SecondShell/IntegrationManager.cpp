@@ -53,17 +53,26 @@ namespace SecondShell::Integrations
     }
   }
 
+  namespace
+  {
+    //Packaged, through cmd and the App Execution Alias on PATH: some tools cannot start an alias directly
+    McpLaunch LaunchOf(const AppEnvironment& environment)
+    {
+      return environment.IsPackaged() ? McpLaunch::ThroughCmd() : McpLaunch{ environment.McpExecutable() };
+    }
+  }
+
   IntegrationManager::IntegrationManager(dependency_container* container) :
-    _mcpExecutable(container->resolve<AppEnvironment>()->McpExecutable()),
-    _integrations(Create(UserFolders::Current(), _mcpExecutable))
+    _launch(LaunchOf(*container->resolve<AppEnvironment>())),
+    _integrations(Create(UserFolders::Current(), _launch))
   { }
 
-  IntegrationManager::IntegrationManager(vector<shared_ptr<AiClientIntegration>> integrations, path mcpExecutable) :
-    _mcpExecutable(move(mcpExecutable)),
+  IntegrationManager::IntegrationManager(vector<shared_ptr<AiClientIntegration>> integrations, McpLaunch launch) :
+    _launch(move(launch)),
     _integrations(move(integrations))
   { }
 
-  vector<shared_ptr<AiClientIntegration>> IntegrationManager::Create(const UserFolders& folders, const path& mcpExecutable)
+  vector<shared_ptr<AiClientIntegration>> IntegrationManager::Create(const UserFolders& folders, const McpLaunch& launch)
   {
     //Locations as of October 2026 (Design.md, Supported clients)
     auto claudeDesktop = ClaudeDesktopFolder(folders);
@@ -88,9 +97,9 @@ namespace SecondShell::Integrations
     };
 
     vector<shared_ptr<AiClientIntegration>> integrations;
-    integrations.push_back(make_shared<ClaudeCodeIntegration>(folders, mcpExecutable));
-    for (auto& client : clients) integrations.push_back(make_shared<JsonFileIntegration>(move(client), mcpExecutable));
-    integrations.push_back(make_shared<CodexIntegration>(folders, mcpExecutable));
+    integrations.push_back(make_shared<ClaudeCodeIntegration>(folders, launch));
+    for (auto& client : clients) integrations.push_back(make_shared<JsonFileIntegration>(move(client), launch));
+    integrations.push_back(make_shared<CodexIntegration>(folders, launch));
     return integrations;
   }
 
@@ -107,6 +116,6 @@ namespace SecondShell::Integrations
 
   string IntegrationManager::Snippet() const
   {
-    return format(R"({{ "mcpServers": {{ "{}": {{ "command": {} }} }} }})", _entryName, JsonString(winrt::to_string(_mcpExecutable.wstring())));
+    return format(R"({{ "mcpServers": {{ "{}": {{ "command": {}, "args": {} }} }} }})", _entryName, JsonString(_launch.Command), JsonArray(_launch.Args));
   }
 }

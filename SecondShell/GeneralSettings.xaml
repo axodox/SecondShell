@@ -48,6 +48,20 @@
       <ToggleSwitch x:Name="WorkWhileLockedSwitch" Grid.Column="1" VerticalAlignment="Center" MinWidth="0" OnContent="On" OffContent="Off" AutomationProperties.Name="Keep working while the screen is locked" Toggled="OnWorkWhileLockedToggled" />
     </Grid>
 
+    <!-- Installed from the package only: the portable build always starts the driver the faster way -->
+    <Grid x:Name="FasterStartCard" Style="{StaticResource SettingsCardStyle}" Visibility="Collapsed">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="*" />
+        <ColumnDefinition Width="Auto" />
+      </Grid.ColumnDefinitions>
+      <StackPanel VerticalAlignment="Center" Spacing="2">
+        <TextBlock Text="Faster session start" Style="{StaticResource SettingsNameStyle}" />
+        <TextBlock Style="{StaticResource SettingsDescriptionStyle}"
+                   Text="Off: SecondShell's startup app starts the agent's desktop with the other startup apps, up to a minute or more after it signs in. On: a scheduled task starts it within seconds, while SecondShell runs; SecondShell removes the task when it closes." />
+      </StackPanel>
+      <ToggleSwitch x:Name="FasterStartSwitch" Grid.Column="1" VerticalAlignment="Center" MinWidth="0" OnContent="On" OffContent="Off" AutomationProperties.Name="Faster session start" Toggled="OnWorkWhileLockedToggled" />
+    </Grid>
+
     <TextBlock Text="Captures" Style="{StaticResource SettingsSectionTitleStyle}" />
     <Grid Style="{StaticResource SettingsCardStyle}">
       <Grid.ColumnDefinitions>

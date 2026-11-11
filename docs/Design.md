@@ -70,7 +70,9 @@ To verify: frame transport between sessions with `Windows.Graphics.Capture` and 
 
 A process in the user's session cannot start a process in another session without SYSTEM privileges. Instead, the host lets Windows start the driver at the child session's logon, using a **`RunOnce` entry**: Windows runs it at the user's next logon and deletes it. The user's own session is already logged on, so the next logon of the user is the child session's. No elevation, keystrokes or focus are needed (verified: started 12 s after sign-in with the RDP window hidden, and the entry was consumed, Findings.md 2.8).
 
-**Sign-in task (as built, 2026-11-11):** while the host runs, a per-user scheduled task, `SecondShell driver (<domain> <user>)`, starts `SecondShell.Driver.exe --logon` at every sign-in of the user. Task Scheduler starts it as the session signs in, not after Explorer's startup programs: the driver was accepted 3 s after sign-in and `Initialize-Session` returned in 6–9 s, where `RunOnce` took 20–74 s (Findings.md 2.16).
+**Startup task (packaged, as built):** the package declares a startup task for the driver (`windows.startupTask`, `SecondShellDriver`, enabled in the manifest, declared under the host's app since an app sees only its own startup tasks, and starting `SecondShell.Driver.exe`), which Windows runs at every sign-in of the user with the startup apps, and removes with the package; SecondShell neither registers nor removes it. Measured here: 6–20 s after sign-in (`Ready` in 13–29 s); it runs in the same queue of Explorer's as `RunOnce`, just before the user's `RunOnce`, which took 20–74 s on a busier day, so Settings, General has **Faster session start**: on, the sign-in task below starts the driver too, and the host keeps whichever driver says hello first (the other is refused and exits). If the user turns the startup task off in Task Manager, the sign-in task starts the driver whatever the setting. The driver exits at once wherever no host listens, whatever started it (the startup task passes no arguments).
+
+**Sign-in task (portable; packaged with Faster session start, as built, 2026-11-11):** while the host runs, a per-user scheduled task, `SecondShell driver (<domain> <user>)`, starts `SecondShell.Driver.exe --logon` at every sign-in of the user. Task Scheduler starts it as the session signs in, not after Explorer's startup programs: the driver was accepted 3 s after sign-in and `Initialize-Session` returned in 6–9 s, where `RunOnce` took 20–74 s (Findings.md 2.16).
 
 - **Lifetime**: the host registers the task (or updates its path) as it starts, and removes it as its window closes, so nothing is left once SecondShell is closed or uninstalled. An MSIX uninstall can remove only what the manifest declares and runs no code; a declared startup task (`windows.startupTask`, WinRT `StartupTask`) would go with the package, but Explorer runs it in the same slow queue as `RunOnce`. After a crash, or an uninstall while SecondShell is open, the task stays until the next start replaces it; without a host it starts nothing.
 - **No elevation**: a logon trigger for the user's own account, running with their limited token (`TASK_LOGON_INTERACTIVE_TOKEN`), in the root task folder (other folders need administrator rights); parallel instances, no time limit, also on battery, normal priority (Task Scheduler's default is below normal).
@@ -591,6 +593,14 @@ MSIX-specific behaviour to handle (as designed; settled by the above):
 - **Registry redirection**: HKCU writes are redirected as well, so a `RunOnce` entry written from inside the package may be invisible to Explorer (see Starting the driver).
 - **Elevated setup**: it is not yet verified that enabling child sessions works from inside the package context. If it doesn't, the setup step is run outside the package context.
 
+### CI (AppVeyor)
+
+As unpaint's: `appveyor.yml` runs `ci.ps1` on every push (project `axodox/secondshell` on ci.appveyor.com, image Visual Studio 2022): Release for x64 and ARM64, the unit tests (x64), and `package.ps1`, signed and timestamped. The package version's fourth part is the build number, so each build installs over the last; the release tag is `v<version>.<build>`.
+
+- **Signing**: the project's secure variables `SECONDSHELL_CERT_PFX` (`Packaging\key.pfx`, base64) and `SECONDSHELL_CERT_PW`; `ci.ps1` writes the key to `Packaging\key.pfx` for the build and deletes it after.
+- **Axodox.Common prereleases**: the build restores from the account's NuGet feed too (`nuget: account_feed: true`). axodox-common builds every branch: `main` deploys to nuget.org, other branches make `1.0.<build>-<branch>` prereleases, which reach the account feed through the project feed, for internal use of unfinished versions (SecondShell uses `1.0.125-named-pipe-messaging`). Locally, `build.ps1` restores from nuget.org only, so a prerelease has to be in `packages` already (from the feed, or a local build of axodox-common).
+- **Releases**: master's builds are published as GitHub releases (not prereleases, so the `.appinstaller` file's `latest/download` address finds them), with the bundle, the zips, `SecondShell.appinstaller`, `SecondShell.cer` and `Install.ps1`. The GitHub token is the account's encrypted one, the same as unpaint's.
+
 ### Build differences in code
 
 The differences are kept behind one abstraction in `SecondShell.Common.dll`, selected at startup by whether the process has package identity (`GetCurrentPackageFullName`):
@@ -610,12 +620,15 @@ The SecondShell window has an **"Add to AI apps"** page. It lists the supported 
 
 - **Never overwrite the user's configuration.** Read the existing file, add or update only the `secondshell` entry, keep everything else (including formatting where possible), and write a backup (`<file>.bak`) first.
 - **Use the client's own command-line tool where the file is the client's own business**: Claude Code rewrites `~/.claude.json` while it runs, so SecondShell uses `claude mcp add` / `remove` there. Elsewhere SecondShell edits the file itself, as text: only its entry changes, and the file's order, formatting and comments (JSONC) stay, which `code --add-mcp` cannot undo anyway.
-- **One entry**: an entry under another name that runs a `SecondShell.Mcp.exe` counts as SecondShell's, and is updated rather than added twice; updating it changes only its `command`, keeping its other settings (e.g. `env`). A file that cannot be read or parsed is left alone and shown as such.
+- **One entry**: an entry under another name that runs a `SecondShell.Mcp.exe` (directly, or through `cmd /c`) counts as SecondShell's, and is updated rather than added twice; updating it changes only its `command` and `args`, keeping its other settings (e.g. `env`). A file that cannot be read or parsed is left alone and shown as such.
 - **Show what will change** before writing, and say whether the client needs a restart to pick it up.
 - **Keep entries current**: the checks on every start detect entries that point at an old location (portable build moved) and offer to update them.
 - **Uninstall removes all entries** that SecondShell added.
 
-The entry runs the MCP server, with the path from Build differences in code and no arguments.
+The entry runs the MCP server (`McpLaunch`):
+
+- **Portable**: the executable's full path, with no arguments.
+- **Packaged**: `cmd` with `/c SecondShell.Mcp.exe`. cmd finds the App Execution Alias on PATH (`%LOCALAPPDATA%\Microsoft\WindowsApps`), whose path stays the same across updates, unlike the versioned install folder (`C:\Program Files\WindowsApps\Axodox.SecondShell_<version>_<platform>__<hash>`); and some tools cannot start an alias directly, since it is a reparse point rather than an ordinary file.
 
 ### Supported clients
 

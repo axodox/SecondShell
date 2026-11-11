@@ -9,7 +9,7 @@ namespace SecondShell::Integrations
   class ClaudeCodeIntegration : public AiClientIntegration
   {
   public:
-    ClaudeCodeIntegration(const UserFolders& folders, std::filesystem::path mcpExecutable);
+    ClaudeCodeIntegration(const UserFolders& folders, McpLaunch launch);
 
     virtual std::string_view Id() const override;
     virtual std::string_view Name() const override;
@@ -25,7 +25,7 @@ namespace SecondShell::Integrations
   private:
     std::filesystem::path _configFile;
     std::filesystem::path _nativeLauncher;
-    std::filesystem::path _mcpExecutable;
+    McpLaunch _launch;
     CliRunner _cli;
 
     std::string Tool() const;

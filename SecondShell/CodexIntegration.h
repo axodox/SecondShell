@@ -8,7 +8,7 @@ namespace SecondShell::Integrations
   class CodexIntegration : public AiClientIntegration
   {
   public:
-    CodexIntegration(const UserFolders& folders, std::filesystem::path mcpExecutable);
+    CodexIntegration(const UserFolders& folders, McpLaunch launch);
 
     virtual std::string_view Id() const override;
     virtual std::string_view Name() const override;
@@ -23,7 +23,7 @@ namespace SecondShell::Integrations
 
   private:
     std::filesystem::path _home;
-    std::filesystem::path _mcpExecutable;
+    McpLaunch _launch;
 
     std::filesystem::path ConfigFile() const;
   };

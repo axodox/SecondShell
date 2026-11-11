@@ -40,11 +40,42 @@ namespace SecondShell::Integrations
       }
       return nullopt;
     }
+
+    //The strings of a "key = ['a', "b"]" line of the table; none if there is no such line
+    vector<string> ArrayOf(string_view table, string_view key)
+    {
+      vector<string> values;
+      for (auto line : views::split(table, '\n'))
+      {
+        string_view text{ line.begin(), line.end() };
+        auto start = text.find_first_not_of(" \t");
+        if (start == string_view::npos || !text.substr(start).starts_with(key)) continue;
+
+        auto open = text.find('[', start + key.size());
+        if (open == string_view::npos) continue;
+        for (auto index = open + 1; index < text.size(); index++)
+        {
+          auto quote = text[index];
+          if (quote == ']') break;
+          if (quote != '\'' && quote != '"') continue;
+
+          string value;
+          for (index++; index < text.size() && text[index] != quote; index++)
+          {
+            if (quote == '"' && text[index] == '\\' && index + 1 < text.size()) index++;
+            value += text[index];
+          }
+          values.push_back(move(value));
+        }
+        break;
+      }
+      return values;
+    }
   }
 
-  CodexIntegration::CodexIntegration(const UserFolders& folders, path mcpExecutable) :
+  CodexIntegration::CodexIntegration(const UserFolders& folders, McpLaunch launch) :
     _home(folders.CodexHome.empty() ? folders.Profile / ".codex" : folders.CodexHome),
-    _mcpExecutable(move(mcpExecutable))
+    _launch(move(launch))
   { }
 
   string_view CodexIntegration::Id() const
@@ -79,7 +110,7 @@ namespace SecondShell::Integrations
     if (!table) return IntegrationState::NotAdded;
 
     auto command = ValueOf(*table, "command");
-    auto isCurrent = command && _wcsicmp(path{ winrt::to_hstring(*command).c_str() }.lexically_normal().c_str(), _mcpExecutable.lexically_normal().c_str()) == 0;
+    auto isCurrent = command && _launch.Matches(*command, ArrayOf(*table, "args"));
     return isCurrent ? IntegrationState::Added : IntegrationState::Outdated;
   }
 
@@ -87,7 +118,9 @@ namespace SecondShell::Integrations
   {
     auto before = ReadConfigFile(ConfigFile());
     TomlConfigEditor editor{ before };
-    editor.SetTable(_table, { { "command", TomlConfigEditor::Quote(winrt::to_string(_mcpExecutable.wstring())) }, { "args", "[]" } });
+    string args = "[";
+    for (auto& arg : _launch.Args) args += (args.size() > 1 ? ", " : "") + TomlConfigEditor::Quote(arg);
+    editor.SetTable(_table, { { "command", TomlConfigEditor::Quote(_launch.Command) }, { "args", args + "]" } });
     return { ConfigFile(), before, editor.Text(), _restartNote };
   }
 

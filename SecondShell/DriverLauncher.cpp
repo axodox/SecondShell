@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "DriverLauncher.h"
+#include <winrt/Windows.ApplicationModel.h>
 #ifndef SECURITY_WIN32
 #define SECURITY_WIN32
 #endif
@@ -13,6 +14,7 @@
 
 using namespace Axodox::Infrastructure;
 using namespace SecondShell::Environment;
+using namespace winrt::Windows::ApplicationModel;
 using namespace std;
 
 namespace SecondShell::Session
@@ -25,6 +27,9 @@ namespace SecondShell::Session
 
   //Normal priority: Task Scheduler's default, below normal, would slow down captures and input
   const int _taskPriority = 4;
+
+  //The package's startup task (Packaging\AppxManifest.xml)
+  const wchar_t* const _startupTaskId = L"SecondShellDriver";
 
   namespace
   {
@@ -55,6 +60,22 @@ namespace SecondShell::Session
     }
 
     //Task folders other than the root need administrator rights to create
+    //The startup task API's waits cannot run on a UI thread
+    template<typename TResult, typename TAction>
+    TResult OffUiThread(TAction&& action)
+    {
+      TResult result{};
+      exception_ptr error;
+      thread([&] {
+        winrt::init_apartment(winrt::apartment_type::multi_threaded);
+        try { result = action(); }
+        catch (...) { error = current_exception(); }
+        winrt::uninit_apartment();
+        }).join();
+      if (error) rethrow_exception(error);
+      return result;
+    }
+
     winrt::com_ptr<ITaskFolder> RootFolder(const winrt::com_ptr<ITaskService>& service)
     {
       winrt::com_ptr<ITaskFolder> folder;
@@ -64,8 +85,73 @@ namespace SecondShell::Session
   }
 
   DriverLauncher::DriverLauncher(dependency_container* container) :
-    _environment(container->resolve<AppEnvironment>())
-  { }
+    _environment(container->resolve<AppEnvironment>()),
+    _settings(container->resolve<SettingsStore>())
+  {
+    //A change of the choice applies at once, once the host has installed one
+    _settingsChangedSubscription = _settings->Changed([this](SettingsStore*, const Settings& settings) {
+      auto applied = _appliedChoice.load();
+      if (applied != -1 && applied != int(settings.DriverStartupTask)) Install();
+      });
+  }
+
+  bool DriverLauncher::Install()
+  {
+    auto useStartupTask = _settings->Current().DriverStartupTask;
+    _appliedChoice = int(useStartupTask);
+
+    //Packaged, the package's startup task starts it (unless the user turned it off in Task Manager); the scheduled task
+    //only for the faster start, if chosen
+    if (_environment->IsPackaged() && useStartupTask && IsStartupTaskEnabled())
+    {
+      RemoveScheduledTask();
+      _logger.log(log_severity::information, "The package's startup task starts the driver.");
+      return true;
+    }
+
+    return InstallScheduledTask();
+  }
+
+  void DriverLauncher::Uninstall()
+  {
+    RemoveScheduledTask();
+  }
+
+  void DriverLauncher::RemoveAll()
+  {
+    //The startup task goes with the package
+    RemoveScheduledTask();
+  }
+
+  bool DriverLauncher::IsInstalled() const
+  {
+    return IsScheduled() || (_environment->IsPackaged() && IsStartupTaskEnabled());
+  }
+
+  bool DriverLauncher::IsStartupTaskEnabled() const
+  {
+    try
+    {
+      //GetAsync finds only the calling app's own tasks, and the startup task is the driver app's
+      return OffUiThread<bool>([] {
+        string found;
+        for (auto task : StartupTask::GetForCurrentPackageAsync().get())
+        {
+          found += format(" {}={}", winrt::to_string(task.TaskId()), int(task.State()));
+          if (task.TaskId() != _startupTaskId) continue;
+          auto state = task.State();
+          if (state == StartupTaskState::Enabled || state == StartupTaskState::EnabledByPolicy) return true;
+        }
+        _logger.log(log_severity::warning, "The package's startup task is not enabled; the package's tasks:{}", found.empty() ? " none" : found);
+        return false;
+        });
+    }
+    catch (const winrt::hresult_error& error)
+    {
+      _logger.log(log_severity::warning, "Could not read the state of the package's startup task: {}", winrt::to_string(error.message()));
+      return false;
+    }
+  }
 
   wstring DriverLauncher::TaskName()
   {
@@ -74,7 +160,7 @@ namespace SecondShell::Session
     return format(L"SecondShell driver ({})", user);
   }
 
-  bool DriverLauncher::Install()
+  bool DriverLauncher::InstallScheduledTask()
   {
     try
     {
@@ -138,7 +224,7 @@ namespace SecondShell::Session
     }
   }
 
-  void DriverLauncher::Uninstall()
+  void DriverLauncher::RemoveScheduledTask()
   {
     try
     {
@@ -151,7 +237,7 @@ namespace SecondShell::Session
     }
   }
 
-  bool DriverLauncher::IsInstalled() const
+  bool DriverLauncher::IsScheduled() const
   {
     try
     {

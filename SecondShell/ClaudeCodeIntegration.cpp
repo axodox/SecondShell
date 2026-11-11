@@ -11,10 +11,10 @@ namespace SecondShell::Integrations
   //Node starts slowly the first time
   const seconds _cliTimeout{ 60 };
 
-  ClaudeCodeIntegration::ClaudeCodeIntegration(const UserFolders& folders, path mcpExecutable) :
+  ClaudeCodeIntegration::ClaudeCodeIntegration(const UserFolders& folders, McpLaunch launch) :
     _configFile(folders.Profile / ".claude.json"),
     _nativeLauncher(folders.Profile / ".local" / "bin" / "claude.exe"),
-    _mcpExecutable(move(mcpExecutable))
+    _launch(move(launch))
   { }
 
   string_view ClaudeCodeIntegration::Id() const
@@ -41,7 +41,7 @@ namespace SecondShell::Integrations
     {
       auto entry = JsonConfigEditor{ ReadConfigFile(_configFile) }.Entry("mcpServers", _entryName);
       if (!entry) return IntegrationState::NotAdded;
-      return RunsExecutable(*entry, _mcpExecutable) ? IntegrationState::Added : IntegrationState::Outdated;
+      return RunsLaunch(*entry, _launch) ? IntegrationState::Added : IntegrationState::Outdated;
     }
     catch (const runtime_error&)
     {
@@ -81,7 +81,9 @@ namespace SecondShell::Integrations
 
   vector<string> ClaudeCodeIntegration::AddArguments() const
   {
-    return { "mcp", "add", "--transport", "stdio", "--scope", "user", _entryName, "--", winrt::to_string(_mcpExecutable.wstring()) };
+    vector<string> arguments{ "mcp", "add", "--transport", "stdio", "--scope", "user", _entryName, "--", _launch.Command };
+    arguments.insert(arguments.end(), _launch.Args.begin(), _launch.Args.end());
+    return arguments;
   }
 
   vector<string> ClaudeCodeIntegration::RemoveArguments() const

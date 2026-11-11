@@ -102,6 +102,8 @@ namespace winrt::SecondShell::implementation
     Show<uint32_t>(TimeoutBox(), _timeouts, settings.SignInTimeout, [](auto& seconds) { return Minutes(seconds); });
 
     WorkWhileLockedSwitch().IsOn(settings.WorkWhileLocked);
+    FasterStartCard().Visibility(_environment->IsPackaged() ? Visibility::Visible : Visibility::Collapsed);
+    FasterStartSwitch().IsOn(!settings.DriverStartupTask);
     ShowWorkWhileLocked();
 
     FormatBox().Items().Clear();
@@ -166,6 +168,7 @@ namespace winrt::SecondShell::implementation
     auto retention = Selected(RetentionBox(), _retentions);
     auto shell = _shells[max(ShellBox().SelectedIndex(), 0)];
     auto workWhileLocked = WorkWhileLockedSwitch().IsOn();
+    auto driverStartupTask = !FasterStartSwitch().IsOn();
     auto partSize = isnan(OutputPartSizeBox().Value()) ? 100u : uint32_t(clamp(OutputPartSizeBox().Value(), 1.0, 4096.0));
     auto storageLimit = isnan(StorageLimitBox().Value()) ? 1024u : uint32_t(clamp(StorageLimitBox().Value(), 0.0, 1048576.0));
 
@@ -179,6 +182,7 @@ namespace winrt::SecondShell::implementation
       settings.CaptureRetention = retention;
       settings.DefaultShell = shell;
       settings.WorkWhileLocked = workWhileLocked;
+      settings.DriverStartupTask = driverStartupTask;
       settings.OutputPartSize = partSize;
       settings.StorageLimit = storageLimit;
       });

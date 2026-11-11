@@ -22,9 +22,9 @@ namespace SecondShell::Tests
       return { _root / "Profile", _root / "Roaming", _root / "Local", _root / "Programs" };
     }
 
-    shared_ptr<AiClientIntegration> Integration(string_view id, const path& mcp) const
+    shared_ptr<AiClientIntegration> Integration(string_view id, const McpLaunch& launch) const
     {
-      for (auto& integration : IntegrationManager::Create(Folders(), mcp))
+      for (auto& integration : IntegrationManager::Create(Folders(), launch))
       {
         if (integration->Id() == id) return integration;
       }
@@ -49,6 +49,37 @@ namespace SecondShell::Tests
       remove_all(_root);
     }
 
+    TEST_METHOD(PackagedEntriesStartTheAliasThroughCmd)
+    {
+      //The JSON apps: command and args, and the portable build's entry is updated to it
+      auto file = Folders().Profile / ".cursor" / "mcp.json";
+      Write(file, R"({ "mcpServers": { "secondshell": { "command": "C:\\SecondShell\\SecondShell.Mcp.exe", "args": [], "env": { "A": "1" } } } })");
+      auto cursor = Integration("cursor", McpLaunch::ThroughCmd());
+      Assert::IsTrue(cursor->State() == IntegrationState::Outdated);
+      cursor->Add();
+      auto text = Read(file);
+      Assert::IsTrue(text.find(R"("command": "cmd")") != string::npos && text.find(R"("args": ["/c", "SecondShell.Mcp.exe"])") != string::npos, to_wstring(text).c_str());
+      Assert::IsTrue(text.find(R"("A": "1")") != string::npos, L"its other settings stay");
+      Assert::IsTrue(cursor->State() == IntegrationState::Added);
+      Assert::IsTrue(Integration("cursor", _mcp)->State() == IntegrationState::Outdated, L"the portable build sees it is not its own");
+
+      //cmd.exe, and the alias's name in another case, count the same
+      Write(file, R"({ "mcpServers": { "agent": { "command": "CMD.EXE", "args": ["/C", "secondshell.mcp.exe"] } } })");
+      Assert::IsTrue(cursor->State() == IntegrationState::Added, L"an entry under another name which runs it");
+
+      //Codex: a TOML array
+      create_directories(Folders().Profile / ".codex");
+      auto codex = Integration("codex", McpLaunch::ThroughCmd());
+      codex->Add();
+      Assert::AreEqual(string("[mcp_servers.secondshell]\ncommand = 'cmd'\nargs = ['/c', 'SecondShell.Mcp.exe']\n"), Read(Folders().Profile / ".codex" / "config.toml"));
+      Assert::IsTrue(codex->State() == IntegrationState::Added);
+
+      //Claude Code: the arguments after the command
+      Write(Folders().Profile / ".local" / "bin" / "claude.exe", "");
+      auto change = Integration("claude-code", McpLaunch::ThroughCmd())->PreviewAdd();
+      Assert::IsTrue(change.After.find("-- cmd /c SecondShell.Mcp.exe") != string::npos, to_wstring(change.After).c_str());
+    }
+
     TEST_METHOD(AnAppIsAddedUpdatedAndRemoved)
     {
       auto cursor = Integration("cursor", _mcp);
@@ -64,7 +95,7 @@ namespace SecondShell::Tests
       Assert::IsTrue(cursor->State() == IntegrationState::Added);
 
       //The portable build moved: the entry runs the old one
-      auto moved = Integration("cursor", L"D:\\Tools\\SecondShell\\SecondShell.Mcp.exe");
+      auto moved = Integration("cursor", path{ L"D:\\Tools\\SecondShell\\SecondShell.Mcp.exe" });
       Assert::IsTrue(moved->State() == IntegrationState::Outdated);
       moved->Add();
       Assert::IsTrue(moved->State() == IntegrationState::Added);
@@ -144,7 +175,7 @@ namespace SecondShell::Tests
       codex->Add();
       Assert::AreEqual(string("model = \"o4\"\n\n[mcp_servers.secondshell]\ncommand = 'C:\\SecondShell\\SecondShell.Mcp.exe'\nargs = []\n"), Read(file));
       Assert::IsTrue(codex->State() == IntegrationState::Added);
-      Assert::IsTrue(Integration("codex", L"D:\\SecondShell.Mcp.exe")->State() == IntegrationState::Outdated);
+      Assert::IsTrue(Integration("codex", path{ L"D:\\SecondShell.Mcp.exe" })->State() == IntegrationState::Outdated);
 
       codex->Remove();
       Assert::AreEqual(string("model = \"o4\"\n"), Read(file));
