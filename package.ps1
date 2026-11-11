@@ -74,8 +74,10 @@ if (-not $certificate -and $CertificateSubject)
   if (-not $certificate) { Write-Warning "No valid code-signing certificate '$CertificateSubject' in Cert:\CurrentUser\My; the binaries stay unsigned." }
 }
 
-#What the portable folder leaves out: build leftovers, symbols (zipped apart) and the test projects
-$excluded = @("*.pdb", "*.exp", "*.lib", "*.ilk", "*.iobj", "*.ipdb", "SecondShell.Tests.*", "SecondShell.PointerRecorder.*")
+#What the portable folder leaves out: build leftovers, symbols (zipped apart), the test projects, and Windows Runtime
+#metadata, which C++ programs compile against but do not read at run time (and whose WinUI copies have the same GUIDs as
+#Windows' own, which the Store's certification fails)
+$excluded = @("*.pdb", "*.exp", "*.lib", "*.ilk", "*.iobj", "*.ipdb", "*.winmd", "SecondShell.Tests.*", "SecondShell.PointerRecorder.*")
 $excludedFolders = @("PointerRecords")
 $ownBinaries = @("SecondShell.exe", "SecondShell.Driver.exe", "SecondShell.Mcp.exe", "SecondShell.Common.dll", "Axodox.Common.dll")
 

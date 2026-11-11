@@ -13,6 +13,10 @@ using namespace std;
 //The composition root: serves MCP on stdio until the client closes stdin.
 int main()
 {
+  //No windows, but coordinates pass through it: per-monitor DPI aware like the host and the driver (and as the Store's
+  //certification checks)
+  SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
+
   auto transport = make_shared<StdioTransport>();
 
   dependency_container container;
