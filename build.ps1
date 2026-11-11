@@ -28,29 +28,12 @@ $vstest = Join-Path $visualStudio "Common7\IDE\Extensions\TestPlatform\vstest.co
 
 #Packages
 Write-Host "Restoring packages..." -ForegroundColor Magenta
-#nuget.org; on AppVeyor the sources the build worker has, which include the account's own NuGet feed (appveyor.yml,
-#signed in), with prereleases of Axodox.Common built from its branches
-$sourceArguments = if ($env:APPVEYOR) { @() } else { @("-Source", "https://api.nuget.org/v3/index.json") }
-#On AppVeyor, the image's own nuget, which the account feed's credentials were set up for
-$restoreNuget = if ($env:APPVEYOR -and (Get-Command nuget.exe -ErrorAction SilentlyContinue)) { (Get-Command nuget.exe).Source } else { $nuget }
-if ($env:APPVEYOR)
-{
-  #Which feeds the build worker has, and which of them with credentials (never the credentials themselves)
-  $config = Join-Path $env:APPDATA "NuGet\NuGet.Config"
-  if (Test-Path $config)
-  {
-    $xml = [xml](Get-Content $config -Raw)
-    foreach ($source in $xml.configuration.packageSources.add) { Write-Host "NuGet source: $($source.key) = $($source.value)" }
-    foreach ($credential in $xml.configuration.packageSourceCredentials.ChildNodes) { Write-Host "NuGet credentials for: $($credential.Name)" }
-  }
-  else { Write-Host "No $config" }
-}
-& $restoreNuget restore (Join-Path $root "Build\packages.config") -PackagesDirectory (Join-Path $root "packages") @sourceArguments -NonInteractive -Verbosity quiet
-if ($LASTEXITCODE -ne 0)
-{
-  if ($env:APPVEYOR) { & $restoreNuget sources list | Out-Host }
-  throw "Package restore failed."
-}
+#nuget.org, and axodox-common's AppVeyor project feed (public), which has the Axodox.Common prereleases built from its
+#branches (Design.md, CI)
+$sources = @("https://api.nuget.org/v3/index.json", "https://ci.appveyor.com/nuget/axodox-common-y9xf835cfw51")
+$sourceArguments = $sources | ForEach-Object { "-Source"; $_ }
+& $nuget restore (Join-Path $root "Build\packages.config") -PackagesDirectory (Join-Path $root "packages") @sourceArguments -NonInteractive -Verbosity quiet
+if ($LASTEXITCODE -ne 0) { throw "Package restore failed." }
 
 #Build
 foreach ($platform in $Platforms)
