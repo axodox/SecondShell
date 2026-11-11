@@ -21,6 +21,7 @@ namespace SecondShell::Session
   const milliseconds _clipboardTimeout{ 15000 };  //an image on the clipboard can be tens of megabytes
   const milliseconds _cancellationPollInterval{ 100 };
 
+
   //One client of the driver pipe, accepted or not.
   class DriverLink::Connection : public enable_shared_from_this<Connection>
   {
@@ -240,7 +241,11 @@ namespace SecondShell::Session
     auto sessionId = connection->Transport->PeerSessionId();
     auto processId = connection->Transport->PeerProcessId();
 
-    lock_guard lock{ _mutex };
+    //A driver started by the sign-in task arrives as the child session signs in, often before the host has seen the
+    //sign-in complete and knows the session: it waits for that a while
+    unique_lock lock{ _mutex };
+    if (!_expectedSessionId) _driverChanged.wait_for(lock, EarlyDriverWait, [this] { return _expectedSessionId.has_value(); });
+
     if (!_expectedSessionId)
     {
       _logger.log(log_severity::warning, "Refused the driver in session {} (process {}): no child session is waiting for one.", sessionId, processId);

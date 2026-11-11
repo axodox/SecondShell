@@ -49,6 +49,7 @@ The overlay's cursor and highlights use the agent colour (today they are pink: c
 
 - **Title bar**, drawn by the window: the app mark, name and version; then the toolbar: **Take control** (becomes **Give back control**, amber, while the user has it), **Capture screen** (copies the session's screen to the user's clipboard as a full-resolution PNG; the view flashes as for the agent's captures, and the button reads "Copied" for a moment), **Stop** (disabled while the user has control), the display (resolution and scale, a dropdown), **Reset session**, **Settings**; then the system's caption buttons.
 - **Session**: letterboxed; resizing the window never resizes the session. Its frame shows who is in control: violet while the agent works, amber while the user has control.
+- **Closing**: the window stays responsive while the session signs out (seconds): the view shows "Signing the session out" with its spinner, the toolbar is disabled, and the window closes when it is done. Closing again meanwhile changes nothing.
 - **Interactive mode**: a notice at the top of the session ("You're in control", what goes where, Give back). The view runs at the host screen's refresh rate so that it feels native (Findings.md, open questions); while the agent is in control this matters less.
 
 ## Status bar

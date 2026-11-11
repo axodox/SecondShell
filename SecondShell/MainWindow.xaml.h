@@ -9,6 +9,7 @@
 #include "VisualizationFeed.h"
 #include "InteractiveInputForwarder.h"
 #include "SessionRenderer.h"
+#include "SessionManager.h"
 #include "SetupChecker.h"
 
 namespace winrt::SecondShell::implementation
@@ -67,7 +68,10 @@ namespace winrt::SecondShell::implementation
     Axodox::Infrastructure::event_subscription _runningChangedSubscription;
     Microsoft::UI::Dispatching::DispatcherQueueTimer _agentIdleTimer{ nullptr };
 
-    bool _isCloseConfirmed = false;
+    std::shared_ptr<::SecondShell::Session::SessionManager> _sessions;
+    bool _isCloseConfirmed = false;  //the user agreed to stop the agent's sequence
+    bool _isSigningOut = false;      //closing: the session is being signed out
+    bool _isReadyToClose = false;    //signed out: the next close goes through
 
     //The settings in place of the session view, or the session view again.
     void ShowSettings(bool isShown);
@@ -81,6 +85,9 @@ namespace winrt::SecondShell::implementation
     //Closing while the agent works asks first (docs/UIDesign.md, Dialogs).
     void OnClosing(const Microsoft::UI::Windowing::AppWindow& sender, const Microsoft::UI::Windowing::AppWindowClosingEventArgs& eventArgs);
     fire_and_forget ConfirmClose(::SecondShell::Agent::SequenceLogEntry sequence);
+
+    //Signs the session out off the UI thread, showing it in the view, then closes: signing out takes seconds.
+    fire_and_forget SignOutAndClose();
 
     //What to do with a child session from before, asked in a dialog; on the caller's thread.
     std::optional<::SecondShell::Protocol::ExistingSessionPolicy> AskAboutExistingSession(const ::SecondShell::Session::ExistingSession& session);

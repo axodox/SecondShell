@@ -81,9 +81,23 @@ namespace SecondShell::Tests
 
     TEST_METHOD(DriversAreRefusedWhenNoSessionWaits)
     {
+      _link->EarlyDriverWait = 200ms;
       TestDriver driver{ _pipeName };
       Assert::IsFalse(driver.Hello().IsAccepted);
       Assert::IsFalse(_link->IsConnected());
+    }
+
+    TEST_METHOD(AnEarlyDriverWaitsForItsSession)
+    {
+      //The sign-in task starts the driver before the host has seen the sign-in complete
+      TestDriver driver{ _pipeName };
+      thread expect([&] {
+        this_thread::sleep_for(300ms);
+        _link->Expect(_sessionId);
+        });
+      Assert::IsTrue(driver.Hello().IsAccepted);
+      expect.join();
+      Assert::IsTrue(_link->IsConnected());
     }
 
     TEST_METHOD(DriversInAnotherSessionAreRefused)

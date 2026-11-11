@@ -6,7 +6,6 @@ Features to consider; not yet implemented.
 
 Built: Keep working while the screen is locked, `InputUnavailable`, and `isUserPresent` / `input` in `Check-Session` (Design.md, Working while the screen is locked; Findings.md 2.17). Still open:
 
-- **Driver start as a service**: a LocalSystem service that starts the driver in the child session as soon as it signs in (`WTSQueryUserToken`, `CreateProcessAsUser`), instead of the `RunOnce` entry that waits behind Explorer's startup programs (20 to 74 s, Findings.md 2.16), and exits in the user's own session. It does not help input while locked (Findings.md 2.17). Needs the elevated setup to install it. A separate change.
 - **UI Automation actions** (invoke, toggle or set value on an element found by name): on hold. They do not cover canvas or 3D views, which need real mouse and touch input.
 - **The window** could show that the session is being kept unlocked behind the lock screen, e.g. in the status bar, for when the user comes back.
 

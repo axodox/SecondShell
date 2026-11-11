@@ -139,6 +139,7 @@ namespace winrt::SecondShell::implementation
       });
 
     auto sessions = container->resolve<SessionManager>();
+    _sessions = sessions;
     _stateChangedSubscription = sessions->StateChanged([this, queue](SessionManager*, SessionState state) {
       queue.TryEnqueue([weak = get_weak(), state] { if (auto self = weak.get()) self->ShowSessionState(state); });
       });
@@ -286,13 +287,20 @@ namespace winrt::SecondShell::implementation
 
   void MainWindow::OnClosing(const Microsoft::UI::Windowing::AppWindow& /*sender*/, const AppWindowClosingEventArgs& eventArgs)
   {
-    if (_isCloseConfirmed || !_actionLog) return;
+    if (_isReadyToClose || !_sessions) return;
+
+    //Closing again while signing out changes nothing
+    eventArgs.Cancel(true);
+    if (_isSigningOut) return;
 
     auto sequences = _actionLog->Sequences();
-    if (sequences.empty() || sequences.back().Duration) return;
+    if (!_isCloseConfirmed && !sequences.empty() && !sequences.back().Duration)
+    {
+      ConfirmClose(sequences.back());
+      return;
+    }
 
-    eventArgs.Cancel(true);
-    ConfirmClose(sequences.back());
+    SignOutAndClose();
   }
 
   fire_and_forget MainWindow::ConfirmClose(SequenceLogEntry sequence)
@@ -302,6 +310,28 @@ namespace winrt::SecondShell::implementation
 
     _isCloseConfirmed = true;
     _agentControl->Stop();
+    SignOutAndClose();
+  }
+
+  fire_and_forget MainWindow::SignOutAndClose()
+  {
+    auto self = get_strong();
+    if (_isSigningOut) co_return;
+    _isSigningOut = true;
+
+    //The view shows "Signing the session out" as the state changes; the toolbar has nothing to do meanwhile
+    for (auto element : Toolbar().Children()) if (auto control = element.try_as<Controls::Control>()) control.IsEnabled(false);
+    auto state = _sessions->Info().State;
+    if (state != SessionState::Stopped && state != SessionState::Failed)
+    {
+      ShowSessionState(SessionState::Stopping);
+      auto queue = DispatcherQueue();
+      co_await resume_background();
+      _sessions->Shutdown();
+      co_await wil::resume_foreground(queue);
+    }
+
+    _isReadyToClose = true;
     Close();
   }
 

@@ -23,6 +23,7 @@ namespace SecondShell::Setup
     UninstallReport report;
 
     _driverLauncher->Disarm();
+    _driverLauncher->Uninstall();
     RemoveIntegrations(report);
 
     if (options.ForgetPassword)

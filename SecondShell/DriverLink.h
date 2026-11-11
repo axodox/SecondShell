@@ -17,6 +17,11 @@ namespace SecondShell::Session
     DriverLink(Axodox::Infrastructure::dependency_container* container, std::string_view pipeName);
     ~DriverLink();
 
+    //How long a driver which arrives before a child session is expected waits for one: the sign-in task starts it as
+    //the session signs in, before the host has seen the sign-in complete. Within the driver's hello timeout at a sign-in
+    //(30 s); tests shorten it.
+    std::chrono::milliseconds EarlyDriverWait{ 20000 };
+
     //Opens the pipe; throws if another process has it.
     void Start();
 

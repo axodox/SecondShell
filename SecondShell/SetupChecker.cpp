@@ -50,6 +50,9 @@ namespace SecondShell::Setup
     //A RunOnce entry left by a host that crashed would start the driver at the user's next logon
     _driverLauncher->Disarm();
 
+    //The driver's sign-in task, for this build: it may have moved, or been updated
+    _driverLauncher->Install();
+
     error_code error;
     filesystem::create_directories(_environment->DataFolder(), error);
     if (error) _logger.log(log_severity::warning, "Could not create the data folder: {}", error.message());

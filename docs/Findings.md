@@ -223,6 +223,8 @@ Found while building and testing the window, process, clipboard, wait and displa
 
 **Consequences:** see Architecture.md 6.9.
 
+**Update (2026-11-11), a logon-triggered scheduled task:** registered per user without elevation (`TASK_LOGON_INTERACTIVE_TOKEN`, root folder), it started the driver in the child session 3–5 s after the RDP connection began and 0.2–0.5 s before the RDP control reported the sign-in. Started that early, capturing the screen blocked until the session's input desktop changed from Winlogon to Default, about 3 s later; the driver now waits for that. It also started in the user's own session at the same logon event, where it exited at once.
+
 ### 2.17 Input to the child session stops while the user's own session is locked (2026-11-04)
 
 Seen in use first: during the user's absences, every mouse and keyboard action failed with `ActionFailed` "Access is denied", while captures and `Process.Run` kept working and `Check-Session` reported `Ready` (Todo.md). Tested with a throwaway program (not kept): a temporary LocalSystem service starts two helpers in the child session, one as SYSTEM and one as the user (as the driver runs). They take turns every 2 s injecting a mouse move, a left-button drag and a wheel notch (`SendInput`), F24, and a one-finger touch swipe (`InjectTouchInput`). A low-level hook in each helper confirms which mouse and key events arrived (each tagged through `dwExtraInfo`), and the cursor must end where the drag ends. Each round logs the lock and connection state of the user's session and of the child session (`WTSSessionInfoEx`, `WTSClientProtocolType`) and the child session's input desktop.

@@ -7,6 +7,7 @@
 #Examples:
 #  .\package.ps1                                   (Release, x64 and ARM64, signed, timestamped)
 #  .\package.ps1 -Platforms x64 -SkipBuild
+#  .\package.ps1 -Platforms x64 -SkipBuild -BinFolder bin\x64\ReleaseWork   (an existing build elsewhere)
 #  .\package.ps1 -CertificateSubject "" -CertificateFile ""   (unsigned)
 param(
   [string[]]$Platforms = @("x64", "ARM64"),
@@ -14,7 +15,8 @@ param(
   [string]$CertificatePassword = $env:SECONDSHELL_CERT_PW,
   [string]$CertificateSubject = "CN=Axodox",
   [string]$TimestampUrl = "http://timestamp.digicert.com",
-  [switch]$SkipBuild
+  [switch]$SkipBuild,
+  [string]$BinFolder = ""  #with -SkipBuild and one platform: the build to package, instead of bin\<platform>\Release
 )
 
 $ErrorActionPreference = "Stop"
@@ -34,6 +36,7 @@ $visualStudio = & (Join-Path ${env:ProgramFiles(x86)} "Microsoft Visual Studio\I
 $kitBin = Join-Path ${env:ProgramFiles(x86)} "Windows Kits\10\bin"
 $signTool = Get-ChildItem $kitBin -Filter signtool.exe -Recurse | Where-Object { $_.FullName -match "\\x64\\" } | Sort-Object FullName -Descending | Select-Object -First 1
 $makeAppx = Get-ChildItem $kitBin -Filter makeappx.exe -Recurse | Where-Object { $_.FullName -match "\\x64\\" } | Sort-Object FullName -Descending | Select-Object -First 1
+$makePri = Get-ChildItem $kitBin -Filter makepri.exe -Recurse | Where-Object { $_.FullName -match "\\x64\\" } | Sort-Object FullName -Descending | Select-Object -First 1
 $packageVersion = "$version.0"
 
 function Sign([string[]]$files)
@@ -92,7 +95,7 @@ foreach ($platform in $Platforms)
     if (-not $?) { throw "Building Release $platform failed." }
   }
 
-  $output = Join-Path $root "bin\$platform\Release"
+  $output = if ($BinFolder) { (Resolve-Path $BinFolder).Path } else { Join-Path $root "bin\$platform\Release" }
   $stage = Join-Path $artifacts "$platform\SecondShell"
   Write-Host "Staging $platform..." -ForegroundColor Magenta
   if (Test-Path (Split-Path $stage)) { Remove-Item (Split-Path $stage) -Recurse -Force }
@@ -124,14 +127,26 @@ foreach ($platform in $Platforms)
 
   Write-Host ("{0}: {1:N1} MB" -f (Split-Path $zip -Leaf), ((Get-Item $zip).Length / 1MB)) -ForegroundColor Green
 
-  #The MSIX package: the same folder, with the manifest, the logos, and the app's resource index under the name a
-  #packaged app's is looked up by
+  #The MSIX package: the same folder, with the manifest, the logos, and the package's resource index
   $layout = Join-Path $artifacts "$platform\msix"
   Copy-Item $stage $layout -Recurse
   Copy-Item (Join-Path $root "Packaging\Assets") (Join-Path $layout "Assets") -Recurse
-  Copy-Item (Join-Path $layout "SecondShell.pri") (Join-Path $layout "resources.pri")
   (Get-Content (Join-Path $root "Packaging\AppxManifest.xml") -Raw).Replace('$Version$', $packageVersion).Replace('$Architecture$', $platform.ToLower()) |
     Set-Content (Join-Path $layout "AppxManifest.xml") -Encoding utf8 -NoNewline
+
+  #resources.pri, which a packaged app's resources are looked up in: the app's own (SecondShell.pri, the window's
+  #XAML) merged with the logos, whose size and plate variants (Square44x44Logo.targetsize-NN_altform-unplated) let
+  #Start and the taskbar show the mark without a plate behind it
+  $priStage = Join-Path $artifacts "$platform\pri"
+  if (Test-Path $priStage) { Remove-Item $priStage -Recurse -Force }
+  New-Item $priStage -ItemType Directory | Out-Null
+  Copy-Item (Join-Path $root "Packaging\Assets") (Join-Path $priStage "Assets") -Recurse
+  Copy-Item (Join-Path $layout "SecondShell.pri") $priStage
+  $priConfig = Join-Path $artifacts "$platform\priconfig.xml"
+  & $makePri.FullName createconfig /cf $priConfig /dq en-US /pv 10.0.0 /o | Out-Null
+  [regex]::Replace((Get-Content $priConfig -Raw), '(?s)<packaging>.*?</packaging>\s*', '') | Set-Content $priConfig -Encoding utf8
+  & $makePri.FullName new /pr $priStage /cf $priConfig /mn (Join-Path $layout "AppxManifest.xml") /of (Join-Path $layout "resources.pri") /o | Out-Host
+  if ($LASTEXITCODE -ne 0) { throw "Indexing the package's resources failed for $platform." }
 
   $msix = Join-Path $artifacts "bundle\SecondShell-$version-$platform.msix"
   New-Item (Split-Path $msix) -ItemType Directory -Force | Out-Null

@@ -222,9 +222,12 @@ namespace winrt::SecondShell::implementation
     auto sessions = _container->resolve<SessionManager>();
     auto renderer = _container->resolve<SessionRenderer>();
     renderer->Attach(_window->SessionView(), windowHandle);
-    _window->Closed([sessions, renderer](const IInspectable&, const WindowEventArgs&) {
+    //The driver's sign-in task goes with the window: without a host it has nothing to start, and nothing is left behind
+    //once SecondShell is closed or uninstalled (a crash leaves it, harmless, until the next start replaces it)
+    _window->Closed([sessions, renderer, launcher = _container->resolve<DriverLauncher>()](const IInspectable&, const WindowEventArgs&) {
       renderer->Detach();
       sessions->Shutdown();
+      launcher->Uninstall();
       });
 
     //Shown without taking the focus from the user (Design.md, Working without focus)

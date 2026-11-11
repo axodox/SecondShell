@@ -38,6 +38,14 @@ if len(sys.argv) > 3:
     folder = sys.argv[3]
     os.makedirs(folder, exist_ok=True)
     mark(44).save(os.path.join(folder, "Square44x44Logo.png"))
+
+    #The app list's and taskbar's icon at each size Windows asks for, without the plate Start otherwise draws behind
+    #it (altform-unplated; lightunplated for the light theme): package.ps1 indexes them in resources.pri
+    for size in (16, 20, 24, 30, 32, 36, 40, 48, 60, 64, 72, 80, 96, 256):
+        image = mark(size)
+        image.save(os.path.join(folder, f"Square44x44Logo.targetsize-{size}.png"))
+        image.save(os.path.join(folder, f"Square44x44Logo.targetsize-{size}_altform-unplated.png"))
+        image.save(os.path.join(folder, f"Square44x44Logo.targetsize-{size}_altform-lightunplated.png"))
     mark(50).save(os.path.join(folder, "StoreLogo.png"))
     tile = Image.new("RGBA", (150, 150), (0, 0, 0, 0))
     tile.alpha_composite(mark(90), (30, 30))
