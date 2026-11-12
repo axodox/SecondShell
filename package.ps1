@@ -6,7 +6,8 @@
 #from the user's store; without either, unsigned.
 #Examples:
 #  .\package.ps1                                   (Release, x64 and ARM64, signed, timestamped)
-#  .\package.ps1 -Platforms x64 -SkipBuild
+#  .\package.ps1 -Build 42                         (version 1.0.42: SecondShell-1.0.42-x64.zip, ...)
+#  .\package.ps1 -Platforms x64 -SkipBuild         (the version the built binaries have)
 #  .\package.ps1 -Platforms x64 -SkipBuild -BinFolder bin\x64\ReleaseWork   (an existing build elsewhere)
 #  .\package.ps1 -CertificateSubject "" -CertificateFile ""   (unsigned)
 #  .\package.ps1 -StoreName 12345Axodox.SecondShell -StorePublisher "CN=..." -StorePublisherDisplayName Axodox
@@ -19,7 +20,7 @@ param(
   [string]$TimestampUrl = "http://timestamp.digicert.com",
   [switch]$SkipBuild,
   [string]$BinFolder = "",  #with -SkipBuild and one platform: the build to package, instead of bin\<platform>\Release
-  [int]$Revision = 0,       #the package version's fourth part: CI's build number, so each build installs over the last
+  [int]$Build = -1,         #without -SkipBuild: the version's build number (Build\SecondShell.Cpp.props), CI's; default 0
   [string]$ReleaseTag = "", #the GitHub release the bundle is published in; default v<version>
   #The Store's upload too (Packaging\Store.md), with the identity Partner Center reserved for the app (Product
   #management, Product identity): Package/Identity/Name, Package/Identity/Publisher and Package/Properties/PublisherDisplayName
@@ -32,10 +33,11 @@ $ErrorActionPreference = "Stop"
 $root = $PSScriptRoot
 $artifacts = Join-Path $root "artifacts"
 
-#The version, as the binaries have it
-$props = Get-Content (Join-Path $root "Build\SecondShell.Cpp.props") -Raw
-$version = [regex]::Match($props, "<SecondShellVersion>([^<]+)</SecondShellVersion>").Groups[1].Value
-if (-not $version) { throw "No SecondShellVersion in Build\SecondShell.Cpp.props." }
+#The version is the binaries' (SecondShell.exe's version resource, read as each platform is staged):
+#<major>.<minor>.<build>.<revision> for the packages, and the short form, without a revision of 0, in the file names
+$packageVersion = $null
+$version = $null
+if ($Build -ge 0) { $env:SecondShellBuild = "$Build" }
 
 #The repository the releases are published in, for the .appinstaller file
 $releases = "https://github.com/axodox/SecondShell/releases"
@@ -46,8 +48,6 @@ $kitBin = Join-Path ${env:ProgramFiles(x86)} "Windows Kits\10\bin"
 $signTool = Get-ChildItem $kitBin -Filter signtool.exe -Recurse | Where-Object { $_.FullName -match "\\x64\\" } | Sort-Object FullName -Descending | Select-Object -First 1
 $makeAppx = Get-ChildItem $kitBin -Filter makeappx.exe -Recurse | Where-Object { $_.FullName -match "\\x64\\" } | Sort-Object FullName -Descending | Select-Object -First 1
 $makePri = Get-ChildItem $kitBin -Filter makepri.exe -Recurse | Where-Object { $_.FullName -match "\\x64\\" } | Sort-Object FullName -Descending | Select-Object -First 1
-$packageVersion = "$version.$Revision"
-if (-not $ReleaseTag) { $ReleaseTag = "v$version" }
 
 function Sign([string[]]$files)
 {
@@ -136,8 +136,10 @@ if ($certificate)
   Copy-Item (Join-Path $root "Packaging\Install.ps1") $artifacts
 }
 
-#The bundles take the packages of this run's platforms only
-Remove-Item (Join-Path $artifacts "bundle"), (Join-Path $artifacts "store") -Recurse -Force -ErrorAction SilentlyContinue
+#Only this run's files: the names have the version, so earlier runs' would stay next to them; and the bundles take the
+#packages of this run's platforms only
+Remove-Item (Join-Path $artifacts "SecondShell-*.zip"), (Join-Path $artifacts "SecondShell-*.msixbundle") -ErrorAction SilentlyContinue
+Remove-Item (Join-Path $artifacts "bundle"), (Join-Path $artifacts "store"), (Join-Path $artifacts "release") -Recurse -Force -ErrorAction SilentlyContinue
 if ($store) { New-Item (Join-Path $artifacts "store\upload") -ItemType Directory -Force | Out-Null }
 foreach ($platform in $Platforms)
 {
@@ -148,6 +150,21 @@ foreach ($platform in $Platforms)
   }
 
   $output = if ($BinFolder) { (Resolve-Path $BinFolder).Path } else { Join-Path $root "bin\$platform\Release" }
+
+  #The version, which every platform's binaries must have
+  $info = (Get-Item (Join-Path $output "SecondShell.exe")).VersionInfo
+  $platformVersion = "{0}.{1}.{2}.{3}" -f $info.FileMajorPart, $info.FileMinorPart, $info.FileBuildPart, $info.FilePrivatePart
+  if ($packageVersion -and $packageVersion -ne $platformVersion) { throw "The $platform binaries are version $platformVersion, the others $packageVersion." }
+  if (-not $packageVersion)
+  {
+    $packageVersion = $platformVersion
+    $version = if ($info.FilePrivatePart -eq 0) { "{0}.{1}.{2}" -f $info.FileMajorPart, $info.FileMinorPart, $info.FileBuildPart } else { $packageVersion }
+    #The Store keeps the fourth part for itself
+    $storeVersion = "{0}.{1}.{2}.0" -f $info.FileMajorPart, $info.FileMinorPart, $info.FileBuildPart
+    if (-not $ReleaseTag) { $ReleaseTag = "v$version" }
+    Write-Host "Version $packageVersion" -ForegroundColor Magenta
+  }
+
   $stage = Join-Path $artifacts "$platform\SecondShell"
   Write-Host "Staging $platform..." -ForegroundColor Magenta
   if (Test-Path (Split-Path $stage)) { Remove-Item (Split-Path $stage) -Recurse -Force }
@@ -185,11 +202,11 @@ foreach ($platform in $Platforms)
   Sign @($msix)
   Write-Host ("{0}: {1:N1} MB" -f (Split-Path $msix -Leaf), ((Get-Item $msix).Length / 1MB)) -ForegroundColor Green
 
-  #The Store's: unsigned (the Store signs it), and versioned <version>.0, as the Store keeps the fourth part for itself;
-  #with its symbols (an .appxsym is a zip of the .pdb files), which the Store's crash reports are resolved with
+  #The Store's: unsigned (the Store signs it), with a revision of 0; with its symbols (an .appxsym is a zip of the .pdb
+  #files), which the Store's crash reports are resolved with
   if ($store)
   {
-    Pack $platform $stage "store-msix" $store "$version.0" (Join-Path $artifacts "store\packages\SecondShell-$version-$platform.msix")
+    Pack $platform $stage "store-msix" $store $storeVersion(Join-Path $artifacts "store\packages\SecondShell-$version-$platform.msix")
     Copy-Item $symbols (Join-Path $artifacts "store\upload\SecondShell-$version-$platform.appxsym")
   }
 }
@@ -209,7 +226,7 @@ Write-Host ("{0}: {1:N1} MB, and {2}" -f (Split-Path $bundle -Leaf), ((Get-Item 
 if ($store)
 {
   $storeBundle = Join-Path $artifacts "store\upload\SecondShell-$version.msixbundle"
-  & $makeAppx.FullName bundle /o /bv "$version.0" /d (Join-Path $artifacts "store\packages") /p $storeBundle | Out-Host
+  & $makeAppx.FullName bundle /o /bv $storeVersion /d (Join-Path $artifacts "store\packages") /p $storeBundle | Out-Host
   if ($LASTEXITCODE -ne 0) { throw "Bundling the Store's packages failed." }
 
   $upload = Join-Path $artifacts "store\SecondShell-$version.msixupload"

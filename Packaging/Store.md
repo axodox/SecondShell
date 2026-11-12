@@ -17,9 +17,8 @@ Partner Center reserves, unsigned (the Store signs it).
      `SecondShell-<version>.msixupload`;
    - or locally: `.\package.ps1 -StoreName ... -StorePublisher "CN=..." -StorePublisherDisplayName ...`, which writes
      `artifacts\store\SecondShell-<version>.msixupload`.
-4. **Raise the version for every submission**: the Store's packages are versioned `<SecondShellVersion>.0` (the Store
-   keeps the fourth part for itself, so CI's build number is not in it), and each submission must be higher than the
-   last: raise `SecondShellVersion` in `Build\SecondShell.Cpp.props`.
+4. **Each submission must have a higher version** than the last: the Store's packages are versioned `1.0.<build>.0`
+   (the Store keeps the fourth part for itself), so a later CI build's upload always is.
 5. **Submit**: Packages, upload the `.msixupload` (both platforms' packages and their symbols); Store listing,
    properties, age ratings; the restricted capabilities and the notes for certification below.
 

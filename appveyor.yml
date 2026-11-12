@@ -1,7 +1,7 @@
 #The AppVeyor build, as unpaint's: every push builds and packages (ci.ps1), and is published as a GitHub release
 #(master's) or prerelease (other branches'). The project's settings hold the secure variables SECONDSHELL_CERT_PFX and SECONDSHELL_CERT_PW (the signing
 #certificate); Axodox.Common prereleases come from axodox-common's public project feed (build.ps1).
-version: '{build}'
+version: 1.0.{build}.0
 image: Visual Studio 2022
 skip_tags: true
 

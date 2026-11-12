@@ -2,7 +2,7 @@
 #certificate on this PC once (one administrator prompt), then installs the package for the current user. Run it from the
 #folder with the package and SecondShell.cer, or name the package:
 #  powershell -ExecutionPolicy Bypass -File .\Install.ps1
-#  powershell -ExecutionPolicy Bypass -File .\Install.ps1 -Package .\SecondShell-0.1.0.msixbundle
+#  powershell -ExecutionPolicy Bypass -File .\Install.ps1 -Package .\SecondShell-1.0.12.msixbundle
 param(
   [string]$Package = "",
   [switch]$TrustOnly  #used by the elevated copy of this script

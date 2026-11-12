@@ -1,23 +1,27 @@
 #The AppVeyor build (appveyor.yml): builds Release for x64 and ARM64 (the unit tests run locally), and makes the signed
-#packages in artifacts (package.ps1), versioned with the build number. The signing certificate comes from the project's
-#secure variables: SECONDSHELL_CERT_PFX (Packaging\key.pfx, base64) and SECONDSHELL_CERT_PW (its password); without
-#them the packages are unsigned.
+#packages in artifacts (package.ps1), versioned <major>.<minor>.<build>.0 with the build number (appveyor.yml's version,
+#and the binaries' through SecondShellBuild, Build\SecondShell.Cpp.props), named and tagged <major>.<minor>.<build>.
+#The signing certificate comes from the project's secure variables: SECONDSHELL_CERT_PFX (Packaging\key.pfx, base64)
+#and SECONDSHELL_CERT_PW (its password); without them the packages are unsigned.
 $ErrorActionPreference = "Stop"
 $root = $PSScriptRoot
 
 $props = Get-Content (Join-Path $root "Build\SecondShell.Cpp.props") -Raw
-$version = [regex]::Match($props, "<SecondShellVersion>([^<]+)</SecondShellVersion>").Groups[1].Value
-$revision = if ($env:APPVEYOR_BUILD_NUMBER) { [int]$env:APPVEYOR_BUILD_NUMBER } else { 0 }
-#master's builds are releases, tagged v<version>.<build>; other branches' are prereleases, tagged with the branch too
-#(the .appinstaller file's update address, latest/download, finds releases only)
+$majorMinor = [regex]::Match($props, "<SecondShellMajorMinor>([^<]+)</SecondShellMajorMinor>").Groups[1].Value
+if (-not $majorMinor) { throw "No SecondShellMajorMinor in Build\SecondShell.Cpp.props." }
+$build = if ($env:APPVEYOR_BUILD_NUMBER) { [int]$env:APPVEYOR_BUILD_NUMBER } else { 0 }
+$version = "$majorMinor.$build"
+$env:SecondShellBuild = "$build"
+
+#master's builds are releases, tagged v<version>; other branches' are prereleases, tagged with the branch too (the
+#.appinstaller file's update address, latest/download, finds releases only)
 $branch = "$env:APPVEYOR_REPO_BRANCH"
 $isRelease = (-not $branch) -or $branch -eq "master"
-$tag = if ($isRelease) { "v$version.$revision" } else { "v$version.$revision-" + ($branch -replace "[^A-Za-z0-9.-]", "-") }
+$tag = if ($isRelease) { "v$version" } else { "v$version-" + ($branch -replace "[^A-Za-z0-9.-]", "-") }
 
-#The version and the release's tag and kind, for the deployment and the build's name
+#The release's tag and kind, for the deployment
 if ($env:APPVEYOR)
 {
-  Update-AppveyorBuild -Version "$version.$revision"
   Set-AppveyorBuildVariable -Name "SECONDSHELL_RELEASE_TAG" -Value $tag
   Set-AppveyorBuildVariable -Name "SECONDSHELL_RELEASE_KIND" -Value $(if ($isRelease) { "release" } else { "prerelease" })
 }
@@ -36,7 +40,7 @@ try
   if (-not $?) { throw "The build failed." }
 
   #The Store's upload too, once the project's variables have the identity Partner Center reserved (Packaging\Store.md)
-  & (Join-Path $root "package.ps1") -Platforms x64, ARM64 -SkipBuild -Revision $revision -ReleaseTag $tag `
+  & (Join-Path $root "package.ps1") -Platforms x64, ARM64 -SkipBuild -ReleaseTag $tag `
     -StoreName "$env:SECONDSHELL_STORE_NAME" -StorePublisher "$env:SECONDSHELL_STORE_PUBLISHER" -StorePublisherDisplayName "$env:SECONDSHELL_STORE_PUBLISHER_DISPLAY_NAME"
   if (-not $?) { throw "Packaging failed." }
 

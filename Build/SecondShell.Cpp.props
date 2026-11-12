@@ -1,10 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Compiler and output settings shared by all C++ projects. Imported as a property sheet, after Microsoft.Cpp.props. -->
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <!-- The version of every binary and package: ProductInfo, the version resource, package.ps1 -->
+  <!-- The version of every binary and package (ProductInfo, the version resource, package.ps1): <major>.<minor>.<build>.<revision>,
+       the build being CI's build number (ci.ps1 sets SecondShellBuild in the environment; 0 for local builds) and the
+       revision mostly 0. SecondShellVersion is the short form, without a revision of 0: the one shown, and the one in
+       the file names and the release tags -->
   <PropertyGroup>
-    <SecondShellVersion>0.1.0</SecondShellVersion>
-    <SecondShellVersionNumber>$(SecondShellVersion.Replace('.', ',')),0</SecondShellVersionNumber>
+    <SecondShellMajorMinor>1.0</SecondShellMajorMinor>
+    <SecondShellBuild Condition="'$(SecondShellBuild)' == ''">0</SecondShellBuild>
+    <SecondShellRevision Condition="'$(SecondShellRevision)' == ''">0</SecondShellRevision>
+    <SecondShellVersion>$(SecondShellMajorMinor).$(SecondShellBuild)</SecondShellVersion>
+    <SecondShellVersion Condition="'$(SecondShellRevision)' != '0'">$(SecondShellVersion).$(SecondShellRevision)</SecondShellVersion>
+    <SecondShellVersionNumber>$(SecondShellMajorMinor.Replace('.', ',')),$(SecondShellBuild),$(SecondShellRevision)</SecondShellVersionNumber>
   </PropertyGroup>
 
   <PropertyGroup>
